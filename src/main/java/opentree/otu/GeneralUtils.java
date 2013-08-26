@@ -18,6 +18,8 @@ public class GeneralUtils {
 
     public static final String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
 
+    public static final char offendingJSONChars = '"';
+    
     public static int sum_ints(List<Integer> list){
 		if(list==null || list.size()<1)
 			return 0;
@@ -29,6 +31,11 @@ public class GeneralUtils {
 		return sum;
 	}
 
+    public static String escapeString(String dirtyString){
+    	String cleanString = dirtyString.replace(offendingJSONChars, ' ');
+	    return cleanString;
+    }
+    
 	/**
 	 * Replaces non-alphanumeric characters (excluding "_" and "-") in `dirtyName` with "_" and returns the cleaned name.
 	 * Currently slow and crappy, should be updated to use regex and just do a single pass over the string.

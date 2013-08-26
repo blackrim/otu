@@ -126,8 +126,7 @@ function setStudyInfo(id){
     xobjPost.setRequestHeader("Content-Type","application/json");
     xobjPost.send(senddata);
     var jsonrespstr = xobjPost.responseText;
-    var evjson = eval(jsonrespstr);
-    alert(evjson);
+    var evjson = eval(jsonrespstr);    
     ev = JSON.parse(evjson);
     var keys = Object.keys(ev.metadata);
     $(keys).each(function(index){

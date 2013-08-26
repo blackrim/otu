@@ -443,7 +443,7 @@ public class DatabaseManager {
 			bf.append((String)sourcemeta.getProperty("ot:studyPublication"));
 		}bf.append("\", \"ot:studyPublicationReference\": \"");
 		if(sourcemeta.hasProperty("ot:studyPublicationReference")){
-			bf.append((String)sourcemeta.getProperty("ot:studyPublicationReference"));
+			bf.append(GeneralUtils.escapeString((String)sourcemeta.getProperty("ot:studyPublicationReference")));
 		}bf.append("\", \"ot:studyYear\": \"");
 		if(sourcemeta.hasProperty("ot:studyYear")){
 			bf.append((String)sourcemeta.getProperty("ot:studyYear"));
