@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<title>OTU: look at that tree</title>
+ <link rel="stylesheet" href="css/jquery-ui-1.10.3.custom.min.css" />
+ <script src="js/jquery-1.9.1.js"></script>
+ <script src="js/jquery-ui-1.10.3.custom.min.js"></script>
+ <script src="js/d3.v3.min.js" charset="utf-8"></script>
+  <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+ <link href="css/bootstrap-responsive.css" rel="stylesheet">
+ <script src="js/bootstrap.min.js"></script>
+ <script>
+  $(function() {
+    $( "#radio" ).buttonset();
+  });
+ </script>
+ <style>
+  #format { margin-top: 2em; }
+  </style>
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <style>
+      body {
+        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+      }
+    </style>
+</head>
+<div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="#">OTU</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li><a href="cgi-bin/load_studies.py" target="_blank">Load and List Studies</a></li>
+              <li><a href="study_view.html">View Study</a></li>
+              <li  class="active"><a href="#">View Tree</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+<div class="container">
+<body>
+<div class="offset5">
+    Load a different tree...
+	<form class="form-inline" >
+	    <select id="loadselect" style="width:400px">
+	    </select>
+	    <button type="button" class="btn" onClick='submitDetailsForm()'>Load</button>
+	</form>
+    </div>
+<h5 id="treeID"></h5>
+    <h4>Click on a node and it will...</h4>
+    <div class="btn-group" data-toggle="buttons-radio">
+	<button type="button" class="btn btn-large btn-success" name="cac" value=1 id="refocus">Refocus</button>
+	<button type="button" class="btn btn-large btn-primary" name="cac" value=2>Reroot</button>
+	<button type="button" class="btn btn-large btn-primary" name="cac" value=3>Choose Ingroup</button>
+    </div>
+	<button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree()" id>Delete Tree</button>
+    
+<script>
+
+//this needs to ignore the current one we are looking at
+function getStudyTreeList(studyid,id){
+    var baseurl = "http://localhost:7474/db/data/ext/studyJsons/graphdb/getStudyTreeList";
+    var method = "POST";
+    var xobjPost = new XMLHttpRequest();
+    xobjPost.open(method, baseurl, false);
+    xobjPost.setRequestHeader("Accept", "");
+    xobjPost.setRequestHeader("Content-Type","application/json");
+    xobjPost.send("");
+    var jsonrespstr = xobjPost.responseText;
+    var evjson = jQuery.parseJSON(eval(jsonrespstr));
+    $(evjson.studies).each(function(index, element){
+	if(element[0] != studyid && element[1] != id){
+	 $('#loadselect').append('<option value='+element[1]+'> studyID:'+element[0]+' treeID:'+element[1]+'</option>');
+	 }
+    })
+}
+
+
+function deleteTree(sid, tid){
+    var baseurl = "http://localhost:7474/db/data/ext/treeJsons/graphdb/deleteTreeFromTreeID";
+    var method = "POST";
+    var senddata = "{\"studyID\":\""+sid+"\",\"treeID\":\""+tid+"\"}";
+    var xobjPost = new XMLHttpRequest();
+    xobjPost.open(method, baseurl, false);
+    xobjPost.setRequestHeader("Accept", "");
+    xobjPost.setRequestHeader("Content-Type","application/json");
+    xobjPost.send(senddata);
+    var jsonrespstr = xobjPost.responseText;
+    var evjson = eval(jsonrespstr);
+    window.location.href="study_view.html?studyID="+sid;
+}
+
+function setTreeTitle(sid, tt){
+    $("#treeID").replaceWith('<h3 id=treeID>treeID: '+tt+' studyID <a href="study_view.html?studyID='+sid+'">'+sid+'</a></h3>');
+    $("#deleteTreeBtn").replaceWith('<button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree(\''+sid+'\',\''+tt+'\')" id>Delete Tree</button>');
+}
+
+function submitDetailsForm(){
+    var st = $("#loadselect").val();
+    var stid = getRootIDFromTreeID(st);
+    var studyid = getStudyIDFromTreeID(st);
+    setTreeTitle(studyid,st);
+    setup(stid);
+    setup(stid);
+}
+
+var margin = {top: 20, right: 120, bottom: 20, left: 120},
+    width = 4000 - margin.right - margin.left,
+    height = 5000 - margin.top - margin.bottom;
+    
+var i = 0,
+    duration = 750,
+    root;
+
+var tree = d3.layout.tree()
+    .size([height, width]);
+
+var diagonal = d3.svg.diagonal()
+    .projection(function(d) { return [d.y, d.x]; });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.right + margin.left)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+$('button[id="refocus"]').button('toggle');
+function loadData(argsobj) {
+  var url = argsobj.url;
+  var jsonquerystr = argsobj.jsonquerystring;
+  var method = argsobj.method;
+
+  var xobjPost = new XMLHttpRequest();
+  xobjPost.open(method, url, false);
+  xobjPost.setRequestHeader("Accept", "");
+
+  xobjPost.setRequestHeader("Content-Type","application/json");
+  xobjPost.send(jsonquerystr);
+  var jsonrespstr = xobjPost.responseText;
+  var evjson = eval(jsonrespstr);
+    
+  d3.json("", function(error, flare) {
+    root = JSON.parse(evjson);
+    root.x0 = height / 2;
+    root.y0 = 0;
+
+    function collapse(d) {
+      if (d.children) {
+	d._children = d.children;
+	d._children.forEach(collapse);
+	d.children = null;
+      }
+    }
+    //uncomment to have them collapsed to start
+    //root.children.forEach(collapse);
+    update(root);
+  });
+//}
+}
+function resetRadio() {
+  $('button[id="refocus"]').button('toggle');
+}
+
+
+function setup(node){
+  var nodeid = "{\"nodeID\":"+node+"}";
+  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getTreeJson";
+  var argsobj = {"url":url,"method":"POST","jsonquerystring":nodeid};
+  loadData(argsobj);
+}
+
+/*
+ * Used to get the nodeid from a start ottol id
+ */
+function getRootIDFromTreeID(oid){
+  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getRootNodeIDFromTreeID";
+  var jsonquerystr = "{\"treeID\":\""+oid+"\"}";
+  var method = "POST";
+  var xobjPost = new XMLHttpRequest();
+  xobjPost.open(method, url, false);
+  xobjPost.setRequestHeader("Accept", "");
+  xobjPost.setRequestHeader("Content-Type","application/json");
+  xobjPost.send(jsonquerystr);
+  var jsonrespstr = xobjPost.responseText;
+  var evjson = eval(jsonrespstr);
+  return evjson;
+}
+
+/*
+ * Used to get the nodeid from a start ottol id
+ */
+function getStudyIDFromTreeID(oid){
+  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getStudyIDFromTreeID";
+  var jsonquerystr = "{\"treeID\":\""+oid+"\"}";
+  var method = "POST";
+  var xobjPost = new XMLHttpRequest();
+  xobjPost.open(method, url, false);
+  xobjPost.setRequestHeader("Accept", "");
+  xobjPost.setRequestHeader("Content-Type","application/json");
+  xobjPost.send(jsonquerystr);
+  var jsonrespstr = xobjPost.responseText;
+  var evjson = eval(jsonrespstr);
+  return evjson;
+}
+
+/*
+ * used for grabbing the ottol id from the url string
+ */
+function getQueryVariable(variable){
+  var query = window.location.search.substring(1);
+  var vars = query.split("&");
+  for (var i=0;i<vars.length;i++) {
+    var pair = vars[i].split("=");
+    if(pair[0] == variable){return pair[1];}
+  }
+  return(false);
+}
+
+/*
+ * this is called from loadData and updates the fig
+ */
+function update(source) {
+  
+  // Compute the new tree layout.
+  var nodes = tree.nodes(root).reverse(),
+      links = tree.links(nodes);
+
+var nheight;// = nodes.length * 10;
+ // alert(nodes.length);
+ if(nodes.length < 50){
+	nheight = 400 - 40;  
+  }else if(nodes.length < 100){
+	nheight = 750 -40;  
+  }else if(nodes.length < 200){
+	nheight = 800 -40;  
+  }else if(nodes.length < 400){
+	nheight = 1500 - 40;  
+  }else if (nodes.length < 500){
+	nheight = 2700 - 40;  
+  }else{
+	nheight = 4700 -40;
+  }
+ // alert(nheight);
+  tree.size([nheight, 1760]);
+
+  // Normalize for fixed-depth.
+//  nodes.forEach(function(d) { d.y = d.depth * 180; });
+  nodes.forEach(function(d) { d.y = d.depth * 50; });
+
+  // Update the nodes…
+  var node = svg.selectAll("g.node")
+      .data(nodes, function(d) { return d.id || (d.id = ++i); });
+
+  // Enter any new nodes at the parent's previous position.
+  var nodeEnter = node.enter().append("g")
+      .attr("class", "node")
+      .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
+      .on("click", click);
+
+  nodeEnter.append("circle")
+      .attr("r", 1e-6)
+      .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
+
+  nodeEnter.append("text")
+      .attr("x", function(d) { return d.children || d._children ? -10 : 10; })
+      .attr("dy", ".35em")
+      .attr("text-anchor", function(d) { return d.children || d._children ? "end" : "start"; })
+      .text(function(d) { return d.size ? d.name+" ("+d.size+")": d.name;})
+      .style("font-size","10px") 
+      .style("font-family","Arial")
+      .style("fill-opacity", 1e-6);
+
+  // Transition nodes to their new position.
+  var nodeUpdate = node.transition()
+      .duration(duration)
+      .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+
+  nodeUpdate.select("circle")
+      //.attr("r", 4.5)
+      .attr("r", function(d) { return d.ingroup ? 5 : 3;})
+      .style("stroke",function(d) { return d.ingroup ? "green" : "grey";})
+      .style("fill",function(d) { return d.notcomplete ? "lightgreen" : "#fff";});
+      //.style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
+
+  nodeUpdate.select("text")
+      .style("fill-opacity", 1);
+
+  // Transition exiting nodes to the parent's new position.
+  var nodeExit = node.exit().transition()
+      .duration(duration)
+      .attr("transform", function(d) { return "translate(" + source.y + "," + source.x + ")"; })
+      .remove();
+
+  nodeExit.select("circle")
+      .attr("r", 1e-6);
+
+  nodeExit.select("text")
+      .style("fill-opacity", 1e-6);
+
+  // Update the links…
+  var link = svg.selectAll("path.link")
+      .data(links, function(d) { return d.target.id; });
+
+  // Enter any new links at the parent's previous position.
+  link.enter().insert("path", "g")
+      .attr("class", "link")
+      .style("fill","none")
+      .style("stroke","#ccc")
+      .style("stroke-width",1.5)
+      .attr("d", function(d) {
+        var o = {x: source.x0, y: source.y0};
+        return diagonal({source: o, target: o});
+      });
+
+  // Transition links to their new position.
+  link.transition()
+      .duration(duration)
+      .attr("d", diagonal);
+
+  // Transition exiting nodes to the parent's new position.
+  link.exit().transition()
+      .duration(duration)
+      .attr("d", function(d) {
+        var o = {x: source.x, y: source.y};
+        return diagonal({source: o, target: o});
+      })
+      .remove();
+
+  // Stash the old positions for transition.
+  nodes.forEach(function(d) {
+    d.x0 = d.x;
+    d.y0 = d.y;
+  });
+}
+
+function reroot(nodeid){
+  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/rerootTree";
+  var jsonquerystr = "{\"nodeID\":"+nodeid+"}";
+  var method = "POST";
+  var xobjPost = new XMLHttpRequest();
+  xobjPost.open(method, url, false);
+  xobjPost.setRequestHeader("Accept", "");    
+  xobjPost.setRequestHeader("Content-Type","application/json");
+  xobjPost.send(jsonquerystr);
+  var jsonrespstr = xobjPost.responseText;
+  var evjson = eval(jsonrespstr);
+  setup(evjson);
+}
+
+function ingroup(nodeid){
+  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/ingroupSelect";
+  var jsonquerystr = "{\"nodeID\":"+nodeid+"}";
+  var method = "POST";
+  var xobjPost = new XMLHttpRequest();
+  xobjPost.open(method, url, false);
+  xobjPost.setRequestHeader("Accept", "");    
+  xobjPost.setRequestHeader("Content-Type","application/json");
+  xobjPost.send(jsonquerystr);
+  var jsonrespstr = xobjPost.responseText;
+  var evjson = eval(jsonrespstr);
+  setup(evjson);
+}
+
+// Toggle children on click.
+function click(d){
+    var ac = $('button[name="cac"].active').val();
+  var ev = d3.event;
+  if (ac == 1){//refocus
+    setup(d.id);	
+  }else if(ac ==2 ){//reroot
+    resetRadio();
+    reroot(d.id);
+  }else if(ac == 3){//ingroup
+    resetRadio();
+    ingroup(d.id);
+  }else if(ac == 4){//export
+    resetRadio();
+    alert("behold! you want to extract");
+  }
+//	if (ev.shiftKey==1){
+//		reroot(d.id);
+//	}else{
+//		setup(d.id);
+//	}
+}
+
+/*
+ * This is what happens when the page is first loaded
+ */
+var id = getQueryVariable('treeID');
+var studyid = getStudyIDFromTreeID(id);
+setTreeTitle(studyid,id);
+getStudyTreeList(studyid,id);
+var start;
+if(id != false){
+  start = getRootIDFromTreeID(id);
+}else{
+  start = getRootIDFromTreeID("mt___0");
+}
+//do it twice to get the height right
+setup(start);
+setup(start);
+
+d3.select(self.frameElement).style("height", "800px");
+</script>
+</dev>
+</body>
+</html>
