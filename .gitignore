@@ -2,3 +2,6 @@
 .settings*
 target*
 .project
+views/logging
+views/bitbucketcommands
+views/test_bitbucket.py
