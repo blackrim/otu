@@ -44,6 +44,7 @@ HTML_TEMPLATE = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN
           <div class="nav-collapse collapse">
             <ul class="nav">
               <li class="active"><a href="#">Load and List Studies</a></li>
+ 			  <li><a href="search_studies.py">Search Public Studies</a></li>
               <li><a href="../study_view.html">View Study</a></li>
               <li><a href="../tree_dyn.html">View Tree</a></li>
             </ul>
