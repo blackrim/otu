@@ -24,7 +24,7 @@ public class studyJsons extends ServerPlugin {
 	 * @param nodeid
 	 * @return
 	 */
-	@Description( "Return a JSON with alternative parents presented" )
+	@Description( "" )
 	@PluginTarget( GraphDatabaseService.class )
 	public String putStudyNewickSingle(@Source GraphDatabaseService graphDb,
 			@Description( "The Neo4j tree id of the tree to be used as the root for the tree.")
@@ -48,7 +48,7 @@ public class studyJsons extends ServerPlugin {
 	 * @param newickString
 	 * @return
 	 */
-	@Description( "Return a JSON with alternative parents presented" )
+	@Description( "" )
 	@PluginTarget( GraphDatabaseService.class )
 	public String putStudyNewickString(@Source GraphDatabaseService graphDb,
 			@Description( "The Neo4j tree id of the tree to be used as the root for the tree.")
@@ -60,7 +60,7 @@ public class studyJsons extends ServerPlugin {
 		return studytreelist;
 	}
 	
-	@Description( "Return a JSON with alternative parents presented" )
+	@Description( "" )
 	@PluginTarget( GraphDatabaseService.class )
 	public String getStudyTreeList(@Source GraphDatabaseService graphDb) {
 		DatabaseManager dm = new DatabaseManager(graphDb);

@@ -36,26 +36,75 @@ HTML_TEMPLATE = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN
     </style>
     <script language ="javascript" type = "text/javascript" >
 
+function setStatus(statusMsg, append) {
+    var msg = document.createElement('p');
+    msg.innerHTML = statusMsg;
+    if (append == true) {
+        document.getElementById("statusMessage").appendChild(document.createElement("p"));
+        document.getElementById("statusMessage").appendChild(msg);
+    } else {
+        document.getElementById("statusMessage").innerHTML=msg.innerHTML;
+    }
+}
+
 function initRemoteIndexing() {
-    var baseurl = "http://localhost:7474/db/data/ext/Indexing/graphdb/indexRemoteStudies";
-    var method = "POST";
-    document.getElementById("statusMessage").innerHTML="<p>Indexing in progress! This message will be updated when indexing is complete. Keep this window open until indexing is complete (or close it to cancel the indexing).</p>";
-    var xobjPost = new XMLHttpRequest();
-    xobjPost.onreadystatechange=function() {
-      if (xobjPost.readyState==4 && xobjPost.status==200) {
-//          document.getElementById("statusMessage").innerHTML=xobjPost.responseText;
-          document.getElementById("statusMessage").innerHTML="Indexing complete.";
+    setStatus("Indexing in progress! This message will be updated as indexing proceeds. Keep this window open until indexing is complete (or close it to stop indexing).",false);
+
+    var mostCurrentCommitURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/getMostCurrentNexsonsURL";
+    var xobj = new XMLHttpRequest();
+
+    xobj.onreadystatechange=function() {
+        if (xobj.readyState==4 && xobj.status==200) {
+            curNexsonsBaseURL = JSON.parse(xobj.responseText);
+            setStatus("attempting to import nexsons from: " + curNexsonsBaseURL, true);
+            indexEachRemoteNexson(curNexsonsBaseURL);
         }
     }
-    xobjPost.open(method, baseurl, true);
-    xobjPost.setRequestHeader("Accept", "");
-    xobjPost.setRequestHeader("Content-Type","application/json");
-    xobjPost.send("");
-//    var jsonrespstr = xobjPost.responseText;
-//    var evjson = jQuery.parseJSON(eval(jsonrespstr));
-//    $(evjson.studies).each(function(index, element){
-//      $('#studies').append('<tr><td> <a href="'+studylinkurl+element[0]+'">'+element[0]+'</a> </td> <td> <a href="'+treelinkurl+element[1]+'" target="_blank">'+element[1]+'</a> </td></tr>');       
-//    })
+    xobj.open("POST", mostCurrentCommitURL, true);
+    xobj.setRequestHeader("Accept", "*/*");
+    xobj.setRequestHeader("Content-Type","Application/json");
+    xobj.send("");
+
+}
+
+function indexEachRemoteNexson(curNexsonsBaseURL) {
+    var nexsonsListURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/getNexsonsListFromURL";
+
+    var xobj = new XMLHttpRequest();
+    xobj.onreadystatechange=function() {
+//        alert(xobj.responseText);
+        if (xobj.readyState==4 && xobj.status==200) {
+//            alert(JSON.stringify(xobj.responseText));            
+            for (studyID of JSON.parse(xobj.responseText)) {
+                indexSingleStudy(studyID, curNexsonsBaseURL + studyID);
+            }
+        }
+    }
+    xobj.open("POST", nexsonsListURL, true);
+    xobj.setRequestHeader("Accept", "*/*");
+    xobj.setRequestHeader("Content-Type","Application/json; charset=utf-8");
+    xobj.setRequestHeader("Content-length", 1);
+    xobj.send(JSON.stringify({"url":curNexsonsBaseURL}));
+
+}
+
+function indexSingleStudy(studyID, url) {
+    var indexServiceURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/indexSingleNexson";
+
+    var xobj = new XMLHttpRequest();
+    xobj.onreadystatechange=function() {
+        if (xobj.readyState==4 && xobj.status==200) {
+            if (JSON.parse(xobj.responseText) == true) {
+                setStatus("Indexed study: " + studyID, true);
+            } else {
+                setStatus("Indexing failed for study: " + studyID);
+            }
+        }
+    }
+    xobj.open("POST", indexServiceURL, true);
+    xobj.setRequestHeader("Accept", "*/*");
+    xobj.setRequestHeader("Content-Type","Application/json");
+    xobj.send(JSON.stringify({ "studyID" : studyID, "url" : url }));
 }
 
     </script> 
