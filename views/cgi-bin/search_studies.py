@@ -2,7 +2,7 @@
 
 import json
 import urllib2
-import grequests
+#import grequests # facilitates asynchronous python but currently not used
 import cgi,cgitb
 import time
 import sys
@@ -34,6 +34,31 @@ HTML_TEMPLATE = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN
         padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
       }
     </style>
+    <script language ="javascript" type = "text/javascript" >
+
+function initRemoteIndexing() {
+    var baseurl = "http://localhost:7474/db/data/ext/Indexing/graphdb/indexRemoteStudies";
+    var method = "POST";
+    document.getElementById("statusMessage").innerHTML="<p>Indexing in progress! This message will be updated when indexing is complete. Keep this window open until indexing is complete (or close it to cancel the indexing).</p>";
+    var xobjPost = new XMLHttpRequest();
+    xobjPost.onreadystatechange=function() {
+      if (xobjPost.readyState==4 && xobjPost.status==200) {
+//          document.getElementById("statusMessage").innerHTML=xobjPost.responseText;
+          document.getElementById("statusMessage").innerHTML="Indexing complete.";
+        }
+    }
+    xobjPost.open(method, baseurl, true);
+    xobjPost.setRequestHeader("Accept", "");
+    xobjPost.setRequestHeader("Content-Type","application/json");
+    xobjPost.send("");
+//    var jsonrespstr = xobjPost.responseText;
+//    var evjson = jQuery.parseJSON(eval(jsonrespstr));
+//    $(evjson.studies).each(function(index, element){
+//      $('#studies').append('<tr><td> <a href="'+studylinkurl+element[0]+'">'+element[0]+'</a> </td> <td> <a href="'+treelinkurl+element[1]+'" target="_blank">'+element[1]+'</a> </td></tr>');       
+//    })
+}
+
+    </script> 
   </head>
   <body>
     <div class="navbar navbar-inverse navbar-fixed-top">
@@ -60,9 +85,9 @@ HTML_TEMPLATE = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN
       <h1>Search remote studies</h1>
       <div class="row">
         <div id="study-contain" class="span5">
-          <form name="makeIndexes" onsubmit="return initRemoteIndexing()">
+          <form name="makeIndexes" method="post" action="">
             <!--input type="hidden" id="init_remote_indexing_flag" name="init_remote_indexing_flag"/-->
-            <button name="submit" type="submit" class="btn">Index public studies for searching</button>
+            <button type="button" class="btn" onclick="initRemoteIndexing(); return false;">Index public studies for searching</button>
           </form>
           <div id="statusMessage">
           </div>
@@ -71,32 +96,6 @@ HTML_TEMPLATE = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN
     </div>
   </body>
 </html>
-<script language ="javascript" type = "text/javascript" >
-var treelinkurl ="../tree_dyn.html?treeID="
-
-function initRemoteIndexing() {
-    var baseurl = "http://localhost:7474/db/data/ext/studyJsons/graphdb/getStudyTreeList";
-    var method = "POST";
-    document.getElementById("statusMessage").innerHTML="<p>Indexing in progress! This message will be updated when indexing is complete. Closing this window will cancel indexing.</p>";
-    var xobjPost = new XMLHttpRequest();
-    xobjPost.onreadystatechange=function() {
-      if (xobjPost.readyState==4 && xobjPost.status==200) {
-          document.getElementById("statusMessage").innerHTML="<p>Indexing complete.</p>";
-        }
-    }
-    xobjPost.open(method, baseurl, true);
-    xobjPost.setRequestHeader("Accept", "");
-    xobjPost.setRequestHeader("Content-Type","application/json");
-    xobjPost.send("");
-//    var jsonrespstr = xobjPost.responseText;
-//    var evjson = jQuery.parseJSON(eval(jsonrespstr));
-//    $(evjson.studies).each(function(index, element){
-//      $('#studies').append('<tr><td> <a href="'+studylinkurl+element[0]+'">'+element[0]+'</a> </td> <td> <a href="'+treelinkurl+element[1]+'" target="_blank">'+element[1]+'</a> </td></tr>');       
-//    })
-    return false;
-}
-
-</script> 
 """
 
 #remote_study_indexing_service_url = "http://localhost:7474/db/data/ext/Indexing/graphdb/indexRemoteStudies"

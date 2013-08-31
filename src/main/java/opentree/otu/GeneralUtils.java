@@ -22,7 +22,7 @@ public class GeneralUtils {
     
     public static int sum_ints(List<Integer> list){
 		if(list==null || list.size()<1)
-			return 0;
+			return 0; // shouldn't this throw a null pointer exception? otherwise how do we differentiate null from a list of zeroes?
 
 		int sum = 0;
 		for(Integer i: list)

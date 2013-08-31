@@ -9,8 +9,9 @@ import javax.ws.rs.core.MediaType;
 
 import jade.MessageLogger;
 import jade.tree.*;
-
+import opentree.otu.DatabaseIndexer;
 import opentree.otu.DatabaseManager;
+import opentree.otu.GraphDatabaseAgent;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -30,7 +31,8 @@ public class studyJsons extends ServerPlugin {
 			@Parameter(name = "studyID", optional = false) String studyID,
 			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
 			@Parameter(name = "newickString", optional = false) String newickString) {
-		DatabaseManager dm = new DatabaseManager(graphDb);
+		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
+		DatabaseManager dm = new DatabaseManager(gdb);
 		TreeReader tr = new TreeReader();
 		ArrayList<JadeTree> trees = new ArrayList<JadeTree>();
 		JadeTree t = tr.readTree(newickString);
@@ -54,7 +56,7 @@ public class studyJsons extends ServerPlugin {
 			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
 			@Parameter(name = "newickString", optional = false) String newickString) {
 		DatabaseManager dm = new DatabaseManager(graphDb);
-		String studytreelist = dm.getStudyTreeList();
+		String studytreelist = dm.getJSONOfSourceIDsWithImportedTreeIDs();
 		return studytreelist;
 	}
 	
@@ -62,7 +64,7 @@ public class studyJsons extends ServerPlugin {
 	@PluginTarget( GraphDatabaseService.class )
 	public String getStudyTreeList(@Source GraphDatabaseService graphDb) {
 		DatabaseManager dm = new DatabaseManager(graphDb);
-		String studytreelist = dm.getStudyTreeList();
+		String studytreelist = dm.getJSONOfSourceIDsWithImportedTreeIDs();
 		return studytreelist;
 	}
 	
@@ -70,7 +72,7 @@ public class studyJsons extends ServerPlugin {
 	@PluginTarget( GraphDatabaseService.class )
 	public String getStudyList(@Source GraphDatabaseService graphDb) {
 		DatabaseManager dm = new DatabaseManager(graphDb);
-		String studylist = dm.getStudyList();
+		String studylist = dm.getJSONOfSourceIDs();
 		return studylist;
 	}
 	
