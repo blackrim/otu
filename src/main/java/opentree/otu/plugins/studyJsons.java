@@ -16,7 +16,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.server.plugins.*;
 
-public class studyJsons extends ServerPlugin{
+public class studyJsons extends ServerPlugin {
 	
 	/**
 	 * this is a single tree version

@@ -1,8 +1,11 @@
-#!/usr/bin/python
+#!/usr/local/bin/python
 
 import json
 import urllib2
+import grequests
 import cgi,cgitb
+import time
+import sys
 from StringIO import StringIO
 cgitb.enable()
 
@@ -57,42 +60,93 @@ HTML_TEMPLATE = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN
       <h1>Search remote studies</h1>
       <div class="row">
         <div id="study-contain" class="span5">
-          <form action="search_studies.py" method="POST" enctype="multipart/form-data">
-            <input type="hidden" id="init_remote_indexing_flag" name="init_remote_indexing_flag"/>
-            <button name="submit" type="submit" class="btn">Build indexes</button>
+          <form name="makeIndexes" onsubmit="return initRemoteIndexing()">
+            <!--input type="hidden" id="init_remote_indexing_flag" name="init_remote_indexing_flag"/-->
+            <button name="submit" type="submit" class="btn">Index public studies for searching</button>
           </form>
+          <div id="statusMessage">
+          </div>
         </div>
       </div>
     </div>
   </body>
 </html>
+<script language ="javascript" type = "text/javascript" >
+var treelinkurl ="../tree_dyn.html?treeID="
+
+function initRemoteIndexing() {
+    var baseurl = "http://localhost:7474/db/data/ext/studyJsons/graphdb/getStudyTreeList";
+    var method = "POST";
+    document.getElementById("statusMessage").innerHTML="<p>Indexing in progress! This message will be updated when indexing is complete. Closing this window will cancel indexing.</p>";
+    var xobjPost = new XMLHttpRequest();
+    xobjPost.onreadystatechange=function() {
+      if (xobjPost.readyState==4 && xobjPost.status==200) {
+          document.getElementById("statusMessage").innerHTML="<p>Indexing complete.</p>";
+        }
+    }
+    xobjPost.open(method, baseurl, true);
+    xobjPost.setRequestHeader("Accept", "");
+    xobjPost.setRequestHeader("Content-Type","application/json");
+    xobjPost.send("");
+//    var jsonrespstr = xobjPost.responseText;
+//    var evjson = jQuery.parseJSON(eval(jsonrespstr));
+//    $(evjson.studies).each(function(index, element){
+//      $('#studies').append('<tr><td> <a href="'+studylinkurl+element[0]+'">'+element[0]+'</a> </td> <td> <a href="'+treelinkurl+element[1]+'" target="_blank">'+element[1]+'</a> </td></tr>');       
+//    })
+    return false;
+}
+
+</script> 
 """
 
-remote_study_indexing_service_url = "http://localhost:7474/db/data/ext/studyJsons/graphdb/indexRemoteStudies"
-
-def init_build_remote_study_indexes():
-    data = None
-
-    # example of accessing form elements from previous form submission
-    form = cgi.FieldStorage()
-    if form.has_key("init_remote_indexing_flag"):
-
-        ### here is an example of how to call a neo4j rest service
-        req = urllib2.Request(remote_study_indexing_service_url, headers = {"Content-Type": "application/json",
-            # Some extra headers for fun
-            "Accept": "*/*",   # curl does this
-            "User-Agent": "my-python-app/1", # otherwise it uses "Python-urllib/..."
-            },data = data)
-        f = urllib2.urlopen(req)
+#remote_study_indexing_service_url = "http://localhost:7474/db/data/ext/Indexing/graphdb/indexRemoteStudies"
 
 def print_html_form():
-    """This prints out the html form. Note that the action is set to
-      the name of the script which makes this is a self-posting form.
-      In other words, this cgi both displays a form and processes it.
-    """
+    """This just prints out the html form. We then substitute things into it with javascript."""
     print "content-type: text/html\n"
-
     print HTML_TEMPLATE
+
+#    data = None
+    # example of accessing form elements from previous form submission
+#    form = cgi.FieldStorage()
+#    if form.has_key("init_remote_indexing_flag"):
+        ### here is an example of how to call a neo4j rest service
+#        req = urllib2.Request(remote_study_indexing_service_url, headers = {"Content-Type": "application/json",
+#            # Some extra headers for fun
+#            "Accept": "*/*",   # curl does this
+#            "User-Agent": "my-python-app/1", # otherwise it uses "Python-urllib/..."
+#            },data = data, timeout = 10000000)
+#        f = urllib2.urlopen(req)
+        # attempting to use grequests for asynchronous call
+
+#        rs = grequests.post(remote_study_indexing_service_url,headers={"Content-type":"Application/json"}, callback=print_completed, data=None)
+
+#        print HTML_TEMPLATE.replace("$INDEXING_RESPONSE$", "<p>Indexing in progress! This message will be updated when indexing is complete. Closing this window will cancel indexing.</p>")
+#        sys.stdout.flush()
+
+#        job = grequests.send(rs, grequests.Pool(1))
+#        while rs.response == None:
+#            time.sleep(1)
+#            print "waiting"
+            
+
+        # testing
+#        for item in dir(rs):
+#            print "<p>"
+#            print item
+#            print eval("rs."+item)
+#            print "</p>"
+
+#    else:
+
+#def print_completed(r, **kwargs):
+#    print "</p>Indexing complete.</p>"
+
+#def update_page(res):
+#    print HTML_TEMPLATE.replace("$INDEXING_RESPONSE$", "<p>Indexing complete.</p>")
+
+#    t = Timer(2.0, print_complete_msg())
+#    t.start()
 
     # here is an example of how to print the rest results to the page. see below for how to get the rest results
 #    print HTML_TEMPLATE.replace("GITFILELIST",gitfilelist)
@@ -227,7 +281,7 @@ def print_html_form():
 #gitfilelist = get_bitbucket_file_list()
 #print_html_form (success,gitfilelist)
 
-init_build_remote_study_indexes()
+#init_build_remote_study_indexes()
 
 # print the html to the web browser which will render it
 print_html_form()
