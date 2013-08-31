@@ -16,9 +16,7 @@ try: # Windows needs stdio set for binary mode.
     msvcrt.setmode (1, os.O_BINARY) # stdout = 1
 except ImportError:
     pass
-
 #UPLOAD_DIR = "/tmp"
-
 HTML_TEMPLATE = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <head>
@@ -75,8 +73,9 @@ function indexEachRemoteNexson(curNexsonsBaseURL) {
 //        alert(xobj.responseText);
         if (xobj.readyState==4 && xobj.status==200) {
 //            alert(JSON.stringify(xobj.responseText));            
-            for (studyID of JSON.parse(xobj.responseText)) {
-                indexSingleStudy(studyID, curNexsonsBaseURL + studyID);
+            studies = JSON.parse(xobj.responseText)
+            for (var i=0; i < studies.length; i++) {
+                indexSingleStudy(studies[i], curNexsonsBaseURL + studies[i]);
             }
         }
     }
