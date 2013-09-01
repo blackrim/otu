@@ -116,12 +116,14 @@ function submitDetailsForm(){
 var margin = {top: 20, right: 120, bottom: 20, left: 120},
     width = 4000 - margin.right - margin.left,
     height = 5000 - margin.top - margin.bottom;
-    
+
+var nheight = 100;
+
 var i = 0,
     duration = 750,
     root;
 
-var tree = d3.layout.tree()
+var tree = d3.layout.cluster()
     .size([height, width]);
 
 var diagonal = d3.svg.diagonal()
@@ -153,15 +155,6 @@ function loadData(argsobj) {
     root.x0 = height / 2;
     root.y0 = 0;
 
-    function collapse(d) {
-      if (d.children) {
-	d._children = d.children;
-	d._children.forEach(collapse);
-	d.children = null;
-      }
-    }
-    //uncomment to have them collapsed to start
-    //root.children.forEach(collapse);
     update(root);
   });
 //}
@@ -199,6 +192,9 @@ function getRootIDFromTreeID(oid){
  * Used to get the nodeid from a start ottol id
  */
 function getStudyIDFromTreeID(oid){
+  if(oid == ""){
+    return "";
+  }
   var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getStudyIDFromTreeID";
   var jsonquerystr = "{\"treeID\":\""+oid+"\"}";
   var method = "POST";
@@ -233,23 +229,12 @@ function update(source) {
   // Compute the new tree layout.
   var nodes = tree.nodes(root).reverse(),
       links = tree.links(nodes);
-
-var nheight;// = nodes.length * 10;
- // alert(nodes.length);
- if(nodes.length < 50){
-	nheight = 400 - 40;  
-  }else if(nodes.length < 100){
-	nheight = 750 -40;  
-  }else if(nodes.length < 200){
-	nheight = 800 -40;  
-  }else if(nodes.length < 400){
-	nheight = 1500 - 40;  
-  }else if (nodes.length < 500){
-	nheight = 2700 - 40;  
-  }else{
-	nheight = 4700 -40;
-  }
- // alert(nheight);
+ 
+  var tips = 0;
+  nodes.forEach(function(d) { if(!d.children){tips+=1;} });
+    
+  nheight = tips * 20;
+  //alert(nheight);
   tree.size([nheight, 1760]);
 
   // Normalize for fixed-depth.

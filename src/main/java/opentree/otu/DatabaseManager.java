@@ -48,6 +48,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	 * initNodeIndexes(); }
 	 */
 
+
 	/**
 	 * Access the graph db through the given service object.
 	 * 
