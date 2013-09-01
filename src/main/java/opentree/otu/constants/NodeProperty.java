@@ -6,8 +6,6 @@ package opentree.otu.constants;
  * 
  * https://github.com/OpenTreeOfLife/treemachine/wiki/Vocabulary
  * 
- * @author cody hinchliff
- *
  */
 public enum NodeProperty {
 
