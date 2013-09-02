@@ -11,29 +11,34 @@ public enum NodeIndexDescription {
 	// ===== tree indexes
 	
 	/**
-     * Root nodes for imported AND REMOTE (i.e. not imported) trees, indexed by the tree ids. This is a one-one index, each tree has a unique tree id.
-     * field is "treeID", key is tree id.
+     * Root nodes for both local and remote (i.e. not imported) trees, indexed by the tree ids. The first key is either:
+     * "localTreeId" or "remoteTreeId", and second key is the tree id string, which is the study id for the tree concatenated
+     * via an underscore to either the incoming treeId from the original nexson, or an arbitrary local tree identifier string
+     * if the incoming tree is missing (or if the tree is not from a nexson). Root nodes for trees that have been imported are
+     * indexed under "localTreeId" and trees read from the remote repo are indexed under "remoteTreeId". To get a list of all
+     * known trees, search this index on the key "*" (returns independent results for local and remote trees).
 	 */
     TREE_ROOT_NODES_BY_TREE_ID ("treeRootNodesByTreeId"),
         
     /**
-     * Root nodes for trees from the specified source. Field is "sourceID", key is source id (aka study id).
+     * Root nodes for both local and remote (i.e. not imported) trees, indexed by their originating source id. Key 1 is either
+     * "localSourceId" or "remoteSourceId", and key 2 is the source id (aka study id--a string).
      */
     TREE_ROOT_NODES_BY_OT_SOURCE_ID ("treeRootNodesBySourceId"),
 
     /**
-     * Root nodes for trees including a taxon with the supplied name. Field is "name", key is taxon name.
+     * Root nodes for trees including a taxon with the supplied name. Key 1 is "name", key 2 is taxon name.
      */
     TREE_ROOT_NODES_BY_INCLUDED_TAXON_NAME ("treeRootNodesByInclTaxonName"),
 
     /**
      * Root nodes for trees including a taxon with the supplied name. Spaces have been replaced with underscores
-     * to facilitate whole-word matching. Field is "name", key is taxon name.
+     * to facilitate whole-word matching. Key 1 is "name", key 2 is taxon name.
      */
     TREE_ROOT_NODES_BY_INCLUDED_TAXON_NAME_WHITESPACE_FILLED ("treeRootNodesByInclTaxonNameWhitespaceFilled"),
     
     /**
-     * Root nodes for trees including a taxon with the supplied ott id. Field is "uid", key is ott id.
+     * Root nodes for trees including a taxon with the supplied ott id. Key 1 is "uid", key 2 is ott id.
      */
     TREE_ROOT_NODES_BY_INCLUDED_TAXON_MAPPED_OTT_ID ("treeRootNodesByInclTaxonMappedOTTId"),
 
@@ -43,15 +48,16 @@ public enum NodeIndexDescription {
     // Disadvantage would be a bigger index... Doesn't seem like much of a disadvantage!
 
     /**
-     * Root nodes for trees including a taxon with the supplied ott id. Field is "uid", key is ott id.
+     * Root nodes for trees indexed by the specified ot namespace property. Key 1 is the ot property name (e.g. "ot:curatorName")
+     * and key 2 is the value for that property (e.g. "Romina Gazis").
      */
     TREE_ROOT_NODES_BY_OT_PROPERTY ("treeRootNodesByOTProperty"),
     
     // ===== source indexes
 
     /**
-     * Study metadata nodes indexed by the various ot namespace properties. Field is the ot property
-     * (e.g. "ot:curatorName") and key is the value for that property.
+     * Study metadata nodes indexed by the specified ot namespace properties. Key 1 is the ot property name (e.g. "ot:curatorName")
+     * and key 2 is the value for that property (e.g. "Bryan Drew").
      */
 	SOURCE_METADATA_NODES_BY_OT_PROPERTY ("sourceMetaNodesByOTProperty"),
     
@@ -73,9 +79,10 @@ public enum NodeIndexDescription {
     SOURCE_METADATA_NODES_BY_OT_STUDY_PUBLICATION_REFERENCE ("sourceMetaNodesByOTPubRef"), */
 
     /**
-     * Study metadata nodes for imported AND REMOTE (i.e. not imported) studies, indexed by the ot:studyId property. Field is "sourceID" (string) and key is source id (aka study id).
+     * Source metadata nodes for both local and remote (i.e. not imported) sources, indexed by their originating source id.
+     * Key 1 is either "localSourceId" or "remoteSourceId", and key 2 is the source id (aka study id--a string).
      */
-    SOURCE_METADATA_NODES_BY_OT_SOURCE_ID ("sourceMetaNodesByOTSourceId"),
+    SOURCE_METADATA_NODES_BY_OT_SOURCE_ID ("sourceMetaNodesByOTSourceId");
 
     /*
      * Study metadata nodes indexed by the ot:studyPublication property. Field is "pub" (string) and key is
@@ -90,11 +97,11 @@ public enum NodeIndexDescription {
     
     // ===== indexes for locally imported sources
     
-	/**
+	/*
      * Root nodes for IMPORTED TREES, indexed by the tree ids. This is a one-one index, each tree has a unique tree id.
      * field is "treeID", key is tree id.
-	 */
-    LOCAL_TREE_ROOT_NODES_BY_TREE_ID ("treeRootNodesByTreeIdIMPORTED");
+	 *
+    LOCAL_TREE_ROOT_NODES_BY_TREE_ID ("treeRootNodesByTreeIdIMPORTED"); */
     
 //    /**
 //     * Study metadata nodes FOR IMPORTED STUDIES, indexed by the ot:studyId property. Field is "sourceID" (string) and key is source id (aka study id).
