@@ -40,7 +40,7 @@ public class treeJsons extends ServerPlugin{
 			@Parameter(name = "treeID", optional = false) String treeID) {
 		DatabaseManager dm = new DatabaseManager(graphDb);
 		// TODO: add check for whether tree is imported. If not then return error
-		dm.deleteTreeFromTreeID(studyID, treeID);
+		dm.deleteLocalTreeFromTreeID(studyID, treeID);
 		return "{\"worked\":1}";
 	}
 	

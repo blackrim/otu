@@ -580,11 +580,10 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	}
 
 	/**
-	 * 
-	 * @param studyID
+	 * Deletes a local tree
 	 * @param treeID
 	 */
-	public void deleteTreeFromTreeID(String studyID, String treeID) {
+	public void deleteLocalTreeFromTreeID(String treeID) {
 		
 		IndexHits<Node> treesFound = importedTreeRootIndex.get("treeID", treeID);
 		Node root = null;
@@ -609,6 +608,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 				if (!curGraphNode.equals(root)) {
 					todelete.add(curGraphNode);
 				}
+				todelete.add(root);
 			}
 			for (Node nd : todelete) {
 				for (Relationship rel : nd.getRelationships()) {
@@ -703,19 +703,17 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	}
 
 	/**
-	 * Remove all trees from a study. The study metadata node and the tree root nodes for all its trees will remain
-	 * (they are still searchable from the indexes), but the imported tree index will be updated to reflect that the
-	 * trees are no longer imported.
+	 * Remove a local study and all its trees.
 	 * @param studyID
 	 */
 	public void deleteStudyFromStudyID(String studyID) {
 
 		// get the study
-		Node root = null;
+		Node sourceMeta = null;
 		IndexHits<Node> studiesFound = null;
 		try {
 			studiesFound = sourceMetaIndex.get("sourceID", studyID);
-			root = studiesFound.getSingle();
+			sourceMeta = studiesFound.getSingle();
 		} finally {
 			studiesFound.close();
 		}
@@ -724,11 +722,16 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		try {
 
 			// remove all study trees
-			for (Relationship rel : root.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
+			for (Relationship rel : sourceMeta.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
 				String treeID = (String) rel.getEndNode().getProperty("treeID");
-				deleteTreeFromTreeID(studyID, treeID);
+				deleteLocalTreeFromTreeID(treeID);
 			}
+			
+			// delete the study node itself
+			// TODO: once db structure has changed, will need to remove the rel pointing to the remote study node before we delete the local one
+			sourceMeta.delete();			
 			tx.success();
+			
 		} finally {
 			tx.finish();
 		}
@@ -740,6 +743,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	 * @return
 	 */
 	public String getStudyIDFromTreeID(String treeID) {
+		// TODO: update with new db structure
 		IndexHits<Node> hits = allTreeRootIndex.get("treeID", treeID);
 		Node rootNode = hits.getSingle();
 		hits.close();
