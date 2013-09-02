@@ -49,7 +49,14 @@ public class DatabaseAbstractBase {
 	public Index<Node> getNodeIndex(NodeIndexDescription indexDesc) {
 		return graphDb.getNodeIndex(indexDesc.name);
 	}
-        
+    
+	/**
+	 * Return the GraphDatabaseAgent so that you can do things with the graph
+	 * @return GraphDatabaseAgent
+	 */
+	public GraphDatabaseAgent getGraphDatabaseAgent(){
+		return graphDb;
+	}
 	/**
 	 * Just close the db.
 	 */

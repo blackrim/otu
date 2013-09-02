@@ -28,12 +28,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 
 // 	private GraphDatabaseAgent graphDb; // moved to abstract class for extensibility
 //	private DatabaseIndexer indexer;
-
-/*	protected static Index<Node> sourceMetaIndex; // the metadata node for the source given sourceID (aka studyID), for ALL indexed studies
-//	protected static Index<Node> importedSourceMetaIndex; // the metadata node for the source given sourceID (aka studyID), ONLY FOR LOCAL studies
-	protected static Index<Node> sourceTreeIndex; // all the trees for a source given sourceID (aka studyID)
-	protected static Index<Node> allTreeRootIndex; // the root of the tree given treeID, for ALL indexed trees
-	protected static Index<Node> importedTreeRootIndex; // the root of the tree given treeID, ONLY FOR LOCAL trees */
 	
 	protected Index<Node> sourceMetaIndex = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_OT_SOURCE_ID);
 	protected Index<Node> allTreeRootIndex = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
@@ -42,13 +36,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 
 	// ===== constructors
 
-	/*
-	 * public DatabaseManager(String graphName) { // the GraphDatabaseAgent handles this case. Use DatabaseManager(new GraphDatabaseAgent(graphName));
-	 * graphDb = new GraphDatabaseAgent(graphName); indexer = new DatabaseIndexer(graphDb);
-	 * initNodeIndexes(); }
-	 */
-
-
 	/**
 	 * Access the graph db through the given service object.
 	 * 
@@ -56,8 +43,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	 */
 	public DatabaseManager(GraphDatabaseService graphService) {
 		super(graphService);
-//		indexer = new DatabaseIndexer(graphDb);
-//		initNodeIndexes();
 	}
 
 	/**
@@ -67,8 +52,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	 */
 	public DatabaseManager(EmbeddedGraphDatabase embeddedGraph) {
 		super(embeddedGraph);
-//		indexer = new DatabaseIndexer(graphDb);
-//		initNodeIndexes();
 	}
 
 	/**
@@ -78,8 +61,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	 */
 	public DatabaseManager(GraphDatabaseAgent gdb) {
 		super(gdb);
-//		indexer = new DatabaseIndexer(graphDb);
-//		initNodeIndexes();
 	}
 
 	// ===== importing methods
@@ -92,7 +73,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	 * @return
 	 */
 	public boolean addStudyToDB(List<JadeTree> trees, String sourceID) {
-//		IndexHits<Node> hits = importedSourceMetaIndex.get("sourceID", sourceID);
 		IndexHits<Node> hits = sourceMetaIndex.get("sourceID", sourceID);
 		try {
 			// won't add an identical source id
@@ -548,6 +528,8 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		
 		// TODO: update this so it only deletes the downstream part of the tree (not the root)
 		// and updates the indexes to reflect that the tree is no longer local
+		//HM, this seems very complex. Because the root could change from other edits. How will this be reflected?
+		//there should be another way I think
 
 		IndexHits<Node> treesFound = importedTreeRootIndex.get("treeID", treeID);
 //		IndexHits<Node> sourcesFound = importedSourceMetaIndex.get("sourceID", studyID); // apparently unused
@@ -571,7 +553,8 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		try {
 			HashSet<Node> todelete = new HashSet<Node>();
 			TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
-//			todelete.add(root);
+			//SAS, added this back in
+			todelete.add(root);
 			for (Node curGraphNode : CHILDOF_TRAVERSAL.breadthFirst().traverse(root).nodes()) {
 				if (!curGraphNode.equals(root)) {
 					todelete.add(curGraphNode);
@@ -643,12 +626,15 @@ public class DatabaseManager extends DatabaseAbstractBase {
 				deleteTreeFromTreeID(studyID, treeID);
 			}
 
-			/* CHANGED: don't delete the study itself, since it will still be searchable from the indexes
+			/* CHANGED: don't delete the study itself, since it will still be searchable from the indexes*/
+			//SAS
+			//still needs to be deleted from somethin gso that you don't get it in the list of available studies to use
+			//until that functionality is there, I am leaving this in there
 			for (Relationship rel : root.getRelationships()) {
 				rel.delete();
 			}
 			root.delete();
-			importedSourceMetaIndex.remove(root); */
+			//importedSourceMetaIndex.remove(root); 
 
 			tx.success();
 		} finally {
@@ -664,15 +650,4 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		String studyID = (String) rootNode.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING).getStartNode().getProperty("sourceID");
 		return studyID;
 	}
-
-	/*
-	 * Just initialize the indexes we need during import
-	 *
-	private void initNodeIndexes() {
-		sourceMetaIndex = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_OT_SOURCE_ID);
-//		importedSourceMetaIndex = getNodeIndex(NodeIndexDescription.LOCAL_SOURCE_METADATA_NODES_BY_OT_SOURCE_ID);
-		allTreeRootIndex = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
-		importedTreeRootIndex = getNodeIndex(NodeIndexDescription.LOCAL_TREE_ROOT_NODES_BY_TREE_ID);
-		sourceTreeIndex = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_SOURCE_ID);
-	} */
 }

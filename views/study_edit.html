@@ -49,29 +49,35 @@
 	<form class="form-inline" >
 	    <select id="loadselect" style="width: 450px">
 	    </select>
-	    <button type="button" class="btn" onClick='submitDetailsForm()'>Load</button>
+	    <button type="button" class="btn" onClick='loadSelectStudy()'>Load</button>
 	</form>
     </div>
     <h5 id="studyID"></h5>
 	<div class="btn-group">
-	    <button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick=editStudyInfo() id="editStudytn">Edit</button>
+	    <button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick="viewStudyInfo()" id="viewStudytn">View</button>
 	    <button type="button" class="btn btn-large btn-success" name="cac" value=1 onClick="exportStudy()">Export</button>
 	</div>
 	<button type="button" class="btn btn-large btn-primary" name="cac" value=2 onClick="pushStudy()">Push</button>
 	<button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick='deleteStudyDB()' id="deleteStudyDBBtn">Delete Study from DB</button>
-	<button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick="deleteStudyGIT()">Delete Study from GIT</button>
+	<button type="button" class="btn btn-large btn-danger" name="cac" value=4 onClick="deleteStudyGIT()">Delete Study from GIT</button>
 <br/><br/>
 <h2>Study Info</h2>
+<form>
+<fieldset>
 <table class="table table-striped" id="studyinfoTBL">
 
+
 </table>
+<button type="submit" class="btn btn-large btn-warning">Submit study edits</button>
+</fieldset>
+</form>
 <div id="treeInfo">
 
 </div>
 </div>
 <script>
 function setStudyTitle(tt){
-    $("#studyID").replaceWith('<h3 id=study class="text-info">Viewing studyID: '+tt+'</h3>');
+    $("#studyID").replaceWith('<h3 id=study class="text-error">Editing studyID: '+tt+'</h3>');
 }
 
 function getStudyList(id){
@@ -91,7 +97,11 @@ function getStudyList(id){
     })
 }
 
-function submitDetailsForm(){
+function viewStudyInfo(sid){
+    window.location.href="study_view.html?studyID="+sid
+}
+
+function loadSelectStudy(){
     var st = $("#loadselect").val();
     window.location.href="study_view.html?studyID="+st+""
 }
@@ -117,7 +127,7 @@ function addTreeInfo(id, tid){
 
 function setStudyInfo(id){
     $("#deleteStudyDBBtn").replaceWith('<button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick=\'deleteStudyDB(\"'+id+'\")\' id="deleteStudyDBBtn">Delete Study from DB</button>');
-    $("#editStudytn").replaceWith('<button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick=\'editStudyInfo(\"'+id+'\")\'>Edit</button>');
+    $("#viewStudytn").replaceWith('<button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick=\'viewStudyInfo(\"'+id+'\")\' id="viewStudytn">View</button>');
     $("#studyinfoTBL").replaceWith('<table class="table table-striped" id="studyinfoTBL">');
     var baseurl = "http://localhost:7474/db/data/ext/studyJsons/graphdb/getStudyMetaData";
     var method = "POST";
@@ -132,11 +142,7 @@ function setStudyInfo(id){
     ev = JSON.parse(evjson);
     var keys = Object.keys(ev.metadata);
     $(keys).each(function(index){
-	if(keys[index]=="ot:studyPublication"){
-	    $('#studyinfoTBL').append('<tr> <td>'+keys[index]+' </td> <td> <a href="'+ev.metadata[keys[index]]+'">'+ev.metadata[keys[index]]+'</a> </td> </tr>');
-	}else{
-	    $('#studyinfoTBL').append('<tr> <td>'+keys[index]+' </td> <td> '+ev.metadata[keys[index]]+' </td> </tr>');       
-	}
+	    $('#studyinfoTBL').append('<tr> <td>'+keys[index]+' </td> <td> <input type="text" class="input-xxlarge" value=\''+ev.metadata[keys[index]]+'\'> </td> </tr>');       
     })
     var trees = ev.trees;
     var n_trees = trees.length;
@@ -161,11 +167,8 @@ function setStudyInfo(id){
     
 }
 
-function editStudyInfo(sid){
-    window.location.href="study_edit.html?studyID="+sid
-}
-function editTreeInfo(){
-    alert("this will edit the tree metadata");
+function editStudyInfo(){
+    alert("this will edit the study metadata");
 }
 function exportStudy(){
     alert("this will export the study");

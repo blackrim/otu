@@ -15,7 +15,7 @@ except ImportError:
     pass
 
 UPLOAD_DIR = "/tmp"
-bitbucket_location = "/Users/smitty/Downloads/blackrim-avatol_nexsons-496cbc2ed714"
+bitbucket_location = ""
 
 
 HTML_TEMPLATE = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
@@ -46,6 +46,7 @@ HTML_TEMPLATE = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN
           <div class="nav-collapse collapse">
             <ul class="nav">
               <li class="active"><a href="#">Load and List Studies</a></li>
+              <li><a href="search_studies.py">Search Public Studies</a></li>
               <li><a href="../study_view.html">View Study</a></li>
               <li><a href="../tree_dyn.html">View Tree</a></li>
             </ul>
@@ -141,7 +142,7 @@ getStudyList();
 
 resturlsinglenewick = "http://localhost:7474/db/data/ext/studyJsons/graphdb/putStudyNewickSingle"
 resturlnexsonfile = "http://localhost:7474/db/data/ext/studyJsons/graphdb/putStudyNexsonFile"
-
+resturlnexsongitdir = "http://localhost:7474/db/data/ext/ConfigurationPlugins/graphdb/getNexsonGitDir"
 
 def make_json_with_newick(studyname,newick):
     data = json.dumps({"studyID": studyname, "newickString": newick})
@@ -183,7 +184,8 @@ def get_bitbucket_file_list():
             files.append(i)
         except:
             continue
-    retstr = "" 
+    retstr = ""
+    files.sort()
     for i in files:
 	retstr += "<option value="+i+">"+i+"</option>\n"
     return retstr
@@ -246,6 +248,19 @@ def save_git_file_nexson(form, upload_dir):
 def save_uploaded_file_nexson (form, form_field, upload_dir):
     return False
 
+def get_nexson_git_dir():
+    req2 = urllib2.Request(resturlnexsongitdir, headers = {"Content-Type": "application/json",
+        # Some extra headers for fun
+        "Accept": "*/*",   # curl does this
+        "User-Agent": "my-python-app/1", # otherwise it uses "Python-urllib/..."
+        },data = "")
+    f = urllib2.urlopen(req2)
+    v = f.read()
+    rep = json.loads(json.loads(str(v)))
+    return rep["nexsongitdir"]
+    
+
+bitbucket_location = get_nexson_git_dir()
 success = save_uploaded_file ("file", UPLOAD_DIR)
 gitfilelist = get_bitbucket_file_list()
 print_html_form (success,gitfilelist)
