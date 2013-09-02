@@ -29,6 +29,7 @@ import org.neo4j.graphdb.Node;
 import java.io.Reader;
 import java.io.FileReader;
 import java.io.BufferedReader;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -69,7 +70,7 @@ public class NexsonWriter {
 	
 	/* Return Nexson String  given a list of trees and a studyID*/
 	//
-	public static void writeNexson(Node metadatanode) throws java.io.IOException {
+	public static void writeNexson(Node metadatanode, DatabaseManager dm) throws java.io.IOException {
 		StringBuffer sb = new StringBuffer();
 		/*
 		  The format of the file, roughly speaking (some noise omitted):
@@ -149,9 +150,23 @@ public class NexsonWriter {
 		}
 		sb.append("],\n");		
 			
+		sb.append("\"otus\": {\n");
+		//DON:T NEED THIS I DONT THINK sb.append("\"@id\": "otus2539",\n"); 
+		sb.append("\"otu\": [\n");
 		//do the otus
+		//get this by getting all the names that are in the trees
+		HashSet<Node> otus = dm.getOTUsFromMetadataNode(metadatanode);
+		for(Node nd: otus){
 			
+		}
+		sb.append("]\n");
+		sb.append("},\n");
+		
 		//do the trees
+		sb.append("\"trees\": {\n");
+		
+		sb.append("}\n");
+		sb.append("}\n");
 	}
 
 

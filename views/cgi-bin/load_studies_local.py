@@ -153,13 +153,24 @@ def make_json_with_nexson(studyname,nexson):
     return data
     
 def print_html_form (success,gitfilelist):
-    """This prints out the html form. Note that the action is set to
-      the name of the script which makes this is a self-posting form.
-      In other words, this cgi both displays a form and processes it.
-    """
     print "content-type: text/html\n"
     print HTML_TEMPLATE.replace("GITFILELIST",gitfilelist);
 
+def print_redirect ():
+    redirectURL = "../conf.html"
+    print 'Content-Type: text/html'
+    print 'Location: %s' % redirectURL
+    print # HTTP says you have to have a blank line between headers and content
+    print '<html>'
+    print '  <head>'
+    print '    <meta http-equiv="refresh" content="0;url=%s" />' % redirectURL
+    print '    <title>You are going to be redirected</title>'
+    print '  </head>' 
+    print '  <body>'
+    print '    Redirecting... <a href="%s">Click here if you are not redirected</a>' % redirectURL
+    print '  </body>'
+    print '</html>'
+    
 def save_uploaded_file(form_field, upload_dir):
     form = cgi.FieldStorage()
     log = open("logging","w")
@@ -261,6 +272,9 @@ def get_nexson_git_dir():
     
 
 bitbucket_location = get_nexson_git_dir()
-success = save_uploaded_file ("file", UPLOAD_DIR)
-gitfilelist = get_bitbucket_file_list()
-print_html_form (success,gitfilelist)
+if "null" in bitbucket_location:
+    print_redirect ()
+else:
+    success = save_uploaded_file ("file", UPLOAD_DIR)
+    gitfilelist = get_bitbucket_file_list()
+    print_html_form (success,gitfilelist)

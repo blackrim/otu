@@ -737,4 +737,30 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		String studyID = (String) rootNode.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING).getStartNode().getProperty("sourceID");
 		return studyID;
 	}
+	
+	/*
+	 * get a list of otu nodes based on a study metadatanode
+	 */
+	public HashSet<Node> getOTUsFromMetadataNode(Node metadata){
+		HashSet<Node> reths =  new HashSet<Node>();
+		for (Relationship rel: metadata.getRelationships(Direction.OUTGOING, RelType.METADATAFOR)){
+			Node treeroot = rel.getEndNode();
+			reths.addAll(getOTUsFromTreeRootNode(treeroot));
+		}
+		return reths;
+	}
+	 
+	/*
+	 * get a list of otu nodes starting from a treeroot node
+	 */
+	public HashSet<Node> getOTUsFromTreeRootNode(Node treeroot){
+		HashSet<Node> reths = new HashSet<Node>();
+		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
+		for(Node curGraphNode: CHILDOF_TRAVERSAL.breadthFirst().traverse(treeroot).nodes()){
+			if(curGraphNode.hasProperty("oty")){
+				reths.add(curGraphNode);
+			}
+		}
+		return reths;
+	}
 }
