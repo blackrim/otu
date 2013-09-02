@@ -161,8 +161,14 @@ public class NexsonWriter {
 		//do the otus
 		//get this by getting all the names that are in the trees
 		HashSet<Node> otus = dm.getOTUsFromMetadataNode(metadatanode);
+		boolean first = true;
 		for(Node nd: otus){
-			sb.append("{\n");
+			if (first){
+				sb.append("{\n");
+				first =false;
+			}else{
+				sb.append(",\n{\n");
+			}
 			sb.append("\"@about\": \"#otu"+String.valueOf(nd.getId())+"\",\n"); 
 			sb.append("\"@id\": \"otu"+String.valueOf(nd.getId())+"\",\n");
 			if(nd.hasProperty("label")){
@@ -186,10 +192,10 @@ public class NexsonWriter {
 				}
 				sb.append("]\n");
 			}
-			sb.append("},\n");
+			sb.append("}");
 
 		}
-		sb.append("]\n");
+		sb.append("\n]\n");
 		sb.append("},\n");
 		
 		//do the trees
@@ -197,13 +203,19 @@ public class NexsonWriter {
 		sb.append("\"@id\": \"trees"+(String)metadatanode.getProperty("sourceID")+"\",\n"); 
 		sb.append("\"@otus\": \"otus"+(String)metadatanode.getProperty("sourceID")+"\",\n"); 
 		sb.append("\"tree\": [\n");
+		boolean tfirst = true;
 		for(Relationship rel: metadatanode.getRelationships(RelType.METADATAFOR)){
 			Node rtnode = rel.getEndNode();
-			sb.append("{\n");
+			if (tfirst){
+				sb.append("{\n");
+				tfirst =false;
+			}else{
+				sb.append(",\n{\n");
+			}
 			sb.append("\"@about\": \"#tree"+String.valueOf(rtnode.getProperty("treeID"))+"\",\n"); 
 			sb.append("\"@id\": \"tree"+String.valueOf(rtnode.getProperty("treeID"))+"\",\n");
 			/*
-			 * need to do metadata
+			 * TODO: need to do metadata
 			 */
 			/*"meta": [
 			{
@@ -214,19 +226,31 @@ public class NexsonWriter {
 			], */
 			sb.append("\"edge\": [\n");
 			//go through the edges first
+			first = true;
 			for(Relationship rel2: Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING).breadthFirst().traverse(rtnode).relationships()){
-				sb.append("{\n");
+				if (first){
+					sb.append("{\n");
+					first = false;
+				}else{
+					sb.append(",\n{\n");
+				}
 				sb.append("\"@id\": \"edge"+String.valueOf(rel2.getId())+"\"");
 				sb.append("\"@source\": \"node"+String.valueOf(rel2.getEndNode().getId())+"\"");
 				sb.append("\"@target\": \"node"+String.valueOf(rel2.getStartNode().getId())+"\"");
-				sb.append("},\n");
+				sb.append("}");
 			}
 			//go through again for the nodes
-			sb.append("],\n");
+			sb.append("\n],\n");
 			sb.append("\"node\": [\n");
 			//go through the edges first
+			first = true;
 			for(Node tnd: Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING).breadthFirst().traverse(rtnode).nodes()){
-				sb.append("{\n");
+				if (first){
+					sb.append("{\n");
+					first = false;
+				}else{
+					sb.append(",\n{\n");
+				}
 				sb.append("\"@id\": \"node"+String.valueOf(tnd.getId())+"\"");
 				if(tnd == rtnode){
 					sb.append(",\n\"@root\": \"true\"");
@@ -234,13 +258,13 @@ public class NexsonWriter {
 				if(tnd.hasProperty("otu")){
 					sb.append(",\n\"@otu\": \"otu"+String.valueOf(tnd.getId())+"\"");
 				}
-				sb.append("},\n");
+				sb.append("}");
 			}
 			//go through again for the nodes
-			sb.append("]\n");
-			sb.append("}\n");
+			sb.append("\n]\n");
+			sb.append("}");
 		}
-		sb.append("]\n");
+		sb.append("\n]\n");
 		sb.append("}\n");
 		sb.append("}\n");
 	}
