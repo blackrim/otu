@@ -21,10 +21,15 @@ import jade.tree.NexsonReader;
 
 import jade.MessageLogger;
 
+import opentree.otu.constants.RelType;
+
 import org.json.simple.JSONValue;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.kernel.Traversal;
 
 import java.io.Reader;
 import java.io.FileReader;
@@ -151,20 +156,91 @@ public class NexsonWriter {
 		sb.append("],\n");		
 			
 		sb.append("\"otus\": {\n");
-		//DON:T NEED THIS I DONT THINK sb.append("\"@id\": "otus2539",\n"); 
+		sb.append("\"@id\": \"otus"+(String)metadatanode.getProperty("sourceID")+"\",\n"); 
 		sb.append("\"otu\": [\n");
 		//do the otus
 		//get this by getting all the names that are in the trees
 		HashSet<Node> otus = dm.getOTUsFromMetadataNode(metadatanode);
 		for(Node nd: otus){
-			
+			sb.append("{\n");
+			sb.append("\"@about\": \"#otu"+String.valueOf(nd.getId())+"\",\n"); 
+			sb.append("\"@id\": \"otu"+String.valueOf(nd.getId())+"\",\n");
+			if(nd.hasProperty("label")){
+				sb.append("\"@label\": \""+(String)nd.getProperty("label")+"\",\n");
+			}
+			if(nd.hasProperty("ot:ottolid") || nd.hasProperty("ot:originalLabel")){
+			sb.append("\"meta\": [\n");
+				if(nd.hasProperty("ot:ottolid")){
+					sb.append("{\n");
+					sb.append("\"$\": "+(String)nd.getProperty("ot:ottolid")+",\n");
+					sb.append("\"@property\": \"ot:ottolid\",\n"); 
+					sb.append("\"@xsi:type\": \"nex:LiteralMeta\"\n");
+					sb.append("},"); 
+				}
+				if(nd.hasProperty("ot:originalLabel")){
+					sb.append("{\n");
+					sb.append("\"$\": \""+(String)nd.getProperty("ot:originalLabel")+"\",\n"); 
+					sb.append("\"@property\": \"ot:originalLabel\",\n"); 
+					sb.append("\"@xsi:type\": \"nex:LiteralMeta\"\n");
+					sb.append("}\n");
+				}
+				sb.append("]\n");
+			}
+			sb.append("},\n");
+
 		}
 		sb.append("]\n");
 		sb.append("},\n");
 		
 		//do the trees
 		sb.append("\"trees\": {\n");
-		
+		sb.append("\"@id\": \"trees"+(String)metadatanode.getProperty("sourceID")+"\",\n"); 
+		sb.append("\"@otus\": \"otus"+(String)metadatanode.getProperty("sourceID")+"\",\n"); 
+		sb.append("\"tree\": [\n");
+		for(Relationship rel: metadatanode.getRelationships(RelType.METADATAFOR)){
+			Node rtnode = rel.getEndNode();
+			sb.append("{\n");
+			sb.append("\"@about\": \"#tree"+String.valueOf(rtnode.getProperty("treeID"))+"\",\n"); 
+			sb.append("\"@id\": \"tree"+String.valueOf(rtnode.getProperty("treeID"))+"\",\n");
+			/*
+			 * need to do metadata
+			 */
+			/*"meta": [
+			{
+			"$": "node937179", 
+			"@property": "ot:inGroupClade", 
+			"@xsi:type": "nex:LiteralMeta"
+			}
+			], */
+			sb.append("\"edge\": [\n");
+			//go through the edges first
+			for(Relationship rel2: Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING).breadthFirst().traverse(rtnode).relationships()){
+				sb.append("{\n");
+				sb.append("\"@id\": \"edge"+String.valueOf(rel2.getId())+"\"");
+				sb.append("\"@source\": \"node"+String.valueOf(rel2.getEndNode().getId())+"\"");
+				sb.append("\"@target\": \"node"+String.valueOf(rel2.getStartNode().getId())+"\"");
+				sb.append("},\n");
+			}
+			//go through again for the nodes
+			sb.append("],\n");
+			sb.append("\"node\": [\n");
+			//go through the edges first
+			for(Node tnd: Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING).breadthFirst().traverse(rtnode).nodes()){
+				sb.append("{\n");
+				sb.append("\"@id\": \"node"+String.valueOf(tnd.getId())+"\"");
+				if(tnd == rtnode){
+					sb.append(",\n\"@root\": \"true\"");
+				}
+				if(tnd.hasProperty("otu")){
+					sb.append(",\n\"@otu\": \"otu"+String.valueOf(tnd.getId())+"\"");
+				}
+				sb.append("},\n");
+			}
+			//go through again for the nodes
+			sb.append("]\n");
+			sb.append("}\n");
+		}
+		sb.append("]\n");
 		sb.append("}\n");
 		sb.append("}\n");
 	}

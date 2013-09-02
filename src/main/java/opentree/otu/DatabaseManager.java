@@ -757,7 +757,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		HashSet<Node> reths = new HashSet<Node>();
 		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
 		for(Node curGraphNode: CHILDOF_TRAVERSAL.breadthFirst().traverse(treeroot).nodes()){
-			if(curGraphNode.hasProperty("oty")){
+			if(curGraphNode.hasProperty("otu")){
 				reths.add(curGraphNode);
 			}
 		}
