@@ -182,6 +182,15 @@ public class JadeTree {
 	}
 	
 	/**
+	 * Just checks if there is an object associated (by the assocObject method) with this key
+	 * @param key
+	 * @return
+	 */
+	public boolean hasAssocObject(String key) {
+		return assoc.containsKey(key);
+	}
+	
+	/**
 	 * Return the HashMap of metadata associated with the tree
 	 * @todo need to check
 	 * @todo we should probably have a boolean flag to indicate whether or not the tree should be treated as rooted

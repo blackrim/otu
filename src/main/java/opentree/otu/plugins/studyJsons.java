@@ -56,7 +56,7 @@ public class studyJsons extends ServerPlugin {
 			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
 			@Parameter(name = "newickString", optional = false) String newickString) {
 		DatabaseManager dm = new DatabaseManager(graphDb);
-		String studytreelist = dm.getJSONOfSourceIDsWithImportedTreeIDs();
+		String studytreelist = dm.getJSONOfSourceIdsAndTreeIdsForImportedTrees();
 		return studytreelist;
 	}
 	
@@ -64,7 +64,7 @@ public class studyJsons extends ServerPlugin {
 	@PluginTarget( GraphDatabaseService.class )
 	public String getStudyTreeList(@Source GraphDatabaseService graphDb) {
 		DatabaseManager dm = new DatabaseManager(graphDb);
-		String studytreelist = dm.getJSONOfSourceIDsWithImportedTreeIDs();
+		String studytreelist = dm.getJSONOfSourceIdsAndTreeIdsForImportedTrees();
 		return studytreelist;
 	}
 	
@@ -72,7 +72,7 @@ public class studyJsons extends ServerPlugin {
 	@PluginTarget( GraphDatabaseService.class )
 	public String getStudyList(@Source GraphDatabaseService graphDb) {
 		DatabaseManager dm = new DatabaseManager(graphDb);
-		String studylist = dm.getJSONOfSourceIDs();
+		String studylist = dm.getJSONOfSourceIdsForImportedTrees();
 		return studylist;
 	}
 	

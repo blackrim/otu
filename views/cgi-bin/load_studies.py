@@ -85,7 +85,7 @@ File name: <input name="file" type="file"><br>
 </form>
 </div>
 <div id="study-contain" class="span7">
-<h1>Study list</h1>
+<h1>Imported studies</h1>
 <table id="studies" class="table table-striped">
 <thead>
 <tr>
@@ -125,6 +125,7 @@ function getStudyList(){
     xobjPost.setRequestHeader("Content-Type","application/json");
     xobjPost.send("");
     var jsonrespstr = xobjPost.responseText;
+//    alert(jsonrespstr);
     var evjson = jQuery.parseJSON(eval(jsonrespstr));
     $(evjson.studies).each(function(index, element){
       $('#studies').append('<tr><td> <a href="'+studylinkurl+element+'">'+element+'</a> </td></tr>');       
