@@ -95,7 +95,7 @@ public class Indexing extends ServerPlugin {
 			List<JadeTree> trees = readRemoteNexson(nexsonsDirURL + dirEntry);
 			String studyId = dirEntry;
 
-			di.indexStudy(trees, studyId);
+			di.addStudyToIndexes(trees, studyId);
 			indexedStudies.add(studyId); // remember studies we indexed
 			break;
 		}
@@ -141,13 +141,12 @@ public class Indexing extends ServerPlugin {
 	@Description("Get a list of the nexsons currently in the public nexsons repo")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation getNexsonsListFromURL(@Source GraphDatabaseService graphDb,
-			@Description("remote nexson url") @Parameter(name = "url", optional = false) String url) throws InterruptedException, IOException, ParseException {
+			@Description("remote nexson url") @Parameter(name = "url", optional = false) String url) throws IOException {
 		
 		BufferedReader nexsonsDir = new BufferedReader(new InputStreamReader(new URL(url).openStream()));
 
 		// prepare for indexing all studies
-//		DatabaseIndexer di = new DatabaseIndexer(graphDb);
-		LinkedList<String> availableStudies = new LinkedList<String>(); // just for testing really
+		LinkedList<String> availableStudies = new LinkedList<String>();
 		LinkedList<String> errorStudies = new LinkedList<String>(); // currently not used
 
 		// for each nexson in the latest commit
@@ -156,7 +155,7 @@ public class Indexing extends ServerPlugin {
 			dirEntry = nexsonsDir.readLine();
 			try {
 				Integer.valueOf(dirEntry);
-				availableStudies.add(dirEntry); // remember studies we indexed
+				availableStudies.add(dirEntry);
 			} catch (NumberFormatException ex) {
 				errorStudies.add(dirEntry);
 			}
@@ -175,7 +174,10 @@ public class Indexing extends ServerPlugin {
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
-	@Description("Index a single remote nexson into the local db under the specified source id.")
+	@Description("Index a single remote nexson into the local db under the specified source id."
+			+ "Studies will only be indexed if they have at least one tree. Returns true if the"
+			+ "study is indexed, or false if it has no trees. Trees that cannot be read from nexson"
+			+ "files that otherwise contain some good trees will be skipped.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation indexSingleNexson(@Source GraphDatabaseService graphDb,
 			@Description("remote nexson url") @Parameter(name = "url", optional = false) String url,
@@ -184,9 +186,13 @@ public class Indexing extends ServerPlugin {
 
 		DatabaseIndexer di = new DatabaseIndexer(graphDb);
 		List<JadeTree> trees = readRemoteNexson(url);
-		di.indexStudy(trees, studyID);
-
-		return ValueRepresentation.bool(true);
+		
+		if (trees == null || trees.size() < 1) {
+			return ValueRepresentation.bool(false);
+		} else {
+			di.addStudyToIndexes(trees, studyID);
+			return ValueRepresentation.bool(true);
+		}
 	}
 
 	/**
@@ -200,6 +206,8 @@ public class Indexing extends ServerPlugin {
 	private List<JadeTree> readRemoteNexson(String url) throws MalformedURLException, IOException {
 		BufferedReader nexson = new BufferedReader(new InputStreamReader(new URL(url).openStream()));
 		MessageLogger msgLogger = new MessageLogger("");
+		
+		// TODO: sometimes this returns a null for the first tree, but no errors. Why? Why don't we get an error?
 		return NexsonReader.readNexson(nexson, false, msgLogger);
 	}
 }

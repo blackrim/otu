@@ -208,6 +208,7 @@ function getStudyIDFromTreeID(oid){
   xobjPost.setRequestHeader("Content-Type","application/json");
   xobjPost.send(jsonquerystr);
   var jsonrespstr = xobjPost.responseText;
+  alert(jsonrespstr);
   var evjson = eval(jsonrespstr);
   return evjson;
 }
@@ -404,7 +405,7 @@ var start;
 if(id != false){
   start = getRootIDFromTreeID(id);
 }else{
-  start = getRootIDFromTreeID("mt___0");
+  start = getRootIDFromTreeID("mt___local_id_0");
 }
 //do it twice to get the height right
 setup(start);

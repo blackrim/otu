@@ -1,8 +1,8 @@
 package opentree.otu.plugins;
 
 import jade.tree.*;
-
 import opentree.otu.DatabaseManager;
+import opentree.otu.exceptions.NoSuchTreeException;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -14,15 +14,16 @@ public class treeJsons extends ServerPlugin{
 	/**
 	 * @param nodeid
 	 * @return
+	 * @throws NoSuchTreeException 
 	 */
 	@Description( "Get the neo4j root node for a given OT tree id" )
 	@PluginTarget( GraphDatabaseService.class )
 	public Long getRootNodeIDFromTreeID(@Source GraphDatabaseService graphDb,
 			@Description( "The OT tree id of the tree to be found.")
-			@Parameter(name = "treeID", optional = false) String treeID) {
+			@Parameter(name = "treeID", optional = false) String treeID) throws NoSuchTreeException {
 		DatabaseManager dm = new DatabaseManager(graphDb);
 		// TODO: add check for whether tree is imported. If not then return this information
-		Node rootNode = dm.getRootNodeFromTreeID(treeID);
+		Node rootNode = dm.getRootNodeFromTreeIDValidated(treeID);
 		return rootNode.getId();
 	}
 	

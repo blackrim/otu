@@ -34,19 +34,23 @@ HTML_TEMPLATE = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN
     </style>
     <script language ="javascript" type = "text/javascript" >
 
-function setStatus(statusMsg, append) {
+var countProcessed = 0;
+var totalCount = 0;
+
+function setStatus(statusMsg, replace) {
     var msg = document.createElement('p');
     msg.innerHTML = statusMsg;
-    if (append == true) {
+    if (replace == true) {
+        document.getElementById("statusMessage").innerHTML=msg.innerHTML;
+    } else {
         document.getElementById("statusMessage").appendChild(document.createElement("p"));
         document.getElementById("statusMessage").appendChild(msg);
-    } else {
-        document.getElementById("statusMessage").innerHTML=msg.innerHTML;
     }
 }
 
 function initRemoteIndexing() {
-    setStatus("Indexing in progress! This message will be updated as indexing proceeds. Keep this window open until indexing is complete (or close it to stop indexing).",false);
+    setStatus("Indexing in progress! This message will be updated as indexing proceeds.");
+    setStatus("Keep this window open (and do not let the computer go to sleep) until indexing is complete, or close this window to stop indexing.");
 
     var mostCurrentCommitURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/getMostCurrentNexsonsURL";
     var xobj = new XMLHttpRequest();
@@ -54,7 +58,7 @@ function initRemoteIndexing() {
     xobj.onreadystatechange=function() {
         if (xobj.readyState==4 && xobj.status==200) {
             curNexsonsBaseURL = JSON.parse(xobj.responseText);
-            setStatus("attempting to import nexsons from: " + curNexsonsBaseURL, true);
+            setStatus("Attempting to read nexsons from: " + curNexsonsBaseURL, true);
             indexEachRemoteNexson(curNexsonsBaseURL);
         }
     }
@@ -73,37 +77,51 @@ function indexEachRemoteNexson(curNexsonsBaseURL) {
 //        alert(xobj.responseText);
         if (xobj.readyState==4 && xobj.status==200) {
 //            alert(JSON.stringify(xobj.responseText));            
-            studies = JSON.parse(xobj.responseText)
+            var studies = JSON.parse(xobj.responseText)
+            totalCount = studies.length;
             for (var i=0; i < studies.length; i++) {
-                indexSingleStudy(studies[i], curNexsonsBaseURL + studies[i]);
+//                alert("sending " + studies[i]); 
+                indexSingleStudy(studies[i], curNexsonsBaseURL + studies[i], i*100);
+//                break;
             }
         }
     }
     xobj.open("POST", nexsonsListURL, true);
     xobj.setRequestHeader("Accept", "*/*");
     xobj.setRequestHeader("Content-Type","Application/json; charset=utf-8");
-    xobj.setRequestHeader("Content-length", 1);
     xobj.send(JSON.stringify({"url":curNexsonsBaseURL}));
 
 }
 
-function indexSingleStudy(studyID, url) {
-    var indexServiceURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/indexSingleNexson";
+function indexSingleStudy(sid, url, delay) {
+    var studyID = sid;
+    var URL = url;
+    setTimeout(function() {
+        var indexServiceURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/indexSingleNexson";
+//        alert("received " + studyID); 
 
-    var xobj = new XMLHttpRequest();
-    xobj.onreadystatechange=function() {
-        if (xobj.readyState==4 && xobj.status==200) {
-            if (JSON.parse(xobj.responseText) == true) {
-                setStatus("Indexed study: " + studyID, true);
-            } else {
-                setStatus("Indexing failed for study: " + studyID);
+        var xobj = new XMLHttpRequest();
+        xobj.onreadystatechange=function() {
+            if (xobj.readyState==4) {
+                if (xobj.status==200) {
+                    if (JSON.parse(xobj.responseText) == true) {
+                        setStatus("Indexed study: " + studyID);
+                    } else {
+                        setStatus("Study " + studyID + " was not indexed. It does not appear to contain any trees.");
+                    }
+                } else if (xobj.status >= 400) {
+                    setStatus("Indexing failed for study " + studyID + ". Server returned status " + xobj.status + ".");
+                    setStatus(xobj.responseText);
+                }
+                countProcessed++;
+                document.getElementById("statusCount").innerHTML = "<p>Studies processed: " + countProcessed + " / " + totalCount + "</p>";
             }
         }
-    }
-    xobj.open("POST", indexServiceURL, true);
-    xobj.setRequestHeader("Accept", "*/*");
-    xobj.setRequestHeader("Content-Type","Application/json");
-    xobj.send(JSON.stringify({ "studyID" : studyID, "url" : url }));
+        xobj.open("POST", indexServiceURL, true);
+        xobj.setRequestHeader("Accept", "*/*");
+        xobj.setRequestHeader("Content-Type","Application/json");
+        xobj.send(JSON.stringify({ "studyID" : studyID, "url" : url }));
+    }, delay);
 }
 
     </script> 
@@ -137,8 +155,8 @@ function indexSingleStudy(studyID, url) {
             <!--input type="hidden" id="init_remote_indexing_flag" name="init_remote_indexing_flag"/-->
             <button type="button" class="btn" onclick="initRemoteIndexing(); return false;">Index public studies for searching</button>
           </form>
-          <div id="statusMessage">
-          </div>
+          <div id="statusCount"></div>
+          <div id="statusMessage"></div>
         </div>
       </div>
     </div>
