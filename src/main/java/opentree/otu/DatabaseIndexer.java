@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import opentree.otu.constants.GeneralConstants;
+import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
 import opentree.otu.constants.SourceProperty;
 
@@ -24,16 +25,15 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 
 	private TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
 
-	public final Index<Node> importedTreeRootNodesByTreeId = getNodeIndex(NodeIndexDescription.LOCAL_TREE_ROOT_NODES_BY_TREE_ID);
 	public final Index<Node> treeRootNodesByTreeId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
-	public final Index<Node> treeRootNodesByOTSourceId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_OT_SOURCE_ID);
+	public final Index<Node> treeRootNodesBySourceId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_SOURCE_ID);
 	public final Index<Node> treeRootNodesByOTProperty = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_OT_PROPERTY);
 
 	public final Index<Node> treeRootNodesByTaxonName = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_INCLUDED_TAXON_NAME);
 	public final Index<Node> treeRootNodesByTaxonNameNoSpaces = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_INCLUDED_TAXON_NAME_WHITESPACE_FILLED);
 	public final Index<Node> treeRootNodesByMappedTaxonOTTId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_INCLUDED_TAXON_MAPPED_OTT_ID);
 	
-	public final Index<Node> sourceMetaNodesByOTSourceId = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_OT_SOURCE_ID);
+	public final Index<Node> sourceMetaNodesBySourceId = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_SOURCE_ID);
 	public final Index<Node> sourceMetaNodesByOTProperty = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_OT_PROPERTY);
 	
 	public DatabaseIndexer(GraphDatabaseAgent gdba) {
@@ -54,7 +54,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 			// if there is a graph node for this source already do not make a new one.
 			IndexHits<Node> hits = null;
 			try {
-				hits = sourceMetaNodesByOTSourceId.get("sourceID", sourceId);
+				hits = sourceMetaNodesBySourceId.get("sourceID", sourceId);
 				if (hits.size() < 0) {
 					sourceMetadataNode = hits.getSingle(); // TODO: there should never be more than one, right?
 				} else {
@@ -125,7 +125,45 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 			tx.finish();
 		}
 	}
+	
+	// TODO: also need methods to remove tree root and source meta nodes from all indexes, which
+	// we will need to do when updating from the repo after a tree or study has been erased
+	
+	/**
+	 * Remove the indicated node from the local source metadata node indexes.
+	 */
+	public void removeSourceMetaNodeFromLocalIndexes(Node sourceMetaNode) {
+		sourceMetaNodesBySourceId.remove(sourceMetaNode);
+		// TODO: finish this
+	}
 
+	/**
+	 * Remove the indicated node from the local tree root node indexes.
+	 */
+	public void removeTreeRootNodeFromLocalIndexes(Node treeRootNode) {
+		treeRootNodesByTreeId.remove(treeRootNode);
+		treeRootNodesBySourceId.remove(treeRootNode);
+		// TODO: finish this
+	}
+
+	/**
+	 * Index the indicated node as a local source metadata node.
+	 * @param sourceMetaNode
+	 */
+	public void addSourceMetaNodeToLocalIndexes(Node sourceMetaNode) {
+		sourceMetaNodesBySourceId.add(sourceMetaNode, "localSourceId", sourceMetaNode.getProperty(NodeProperty.SOURCE_ID.name()));
+		// TODO: finish this
+	}
+	
+	/**
+	 * Index the indicated node as a local source tree root node.
+	 * @param treeRootNode
+	 */
+	public void addTreeRootNodeToLocalIndexes(Node treeRootNode) {
+		treeRootNodesByTreeId.add(treeRootNode, "localTreeId", treeRootNode.getProperty(NodeProperty.TREE_ID.name()));
+		// TODO: finish this
+	}
+	
 	public void setStudyMetadataNodePropertiesAndIndex(Node sourceMetadataNode, JadeTree tree, String sourceId) {
 		
 		sourceMetadataNode.setProperty("sourceID", sourceId);
@@ -138,7 +176,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 		setNodePropertyFromJadeTreeIfExists(tree, sourceMetadataNode, SourceProperty.YEAR.propertyName);
 
 		// add to indexes
-		sourceMetaNodesByOTSourceId.add(sourceMetadataNode, "sourceID", sourceId);
+		sourceMetaNodesBySourceId.add(sourceMetadataNode, "sourceID", sourceId);
 		indexNodeByOTProperties(sourceMetadataNode, sourceMetaNodesByOTProperty);
 	}
 	
@@ -164,7 +202,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 
 		// add to indexes
 		treeRootNodesByTreeId.add(treeRootNode, "treeID", treeId);
-		treeRootNodesByOTSourceId.add(treeRootNode, "sourceID", sourceId);
+		treeRootNodesBySourceId.add(treeRootNode, "sourceID", sourceId);
 		indexNodeByJadeTreeTipTaxa(treeRootNode, tree);
 		indexNodeByOTProperties(treeRootNode, treeRootNodesByOTProperty);
 		
@@ -196,14 +234,14 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 				.getStartNode().getProperty("sourceID");
 
 		// remove the old root from the indexes
-		importedTreeRootNodesByTreeId.remove(oldRoot, "treeID", treeID);
-		treeRootNodesByTreeId.remove(oldRoot, "treeID", treeID);
-		treeRootNodesByOTSourceId.remove(oldRoot, "sourceID", sourceId);
+//		importedTreeRootNodesByTreeId.remove(oldRoot, "treeID", treeID);
+		treeRootNodesByTreeId.remove(oldRoot, "localTreeId", treeID);
+		treeRootNodesBySourceId.remove(oldRoot, "localSourceId", sourceId);
 
 		// add the new one
-		importedTreeRootNodesByTreeId.add(newRoot, "treeID", treeID);
-		treeRootNodesByTreeId.add(newRoot, "treeID", treeID);
-		treeRootNodesByOTSourceId.add(newRoot, "sourceID", sourceId);
+//		importedTreeRootNodesByTreeId.add(newRoot, "treeID", treeID);
+		treeRootNodesByTreeId.add(newRoot, "localTreeId", treeID);
+		treeRootNodesBySourceId.add(newRoot, "localSourceId", sourceId);
 
 	}
 	

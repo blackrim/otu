@@ -104,7 +104,7 @@ public class studyJsons extends ServerPlugin {
 			@Parameter(name = "studyID", optional = false) String studyID) {
 		DatabaseManager dm = new DatabaseManager(graphDb);
 		//TODO add that the source don't exist
-		String metadata = dm.getStudyMetaData(studyID);
+		String metadata = dm.getMetadataForLocalSource(studyID);
 		return metadata;
 	}
 	
@@ -118,7 +118,7 @@ public class studyJsons extends ServerPlugin {
 			@Description( "study ID")
 			@Parameter(name = "studyID", optional = false) String studyID) {
 		DatabaseManager dm = new DatabaseManager(graphDb);
-		dm.deleteStudyFromStudyID(studyID);
+		dm.deleteLocalSource(studyID);
 		return "{\"worked\":1}";
 	}
 	

@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
@@ -15,7 +16,6 @@ import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
 import opentree.otu.exceptions.NoSuchTreeException;
 
-import org.json.simple.parser.JSONParser;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -31,10 +31,9 @@ public class DatabaseManager extends DatabaseAbstractBase {
 
 	private DatabaseIndexer indexer;
 	
-	protected Index<Node> sourceMetaIndex = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_OT_SOURCE_ID);
-	protected Index<Node> allTreeRootIndex = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
-//	protected Index<Node> importedTreeRootIndex = getNodeIndex(NodeIndexDescription.LOCAL_TREE_ROOT_NODES_BY_TREE_ID);
-	protected Index<Node> sourceTreeIndex = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_OT_SOURCE_ID);
+	protected Index<Node> sourceMetaNodesBySourceId = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_SOURCE_ID);
+	protected Index<Node> treeRootNodesByTreeId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
+//	protected Index<Node> treeRootNodesBySourceId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_OT_SOURCE_ID);
 
 	// ===== constructors
 
@@ -46,7 +45,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	public DatabaseManager(GraphDatabaseService graphService) {
 		super(graphService);
 		indexer = new DatabaseIndexer(graphDb);
-//		initNodeIndexes();
 	}
 
 	/**
@@ -57,7 +55,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	public DatabaseManager(EmbeddedGraphDatabase embeddedGraph) {
 		super(embeddedGraph);
 		indexer = new DatabaseIndexer(graphDb);
-//		initNodeIndexes();
 	}
 
 	/**
@@ -68,7 +65,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	public DatabaseManager(GraphDatabaseAgent gdb) {
 		super(gdb);
 		indexer = new DatabaseIndexer(graphDb);
-//		initNodeIndexes();
 	}
 
 	// ===== importing methods
@@ -87,70 +83,39 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		Transaction tx = graphDb.beginTx();
 		try {
 			
-			// check if the study already exists
-			Node sourceMeta = null;
-			IndexHits<Node> localStudiesFound = null;
-			try {
-				localStudiesFound = sourceMetaIndex.get("localSourceId", sourceID);
-				if (localStudiesFound.size() == 1) {
-					// already exists, so use the existing one
-					sourceMeta = localStudiesFound.getSingle();
-				
-				} else if (localStudiesFound.size() > 1) {
-					throw new IllegalStateException("More than one local source with the id: " + sourceID + ". The database is probably corrupt.");
+			// don't add a study if it already exists
+			Node sourceMeta = getSingleNodeIndexHit(sourceMetaNodesBySourceId, "localSourceId", sourceID);
 
-				} else {
-					// no existing local study, so install it. use study properties stored in the first tree
-					// TODO: THIS WILL FAIL IF NEXSON READER RETURNS A NULL TREE. FIX NEXSON READER.
-					sourceMeta = graphDb.createNode();
-					sourceMeta.setProperty(NodeProperty.LOCATION.name(), "local");
-					indexer.setStudyMetadataNodePropertiesAndIndex(sourceMeta, trees.get(0), sourceID);
-				}
-			} finally {
-				localStudiesFound.close();
+			if (sourceMeta != null) {
+				throw new UnsupportedOperationException("Attempt to add a source with the same source id as an "
+						+ "existing local source. This would require merging, but merging is not (yet?) supported.");
 			}
-
-			// attach local study meta node to corresponding remote study if it exists (and is not already attached)
-			Node remoteSourceMeta = null;
-			IndexHits<Node> remoteStudiesFound = null;
-			try {
-				remoteStudiesFound = sourceMetaIndex.get("remoteSourceId", sourceID);
-				if (remoteStudiesFound.size() == 1) {
-					// remote study known, so use it
-					remoteSourceMeta = remoteStudiesFound.getSingle();
-					sourceMeta.createRelationshipTo(remoteSourceMeta, RelType.ISLOCALCOPYOF);
-					
-				} else if (remoteStudiesFound.size() > 1) {
-					throw new IllegalStateException("More than one local source with the id: " + sourceID + ". The database is probably corrupt.");
-
-				} else { // no remote studies found, nothing to do here.
-					;
-				}
-			} finally {
-				remoteStudiesFound.close();
-			}
-
 			
-			HashSet<String> existingTreeIds = new HashSet<String>();
-			for (Relationship rel : sourceMeta.getRelationships(Direction.OUTGOING, RelType.METADATAFOR)) {
-				existingTreeIds.add((String) rel.getEndNode().getProperty(NodeProperty.TREE_ID.name()));
+			// install the study. use study properties stored in the first tree
+			// TODO: THIS WILL FAIL IF NEXSON READER RETURNS A NULL TREE. FIX NEXSON READER.
+			sourceMeta = graphDb.createNode();
+			sourceMeta.setProperty(NodeProperty.LOCATION.name(), "local");
+			indexer.setStudyMetadataNodePropertiesAndIndex(sourceMeta, trees.get(0), sourceID);
+
+			// attach to corresponding remote study if exists
+			Node remoteSourceMeta = (Node) getSingleNodeIndexHit(sourceMetaNodesBySourceId, "remoteSourceId", sourceID);
+			if (remoteSourceMeta != null) {
+				sourceMeta.createRelationshipTo(remoteSourceMeta, RelType.ISLOCALCOPYOF);
 			}
 			
 			// for each tree
 			for (int i = 0; i < trees.size(); i++) {
 
-				// get the tree id if there is one or create an arbitrary one if not
-				String tid = null;
-				if (trees.get(i).getObject("id") != null) {
-					tid = (String) trees.get(i).getObject("id");
-				} else {
-					tid = sourceID + GeneralConstants.LOCAL_TREEID_PREFIX.value + String.valueOf(i);
+				// get the tree from the nexson if there is one or create an arbitrary one if not
+				String tid_suffix = (String) trees.get(i).getObject("id");
+				if (tid_suffix ==  null) {
+					tid_suffix = GeneralConstants.LOCAL_TREEID_PREFIX.value + String.valueOf(i);
 				}
+				String treeId = sourceID + "_" + tid_suffix;
 
-				// only add tree if it isn't there yet... should we support this or do we want to throw an exception when the tree already exists?
-				if (!existingTreeIds.contains(tid)) {
-					addTreeToDB(trees.get(i), tid, sourceMeta);
-				}
+				// add the tree
+				addTreeToDB(trees.get(i), treeId, sourceMeta);
+
 			}
 			tx.success();
 		} finally {
@@ -170,29 +135,32 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	/**
 	 * Adds a tree in a JadeTree format into the database.
 	 * 
-	 * @param intree
+	 * @param tree
 	 * @return
 	 */
-	private boolean addTreeToDB(JadeTree intree, String tree_id, Node metadatanode) {
+	private boolean addTreeToDB(JadeTree tree, String treeId, Node sourceMetaNode) {
 
 		// add the tree to the graph
-		Node root = preorderAddTreeToDB(intree.getRoot(), null, tree_id);
-		metadatanode.createRelationshipTo(root, RelType.METADATAFOR);
+		Node root = preorderAddTreeToDB(tree.getRoot(), null);
+		sourceMetaNode.createRelationshipTo(root, RelType.METADATAFOR);
 
-		// designate ingroup if known
-		if (intree.getRoot().getObject("ingroup_start") != null) {
+		// designate the root as the ingroup this is specified in the nexson
+		if (tree.getRoot().getObject("ingroup_start") != null) {
 			designateIngroup(root);
 		}
 
 		// add node properties and add to indexes
-		indexer.setTreeRootNodePropertiesAndIndex(root, intree, tree_id, (String) metadatanode.getProperty(NodeProperty.SOURCE_ID.name()));
-		
-		// also add to the imported tree index
-		allTreeRootIndex.add(root, "localTreeId", tree_id);
+		indexer.setTreeRootNodePropertiesAndIndex(root, tree, treeId, (String) sourceMetaNode.getProperty(NodeProperty.SOURCE_ID.name()));
+		indexer.addTreeRootNodeToLocalIndexes(root);
 
 		return true; // this doesn't mean anything... we never return false.
 	}
 
+	/**
+	 * Reroot the tree containing the `newroot` node on that node. Returns the root node of the rerooted tree.
+	 * @param newroot
+	 * @return
+	 */
 	public Node rerootTree(Node newroot) {
 		// first get the root of the old tree
 		Node oldRoot = getRootFromNode(newroot);
@@ -233,7 +201,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			actualRoot.createRelationshipTo(tempParent, RelType.CHILDOF);
 			nrprel.delete();
 			newroot.createRelationshipTo(actualRoot, RelType.CHILDOF);
-			processReroot(actualRoot);
+			processReroot(actualRoot); // TODO: redundant with the indexer property-switching methods?
 
 			// switch the METADATA_FOR relationship to the new root node
 			Relationship prevStudyToTreeRootLinkRel = oldRoot.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING);
@@ -252,6 +220,12 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		return actualRoot;
 	}
 
+	/**
+	 * Used by the rerooting function
+	 * @param oldRoot
+	 * @param newRoot
+	 * @return
+	 */
 	private boolean tritomyRoot(Node oldRoot, Node newRoot) {
 		Node thisNode = null;// this will be the node that is sunk
 		// find the first child that is not a tip
@@ -275,6 +249,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		return true;
 	}
 
+	// TODO: redundant with the indexer property-switching methods?
 	private void processReroot(Node innode) {
 		if (innode.hasProperty("isroot") || innode.hasRelationship(Direction.INCOMING, RelType.CHILDOF) == false) {
 			return;
@@ -291,6 +266,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		parent.createRelationshipTo(innode, RelType.CHILDOF);
 	}
 
+	// TODO: redundant with the indexer property-switching methods?
 	private void exchangeInfoReroot(Node innode1, Node innode2) {
 		String swaps = null;
 		double swapd;
@@ -306,42 +282,54 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		// node2.setBL(swapd);
 	}
 
-	private Node preorderAddTreeToDB(JadeNode innode, Node parent, String tree_id) {
-		Node dbnode = graphDb.createNode();
+	/**
+	 * A recursive function used to replicate the upstream tree structure of the passed in JadeNode in the graph.
+	 * @param curJadeNode
+	 * @param parentGraphNode
+	 * @param tree_id
+	 * @return
+	 */
+	private Node preorderAddTreeToDB(JadeNode curJadeNode, Node parentGraphNode) {
+
+		Node curGraphNode = graphDb.createNode();
+		
 		// add properties
-		if (innode.getName() != null) {
-			dbnode.setProperty("name", innode.getName());
+		if (curJadeNode.getName() != null) {
+			curGraphNode.setProperty("name", curJadeNode.getName());
 		}
-		// add bl
+
+		// TODO: add bl
 		// dbnode.setProperty("bl", innode.getBL());
-		// add support
-		if (parent != null) {
-			Relationship trel = dbnode.createRelationshipTo(parent, RelType.CHILDOF);
+		// TODO: add support
+		
+		if (parentGraphNode != null) {
+			curGraphNode.createRelationshipTo(parentGraphNode, RelType.CHILDOF);
 		}
-		for (int i = 0; i < innode.getChildCount(); i++) {
-			preorderAddTreeToDB(innode.getChild(i), dbnode, tree_id);
+
+		for (JadeNode childJadeNode : curJadeNode.getChildren()) {
+			preorderAddTreeToDB(childJadeNode, curGraphNode);
 		}
-		return dbnode;
+
+		return curGraphNode;
 	}
 
-	/**
+	
+	/* THIS SHOULD JUST BE AN INDEX CALL. No need to have a special function for this.
+	 * 
 	 * Get a tree root node from the graph. Will do error checking to make sure tree is available and unique, and will throw an exception if not.
-	 * @param treeID
+	 * @param treeId
 	 * @return
 	 * @throws NoSuchTreeException
-	 */
-	public Node getRootNodeFromTreeIDValidated(String treeID) throws NoSuchTreeException {
-		IndexHits<Node> importedTreesFound = allTreeRootIndex.get("localTreeId", treeID);
-		if (importedTreesFound.size() < 1) {
-			throw new NoSuchTreeException("The tree " + treeID + " has not been imported into the database.");
-		} else if (importedTreesFound.size() > 1) {
-			throw new IllegalStateException("More than one tree was found with the id " + treeID + ". Not a good sign.");
-		}
+	 *
+	public Node getRootNodeForLocalTree(String treeId) throws NoSuchTreeException {
 
-		Node rootNode = importedTreesFound.getSingle();
-		importedTreesFound.close();
+		Node rootNode = getSingleNodeIndexHit(treeRootNodesByTreeId, "localTreeId", treeId);
+
+		if (rootNode == null) {
+			throw new NoSuchTreeException("The tree " + treeId + " has not been imported into the database.");
+		}
 		return rootNode;
-	}
+	} */
 
 	/**
 	 * Get the subtree of a given tree graph node. Does not perform error checks to make sure the tree exists.
@@ -478,38 +466,48 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	}
 
 	/**
-	 * 
-	 * @param studyID
+	 * Get JSON metadata for a the local source indicated by `sourceId`.
+	 * @param sourceId
 	 * @return
 	 */
-	public String getStudyMetaData(String studyID) { // TODO: getLocalStudyMetadata
-		IndexHits<Node> sourcesFound = sourceMetaIndex.get("localSourceID", studyID);
-		Node sourcemeta = sourcesFound.getSingle();
-		sourcesFound.close();
+	public String getMetadataForLocalSource(String sourceId) {
+		return getMetadataForSource(sourceId, "localSourceId");
+	}
+	
+	/**
+	 * Abstracted method to allow the same code to deal remote or local sources.
+	 * @param sourceId
+	 * @param indexPropertyName
+	 * @return
+	 */
+	private String getMetadataForSource(String sourceId, String indexProperty) {
+
+		Node sourceMeta = getSingleNodeIndexHit(sourceMetaNodesBySourceId, indexProperty, sourceId);
+		
 		StringBuffer bf = new StringBuffer("{ \"metadata\": {\"ot:curatorName\": \"");
-		if (sourcemeta.hasProperty("ot:curatorName")) {
-			bf.append((String) sourcemeta.getProperty("ot:curatorName"));
+		if (sourceMeta.hasProperty("ot:curatorName")) {
+			bf.append((String) sourceMeta.getProperty("ot:curatorName"));
 		}
 		bf.append("\", \"ot:dataDeposit\": \"");
-		if (sourcemeta.hasProperty("ot:dataDeposit")) {
-			bf.append((String) sourcemeta.getProperty("ot:dataDeposit"));
+		if (sourceMeta.hasProperty("ot:dataDeposit")) {
+			bf.append((String) sourceMeta.getProperty("ot:dataDeposit"));
 		}
 		bf.append("\", \"ot:studyPublication\": \"");
-		if (sourcemeta.hasProperty("ot:studyPublication")) {
-			bf.append((String) sourcemeta.getProperty("ot:studyPublication"));
+		if (sourceMeta.hasProperty("ot:studyPublication")) {
+			bf.append((String) sourceMeta.getProperty("ot:studyPublication"));
 		}
 		bf.append("\", \"ot:studyPublicationReference\": \"");
-		if (sourcemeta.hasProperty("ot:studyPublicationReference")) {
-			bf.append(GeneralUtils.escapeString((String) sourcemeta.getProperty("ot:studyPublicationReference")));
+		if (sourceMeta.hasProperty("ot:studyPublicationReference")) {
+			bf.append(GeneralUtils.escapeString((String) sourceMeta.getProperty("ot:studyPublicationReference")));
 		}
 		bf.append("\", \"ot:studyYear\": \"");
-		if (sourcemeta.hasProperty("ot:studyYear")) {
-			bf.append((String) sourcemeta.getProperty("ot:studyYear"));
+		if (sourceMeta.hasProperty("ot:studyYear")) {
+			bf.append((String) sourceMeta.getProperty("ot:studyYear"));
 		}
 		bf.append("\"}, \"trees\" : [");
 		// add the trees
 		ArrayList<String> trees = new ArrayList<String>();
-		for (Relationship rel : sourcemeta.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
+		for (Relationship rel : sourceMeta.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
 			trees.add((String) rel.getEndNode().getProperty(NodeProperty.TREE_ID.name()));
 		}
 		for (int i = 0; i < trees.size(); i++) {
@@ -525,31 +523,24 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	}
 
 	/**
-	 * 
-	 * @param studyID
-	 * @param treeID
+	 * Return a JSON containing tree metadata for the specified local tree.
+	 * @param treeId
 	 * @return
 	 */
-	public String getTreeMetaData(String studyID, String treeID) {
-		
-		// TODO: might need to update this to make sure it is only getting imported trees?
-//		IndexHits<Node> treesFound = importedTreeRootIndex.get("treeID", treeID);
-//		IndexHits<Node> sourcesFound = importedSourceMetaIndex.get("sourceID", studyID);
+	public String getMetadataForLocalTree(String treeId) {
+		return getMetadataForTree(treeId, "localTreeId");
+	}
 
-		IndexHits<Node> treesFound = allTreeRootIndex.get("localTreeId", treeID);
-//		IndexHits<Node> sourcesFound = sourceMetaIndex.get("sourceID", studyID); // never used
-		
-//		Node sourcemeta = sourcesFound.getSingle(); // never used
-		Node root = null;
-		while (treesFound.hasNext()) {
-			Node tnode = treesFound.next();
-			if (((String) tnode.getProperty(NodeProperty.TREE_ID.name())).equals(treeID)) {
-				root = tnode;
-				break;
-			}
-		}
-//		sourcesFound.close(); // never used
-		treesFound.close();
+	/**
+	 * Abstracted method to allow the same code to be used for both local and remote trees.
+	 * @param treeId
+	 * @param indexProperty
+	 * @return
+	 */
+	public String getMetadataForTree(String treeId, String indexProperty) {
+
+		Node root = getSingleNodeIndexHit(treeRootNodesByTreeId, indexProperty, treeId);
+
 		StringBuffer bf = new StringBuffer("{ \"metadata\": {\"ot:branchLengthMode\": \"");
 		if (root.hasProperty("ot:branchLengthMode")) {
 			bf.append((String) root.getProperty("ot:branchLengthMode"));
@@ -580,37 +571,21 @@ public class DatabaseManager extends DatabaseAbstractBase {
 
 	/**
 	 * Deletes a local tree
-	 * @param treeID
+	 * @param treeId
 	 * @throws NoSuchTreeException 
 	 */
-	public void deleteLocalTreeFromTreeID(String treeID) throws NoSuchTreeException {
-		IndexHits<Node> treesFound = null;
-		Node root = null;
-		try {
-			treesFound = allTreeRootIndex.get("localTreeId", treeID);
-			if (treesFound.size() == 1) {
-				root = treesFound.getSingle();
-			} else if (treesFound.size() > 1) {
-				throw new IllegalStateException("More than one tree found with id " + treeID + ". The database is probably corrupt.");
-			} else {
-				throw new NoSuchTreeException("Attempt to delete tree with id " + treeID + ", but there is no tree with this id");
-			}
-		} finally {
-			treesFound.close();
+	public void deleteLocalTree(String treeId) throws NoSuchTreeException {
+
+		// TODO: update indexes
+		
+		Node root = getSingleNodeIndexHit(treeRootNodesByTreeId, "localTreeId", treeId);
+
+		if (root == null) {
+			throw new NoSuchTreeException("Attempt to delete local tree with id " + treeId + ", but there is no local tree with this id");
 		}
 
-/*		try {
-			while (treesFound.hasNext()) {
-				Node tnode = treesFound.next();
-				if (((String) tnode.getProperty(NodeProperty.TREE_ID.name())).equals(treeID)) {
-					root = tnode;
-					break;
-				}
-			}
-		} finally {
-			treesFound.close();
-		} */
-
+		indexer.removeTreeRootNodeFromLocalIndexes(root);
+		
 		Transaction tx = graphDb.beginTx();
 		try {
 			HashSet<Node> todelete = new HashSet<Node>();
@@ -625,35 +600,12 @@ public class DatabaseManager extends DatabaseAbstractBase {
 				}
 				nd.delete();
 			}
-			allTreeRootIndex.remove(root);
+			treeRootNodesByTreeId.remove(root);
 			
 			tx.success();
 		} finally {
 			tx.finish();
 		}
-	}
-
-	/**
-	 * Returns a JSON array string of all indexed studies.
-	 * 
-	 * Not used?
-	 * 
-	 * @return
-	 */
-	public String getJSONOfSourceIdsForAllTrees() {
-
-		StringBuffer retstr = new StringBuffer("{ \"studies\" : [");
-		IndexHits<Node> hits = sourceMetaIndex.query("*:*");
-		while (hits.hasNext()) {
-			Node x = hits.next();
-			retstr.append("\"" + (String) x.getProperty(NodeProperty.SOURCE_ID.name()) + "\" ");
-			if (hits.hasNext()) {
-				retstr.append(",");
-			}
-		}
-		hits.close();
-		retstr.append("] }");
-		return retstr.toString();
 	}
 
 	/**
@@ -666,7 +618,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		HashSet<String> studyIds = new HashSet<String>();
 		IndexHits<Node> importedTreesFound = null;
 		try {
-			importedTreesFound = allTreeRootIndex.query("localTreeId", "*");
+			importedTreesFound = treeRootNodesByTreeId.query("localTreeId", "*");
 			for (Node t : importedTreesFound) {
 				studyIds.add((String) t.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING)
 						.getStartNode().getProperty(NodeProperty.SOURCE_ID.name()));
@@ -676,29 +628,27 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		}
 		
 		// write the string
-		StringBuffer retstr = new StringBuffer("{ \"studies\" : [");
+		StringBuffer json = new StringBuffer("{ \"studies\" : [");
 		Iterator<String> studyIdsIter = studyIds.iterator();
 		while (studyIdsIter.hasNext()) {
-			retstr.append("\"" + studyIdsIter.next() + "\" ");
+			json.append("\"" + studyIdsIter.next() + "\" ");
 			if (studyIdsIter.hasNext()) {
-				retstr.append(",");
+				json.append(",");
 			}
 		}
-		retstr.append("] }");
+		json.append("] }");
 		
-		return retstr.toString();
+		return json.toString();
 	}
 
 	/**
-	 * 
+	 * Return a JSON string of source ids and corresponding tree ids for all locally-imported sources.
 	 * @return
 	 */
 	public String getJSONOfSourceIdsAndTreeIdsForImportedTrees() {
 
-		// TODO: should this be returning all tree ids? Should it only be returning the sources that have imported trees?
-
 		StringBuffer retstr = new StringBuffer("{ \"studies\" : [");
-		IndexHits<Node> hits = allTreeRootIndex.query("localTreeId", "*");
+		IndexHits<Node> hits = treeRootNodesByTreeId.query("localTreeId", "*");
 		while (hits.hasNext()) {
 			retstr.append("[ \"");
 			Node x = hits.next();
@@ -717,33 +667,36 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	}
 
 	/**
-	 * Remove a local study and all its trees.
-	 * @param studyID
+	 * Remove a local source and all its trees.
+	 * @param sourceId
 	 * @throws NoSuchTreeException 
 	 */
-	public void deleteStudyFromStudyID(String studyID) throws NoSuchTreeException { // TODO: deleteLocalSource(String studyId)
+	public void deleteLocalSource(String sourceId) throws NoSuchTreeException {
 
-		// get the study
-		Node sourceMeta = null;
-		IndexHits<Node> studiesFound = null;
-		try {
-			studiesFound = sourceMetaIndex.get("localSourceId", studyID);
-			sourceMeta = studiesFound.getSingle();
-		} finally {
-			studiesFound.close();
+		Node sourceMeta = getSingleNodeIndexHit(sourceMetaNodesBySourceId, "localSourceId", sourceId);
+		if (sourceMeta == null) {
+			throw new NoSuchElementException("Attempt to delete local study with id " + sourceId + ", but no such study exists.");
 		}
 		
 		Transaction tx = graphDb.beginTx();
 		try {
+			
 			// remove all trees
 			for (Relationship rel : sourceMeta.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
 				String treeID = (String) rel.getEndNode().getProperty(NodeProperty.TREE_ID.name());
-				deleteLocalTreeFromTreeID(treeID);
+				deleteLocalTree(treeID); // will also remove the METADATAFOR rels pointing at this metadata node
+			}
+
+			indexer.removeSourceMetaNodeFromLocalIndexes(sourceMeta);
+
+			// delete remaining relationships
+			for (Relationship rel : sourceMeta.getRelationships()) {
+				rel.delete();
 			}
 			
-			// delete the source metadata node itself
-			// TODO: once db structure has changed, will need to remove the rel pointing to the remote source node before we delete the local one
+			// delete the node itself
 			sourceMeta.delete();			
+			
 			tx.success();
 			
 		} finally {
@@ -752,21 +705,30 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	}
 
 	/**
-	 * 
+	 * Get the source id for the local tree corresponding to the specified tree id.
 	 * @param treeID
 	 * @return
 	 */
-	public String getStudyIDFromTreeID(String treeID) {
-		// TODO: update with new db structure
-		IndexHits<Node> hits = allTreeRootIndex.get("treeID", treeID);
-		Node rootNode = hits.getSingle();
-		hits.close();
-		String studyID = (String) rootNode.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING)
+	public String getSourceIdFromLocalTreeId(String treeId) {
+		return getStudyIdFromTreeId(treeId, "localTreeId");
+	}
+
+	/**
+	 * An abstracted method to all the same code to access local and remote studies. Requires that there is only
+	 * a single entry in the index for the specified propertyName and treeId values.
+	 * @param treeId
+	 * @param propertyName
+	 * @return
+	 */
+	private String getStudyIdFromTreeId(String treeId, String propertyName) {
+		
+		Node rootNode = getSingleNodeIndexHit(treeRootNodesByTreeId, propertyName, treeId);
+
+		return (String) rootNode.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING)
 				.getStartNode().getProperty(NodeProperty.SOURCE_ID.name());
-		return studyID;
 	}
 	
-	/*
+	/**
 	 * get a list of otu nodes based on a study metadatanode
 	 */
 	public HashSet<Node> getOTUsFromMetadataNode(Node metadata){

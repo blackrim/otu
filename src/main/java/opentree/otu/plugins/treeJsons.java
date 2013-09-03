@@ -23,7 +23,7 @@ public class treeJsons extends ServerPlugin{
 			@Parameter(name = "treeID", optional = false) String treeID) throws NoSuchTreeException {
 		DatabaseManager dm = new DatabaseManager(graphDb);
 		// TODO: add check for whether tree is imported. If not then return this information
-		Node rootNode = dm.getRootNodeFromTreeIDValidated(treeID);
+		Node rootNode = dm.getRootNodeForLocalTree(treeID);
 		return rootNode.getId();
 	}
 	
