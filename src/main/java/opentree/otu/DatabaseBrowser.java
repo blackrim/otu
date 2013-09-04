@@ -248,6 +248,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 			}
 			bf.append("\"" + p + "\" : \"" + String.valueOf(root.getProperty(p)) + "\"");
 		}
+		
 /*		if (root.hasProperty("ot:branchLengthMode")) {
 			bf.append(String.valueOf(root.getProperty("ot:branchLengthMode")));
 		}

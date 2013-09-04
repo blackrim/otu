@@ -43,12 +43,13 @@
 <h1>Nexson</h1>
 <h3>Upload From Git</h3>
 <form action="load_sources.py" method="POST" class="form-inline" id="gitform" enctype="multipart/form-data">
-<input type="hidden" id="hidden_nexson_from_git" name="hidden_nexson_from_git"/>
-Source Id:
-	    <select name="loadselect" id="loadselect" form="gitform">
-	    GITFILELIST
-	    </select>
-	   <button name="submit" type="submit" class="btn">Submit</button>
+	<input type="hidden" id="hidden_nexson_from_git" name="hidden_nexson_from_git"/>
+	<input type="hidden" id="recenthash", name="recenthash" value="$RECENTHASH$"/>
+	Source Id:
+	<select name="loadselect" id="loadselect" form="gitform">
+	$GITFILELIST$
+	</select>
+	<button name="submit" type="submit" class="btn">Submit</button>
 </form>
 
 <h3>Upload File</h3>

@@ -38,14 +38,6 @@ def make_json_with_nexson(sourcename,nexson):
     data = json.dumps({"sourceId": sourcename, "nexsonString": nexson})
     return data
     
-def print_html_form (success,gitfilelist):
-    """This prints out the html form. Note that the action is set to
-      the name of the script which makes this is a self-posting form.
-      In other words, this cgi both displays a form and processes it.
-    """
-    print "content-type: text/html\n"
-    print HTML_TEMPLATE.replace("GITFILELIST",gitfilelist);
-
 def save_uploaded_file(form_field, upload_dir):
     form = cgi.FieldStorage()
     log = open("logging","w")
@@ -61,28 +53,6 @@ def save_uploaded_file(form_field, upload_dir):
         save_uploaded_file_nexson(form, form_field,upload_dir)
     else:
         return False
-
-def get_bitbucket_file_list():
-    commiturl = "https://bitbucket.org/api/2.0/repositories/blackrim/avatol_nexsons/commits"
-    req = urllib2.Request(commiturl)
-    f = urllib2.urlopen(req)
-    cjson = json.loads(f.read())
-    recenthash = cjson["values"][0]["hash"]
-
-    listurl = "https://bitbucket.org/api/1.0/repositories/blackrim/avatol_nexsons/raw/"+recenthash+"/"
-    req = urllib2.Request(listurl)
-    f = urllib2.urlopen(req)
-    files = []
-    for i in f:
-	try:
-	    int(i.strip())
-	    files.append(i.strip())
-	except:
-	    continue
-    retstr = ""
-    for i in files:
-	retstr += "<option value="+recenthash+"/"+i+">"+i+"</option>\n"
-    return retstr
         
 def save_uploaded_file_newick (form, form_field, upload_dir):
     log = open("logging","a")
@@ -122,6 +92,7 @@ def save_uploaded_file_newick (form, form_field, upload_dir):
 
 def save_git_file_nexson(form, upload_dir):
     log = open("logging","a")
+    recenthash = form["recenthash"].value
     sourceId = form["loadselect"].value
     geturl = "https://bitbucket.org/api/1.0/repositories/blackrim/avatol_nexsons/raw/"+str(sourceId)
     print geturl
@@ -144,6 +115,43 @@ def save_git_file_nexson(form, upload_dir):
 def save_uploaded_file_nexson (form, form_field, upload_dir):
     return False
 
+def get_bitbucket_recenthash():
+    commiturl = "https://bitbucket.org/api/2.0/repositories/blackrim/avatol_nexsons/commits"
+    req = urllib2.Request(commiturl)
+    f = urllib2.urlopen(req)
+    cjson = json.loads(f.read())
+    return cjson["values"][0]["hash"]
+
+def get_bitbucket_file_list(recenthash):
+    listurl = "https://bitbucket.org/api/1.0/repositories/blackrim/avatol_nexsons/raw/"+recenthash+"/"
+    req = urllib2.Request(listurl)
+    f = urllib2.urlopen(req)
+    files = []
+    for i in f:
+	try:
+	    int(i.strip())
+	    files.append(i.strip())
+	except:
+	    continue
+    retstr = ""
+    for i in files:
+	retstr += "<option value="+i+">"+i+"</option>\n"
+    return retstr
+
+def print_html_form (success, recenthash, gitfilelist):
+    """This prints out the html form. Note that the action is set to
+      the name of the script which makes this is a self-posting form.
+      In other words, this cgi both displays a form and processes it.
+    """
+
+    print "content-type: text/html\n"
+#    print HTML_TEMPLATE.replace("GITFILELIST",gitfilelist);
+	print HTMLT_TEMPLATE.replace("$GITFILELIST$",gitfilelist).replace("$RECENTHASH$",recenthash)
+
+
+# now actually do stuff
+
 success = save_uploaded_file ("file", UPLOAD_DIR)
-gitfilelist = get_bitbucket_file_list()
-print_html_form (success,gitfilelist)
+recenthash = get_bitbucket_recent_hash()
+gitfilelist = get_bitbucket_file_list(recenthash)
+print_html_form (success, recenthash, gitfilelist)
