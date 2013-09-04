@@ -17,5 +17,5 @@ public enum RelType implements RelationshipType {
 	/**
 	 * Connects remote study metadata nodes to the local studies that have been imported from them.
 	 */
-	ISLOCALCOPYOF;
+	LOCALCOPYOF;
 }

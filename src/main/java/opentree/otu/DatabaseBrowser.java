@@ -68,8 +68,15 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * Get the array of known remote identifier strings
 	 * @return
 	 */
-	public String[] getKnownRemotes() {
-		return (String[]) graphDb.getGraphProperty(GraphProperty.KNOWN_REMOTES);
+	public List<String> getKnownRemotes() {
+		List<String> knownRemotes = new ArrayList<String>();
+		String[] knownRemotesArr = (String[]) graphDb.getGraphProperty(GraphProperty.KNOWN_REMOTES);
+		if (knownRemotesArr != null) {
+			for (String remote : knownRemotesArr) {
+				knownRemotes.add(remote);
+			}
+		}
+		return knownRemotes;
 	}
 	
 	/**

@@ -185,11 +185,19 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			if (location == LOCAL_LOCATION) { // if this is a local study then attach it to any existing remotes
 				for (Node sourceMetaHit : browser.getAllKnownSourceMetaNodesForSourceId(sourceId)) {
 					if (sourceMetaHit.getProperty(NodeProperty.LOCATION.name).equals(LOCAL_LOCATION) == false) {
-						sourceMeta.createRelationshipTo(sourceMetaHit, RelType.ISLOCALCOPYOF);
+						sourceMeta.createRelationshipTo(sourceMetaHit, RelType.LOCALCOPYOF);
 					}
 				}
 
-			} else { // if it's a remote study then see if we need to add the remote location
+			} else { // remote study
+
+				// check if there is a local study to attach this remote one to
+				Node localSourceMeta = DatabaseUtils.getSingleNodeIndexHit(sourceMetaNodesBySourceId, LOCAL_LOCATION+"SourceId", sourceId);
+				if (localSourceMeta != null) {
+					localSourceMeta.createRelationshipTo(sourceMeta, RelType.LOCALCOPYOF);
+				}
+				
+				// add the remote location if necessary
 				if (!knownRemotes.contains(location)) {
 					addKnownRemote(location);
 				}
@@ -329,23 +337,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	// ===== other methods
 	
 	/**
-	 * Add a known remote. We could also just add nodes for all remotes
-	 * @param remote
-	 */
-	public void addKnownRemote(String remote) {
-		String[] knownRemotesPrev = browser.getKnownRemotes();
-		String[] knownRemotesNew = new String[knownRemotesPrev.length];
-		int i;
-		for (i = 0; i < knownRemotesPrev.length; i++) {
-			knownRemotesNew[i] = knownRemotesPrev[i];
-		}
-		knownRemotesNew[i+1] = remote;
-		graphDb.getNodeById((long)0).setProperty(GraphProperty.KNOWN_REMOTES.propertyName, knownRemotesNew);
-		
-		updateKnownRemotesInternal();
-	}
-	
-	/**
 	 * Reroot the tree containing the `newroot` node on that node. Returns the root node of the rerooted tree.
 	 * @param newroot
 	 * @return
@@ -449,21 +440,39 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	// ========== private methods
 	
 	/**
-	 * Just update the internal cache of known remotes. Called when we add a remote. We keep the cache
-	 * so we don't have to check the graph property array every time we add a study.
+	 * Add a known remote to the graph property for known remotes, which is a primitive string array. We
+	 * could also just add nodes for all remotes and index them
+	 * @param remote
+	 */
+	private void addKnownRemote(String newRemote) {
+		
+		List<String> knownRemotesPrev = browser.getKnownRemotes();
+		String[] knownRemotesNew = new String[knownRemotesPrev.size()+1];
+		
+		int i = 0;
+		for (String r : knownRemotesPrev) {
+			knownRemotesNew[i++] = r;
+		}
+
+		knownRemotesNew[i] = newRemote;
+		graphDb.getNodeById((long)0).setProperty(GraphProperty.KNOWN_REMOTES.propertyName, knownRemotesNew);
+		
+		updateKnownRemotesInternal();
+	}
+	
+	/**
+	 * Just update the internal cache of known remotes. Called when we add a remote and also during construction.
+	 * We keep this cached so we don't have to check the graph property array every time we add a source.
 	 */
 	private void updateKnownRemotesInternal() {
 		knownRemotes = new HashSet<String>();
-		String[] knownRemotesArr = browser.getKnownRemotes();
-		if (knownRemotesArr.length > 0) {
-			for (String remote : knownRemotesArr) {
-				knownRemotes.add(remote);
-			}
+		for (String remote : browser.getKnownRemotes()) {
+			knownRemotes.add(remote);
 		}
 	}
 	
 	/**
-	 * A recursive function used to replicate the tree JadeNode structure below of the passed in JadeNode in the graph.
+	 * A recursive function used to replicate the tree JadeNode structure below the passed in JadeNode in the graph.
 	 * @param curJadeNode
 	 * @param parentGraphNode
 	 * @return
