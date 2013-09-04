@@ -2,14 +2,11 @@ package opentree.otu.plugins;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.List;
 
-import javax.ws.rs.core.MediaType;
 
 import jade.MessageLogger;
 import jade.tree.*;
-import opentree.otu.DatabaseIndexer;
+import opentree.otu.DatabaseBrowser;
 import opentree.otu.DatabaseManager;
 import opentree.otu.GraphDatabaseAgent;
 
@@ -18,108 +15,129 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.server.plugins.*;
 
 public class studyJsons extends ServerPlugin {
-	
+
+	@Description("Return JSON containing information about local sources and trees")
+	@PluginTarget(GraphDatabaseService.class)
+	public String getStudyTreeList(@Source GraphDatabaseService graphDb) {
+		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
+		String studytreelist = browser.getJSONOfSourceIdsAndTreeIdsForImportedTrees();
+		return studytreelist;
+	}
+
+	@Description("Return JSON containing information about local trees")
+	@PluginTarget(GraphDatabaseService.class)
+	public String getStudyList(@Source GraphDatabaseService graphDb) {
+		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
+		String studylist = browser.getJSONOfSourceIdsForImportedTrees();
+		return studylist;
+	}
+
 	/**
 	 * this is a single tree version
+	 * 
 	 * @param nodeid
 	 * @return
 	 */
-	@Description( "" )
-	@PluginTarget( GraphDatabaseService.class )
-	public String putStudyNewickSingle(@Source GraphDatabaseService graphDb,
-			@Description( "The Neo4j tree id of the tree to be used as the root for the tree.")
-			@Parameter(name = "studyID", optional = false) String studyID,
-			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
-			@Parameter(name = "newickString", optional = false) String newickString) {
+	@Description("Load a single newick tree into the graph")
+	@PluginTarget(GraphDatabaseService.class)
+	public String putStudyNewickSingle(
+			@Source GraphDatabaseService graphDb,
+			@Description("A string to be used as the source id for for this source. Source ids must be unique.") @Parameter(name = "sourceId", optional = false) String sourceId,
+			@Description("A newick string containing the tree to be added.") @Parameter(name = "newickString", optional = false) String newickString) {
+
 		GraphDatabaseAgent gdb = new GraphDatabaseAgent(graphDb);
 		DatabaseManager dm = new DatabaseManager(gdb);
+
+		NexsonSource source = new NexsonSource(sourceId);
+
+		// ArrayList<JadeTree> trees = new ArrayList<JadeTree>();
+		// JadeTree t = tr.readTree(newickString);
+		// trees.add(t);
+
 		TreeReader tr = new TreeReader();
-		ArrayList<JadeTree> trees = new ArrayList<JadeTree>();
-		JadeTree t = tr.readTree(newickString);
-		trees.add(t);
-		dm.addLocalSource(trees, studyID);
+		source.addTree(tr.readTree(newickString));
+
+		dm.addSource(source, DatabaseManager.LOCAL_LOCATION);
 		return "{\"worked\":1}";
 	}
-	
+
 	/**
 	 * this is single or multiple trees
+	 * 
 	 * @param graphDb
 	 * @param studyID
 	 * @param newickString
 	 * @return
 	 */
-	@Description( "" )
-	@PluginTarget( GraphDatabaseService.class )
-	public String putStudyNewickString(@Source GraphDatabaseService graphDb,
-			@Description( "The Neo4j tree id of the tree to be used as the root for the tree.")
-			@Parameter(name = "studyID", optional = false) String studyID,
-			@Description( "The Neo4j node id of the node to be used as the root for the tree.")
+	@Description("Incomplete placeholder for multi-tree upload")
+	@PluginTarget(GraphDatabaseService.class)
+	public String putStudyNewickMultiple(
+			@Source GraphDatabaseService graphDb,
+			@Description("A string to be used as the source id for for this source. Source ids must be unique.")
+			@Parameter(name = "sourceId", optional = false) String sourceId,
+			@Description("A newick string containing the tree to be added.")
 			@Parameter(name = "newickString", optional = false) String newickString) {
-		DatabaseManager dm = new DatabaseManager(graphDb);
-		String studytreelist = dm.getJSONOfSourceIdsAndTreeIdsForImportedTrees();
-		return studytreelist;
+
+		return null;
 	}
-	
-	@Description( "" )
-	@PluginTarget( GraphDatabaseService.class )
-	public String getStudyTreeList(@Source GraphDatabaseService graphDb) {
-		DatabaseManager dm = new DatabaseManager(graphDb);
-		String studytreelist = dm.getJSONOfSourceIdsAndTreeIdsForImportedTrees();
-		return studytreelist;
-	}
-	
-	@Description( "Return a JSON with the studies listed" )
-	@PluginTarget( GraphDatabaseService.class )
-	public String getStudyList(@Source GraphDatabaseService graphDb) {
-		DatabaseManager dm = new DatabaseManager(graphDb);
-		String studylist = dm.getJSONOfSourceIdsForImportedTrees();
-		return studylist;
-	}
-	
-	@Description( "Load a nexson file into the graph database" )
-	@PluginTarget( GraphDatabaseService.class )
-	public String putStudyNexsonFile(@Source GraphDatabaseService graphDb,
-			@Description( "study ID")
-			@Parameter(name = "studyID", optional = false) String studyID,
-			@Description( "Nexson string")
+
+	@Description("Load a nexson file into the graph database")
+	@PluginTarget(GraphDatabaseService.class)
+	public String putStudyNexsonFile(
+			@Source GraphDatabaseService graphDb,
+			@Description("A string to be used as the source id for for this source. Source ids must be unique.")
+			@Parameter(name = "sourceId", optional = false) String sourceId,
+			@Description("A nexson string to be parsed")
 			@Parameter(name = "nexsonString", optional = false) String nexsonString) {
-		StringReader sr = new StringReader(nexsonString);
+
+//		List<JadeTree> trees = null;
+
 		MessageLogger msgLogger = new MessageLogger("");
-		List<JadeTree> trees = null;
+		StringReader sr = new StringReader(nexsonString);
+		NexsonSource source = null;
 		try {
-			trees = NexsonReader.readNexson(sr, false, msgLogger);
+			source = NexsonReader.readNexson(sr, sourceId, false, msgLogger);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return e.toString();
 		}
+
 		DatabaseManager dm = new DatabaseManager(graphDb);
-		dm.addLocalSource(trees,studyID);
+		dm.addSource(source, DatabaseManager.LOCAL_LOCATION);
+
 		return "{\"worked\":1}";
 	}
-	
-	@Description( "Get study metadata" )
-	@PluginTarget( GraphDatabaseService.class )
+
+	@Description("Get study metadata")
+	@PluginTarget(GraphDatabaseService.class)
 	public String getStudyMetaData(@Source GraphDatabaseService graphDb,
-			@Description( "study ID")
+			@Description("study ID")
 			@Parameter(name = "studyID", optional = false) String studyID) {
-		DatabaseManager dm = new DatabaseManager(graphDb);
-		//TODO add that the source don't exist
-		String metadata = dm.getMetadataForLocalSource(studyID);
+		
+		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
+
+		// TODO add that the source don't exist
+
+		Node sourceMeta = browser.getSourceMetaNode(studyID, DatabaseBrowser.LOCAL_LOCATION);
+		String metadata = DatabaseBrowser.getMetadataJSONForSource(sourceMeta);
 		return metadata;
 	}
-	
+
 	/**
 	 * @param nodeid
 	 * @return
 	 */
-	@Description( "Return a JSON with alternative parents presented" )
-	@PluginTarget( GraphDatabaseService.class )
+	@Description("Return a JSON with alternative parents presented")
+	@PluginTarget(GraphDatabaseService.class)
 	public String deleteStudyFromStudyID(@Source GraphDatabaseService graphDb,
-			@Description( "study ID")
-			@Parameter(name = "studyID", optional = false) String studyID) {
+			@Description("study ID") @Parameter(name = "studyID", optional = false) String studyID) {
+
 		DatabaseManager dm = new DatabaseManager(graphDb);
-		dm.deleteLocalSource(studyID);
+		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
+		Node sourceMeta = browser.getSourceMetaNode(studyID, DatabaseBrowser.LOCAL_LOCATION);
+
+		dm.deleteSource(sourceMeta);
+
 		return "{\"worked\":1}";
 	}
-	
+
 }

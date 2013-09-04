@@ -1,8 +1,13 @@
 package opentree.otu;
 
+import jade.tree.JadeNode;
+import jade.tree.JadeTree;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Set;
 
 import opentree.otu.constants.NodeProperty;
@@ -114,7 +119,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * 		A set containing the nodes found by the tree traversal. Returns an empty set if no nodes are found.
 	 */
 	@Deprecated
-	public Set<Node> getDescendantTips(Node ancestor){ // does not appear to be used.
+	public static Set<Node> getDescendantTips(Node ancestor){ // does not appear to be used.
 		HashSet<Node> descendantTips = new HashSet<Node>();
 		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
 		for(Node curGraphNode: CHILDOF_TRAVERSAL.breadthFirst().traverse(ancestor).nodes()){
@@ -160,7 +165,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * @return
 	 * 		A JSON string containing metadata for this source
 	 */
-	public String getMetadataJSONForSource(Node sourceMeta) {
+	public static String getMetadataJSONForSource(Node sourceMeta) {
 		
 		StringBuffer bf = new StringBuffer("{ \"metadata\": {\"ot:curatorName\": \"");
 		if (sourceMeta.hasProperty("ot:curatorName")) {
@@ -209,7 +214,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * @return
 	 * 		A JSON string containing of the metadata for this tree
 	 */
-	public String getMetadataForTree(Node root) {
+	public static String getMetadataForTree(Node root) {
 
 		StringBuffer bf = new StringBuffer("{ \"metadata\": {\"ot:branchLengthMode\": \"");
 		if (root.hasProperty("ot:branchLengthMode")) {
@@ -237,5 +242,94 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		}
 		bf.append("\"} }");
 		return bf.toString();
+	}
+	
+	/**
+	 * Get the subtree of a given tree graph node. Does not perform error checks to make sure the tree exists.
+	 * @param inRoot
+	 * @param maxNodes
+	 * @return
+	 */
+	public static JadeTree getTreeFromNode(Node inRoot, int maxNodes) {
+		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
+		JadeNode root = new JadeNode();
+		HashMap<Node, JadeNode> traveledNodes = new HashMap<Node, JadeNode>();
+		int maxtips = maxNodes;
+		HashSet<Node> includednodes = new HashSet<Node>();
+		HashSet<Node> parents = new HashSet<Node>();
+		for (Node curGraphNode : CHILDOF_TRAVERSAL.breadthFirst().traverse(inRoot).nodes()) {
+			if (includednodes.size() > maxtips && parents.size() > 1) {
+				break;
+			}
+			JadeNode curNode = null;
+			if (curGraphNode == inRoot) {
+				curNode = root;
+			} else {
+				curNode = new JadeNode();
+			}
+			traveledNodes.put(curGraphNode, curNode);
+			if (curGraphNode.hasProperty("name")) {
+				curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
+				// curNode.setName(GeneralUtils.cleanName(curNode.getName()));
+			}
+			if (curGraphNode.hasProperty("ingroup")) {
+				curNode.assocObject("ingroup", "true");
+			}
+			curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
+			JadeNode parentJadeNode = null;
+			Relationship incomingRel = null;
+			if (curGraphNode.hasRelationship(Direction.OUTGOING, RelType.CHILDOF) && curGraphNode != inRoot) {
+				Node parentGraphNode = curGraphNode.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING).getEndNode();
+				if (includednodes.contains(parentGraphNode)) {
+					includednodes.remove(parentGraphNode);
+				}
+				parents.add(parentGraphNode);
+				if (traveledNodes.containsKey(parentGraphNode)) {
+					parentJadeNode = traveledNodes.get(parentGraphNode);
+					incomingRel = curGraphNode.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING);
+				}
+			}
+			includednodes.add(curGraphNode);
+			// add the current node to the tree we're building
+
+			if (parentJadeNode != null) {
+				parentJadeNode.addChild(curNode);
+			}
+			// get the immediate synth children of the current node
+			LinkedList<Relationship> taxChildRels = new LinkedList<Relationship>();
+			int numchild = 0;
+			for (Relationship taxChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.CHILDOF)) {
+				taxChildRels.add(taxChildRel);
+				numchild += 1;
+			}
+			if (numchild > 0) {
+				// need to add a property of the jadenode if there are children, so if they aren't included, we can color it
+				curNode.assocObject("haschild", true);
+				curNode.assocObject("numchild", numchild);
+			}
+		}
+		int curbackcount = 0;
+		boolean going = true;
+		JadeNode newroot = root;
+		Node curRoot = inRoot;
+		while (going && curbackcount < 5) {
+			if (curRoot.hasRelationship(Direction.OUTGOING, RelType.CHILDOF)) {
+				Node curGraphNode = curRoot.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING).getEndNode();
+				JadeNode temproot = new JadeNode();
+				if (curGraphNode.hasProperty("name")) {
+					temproot.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
+				}
+				temproot.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
+				temproot.addChild(newroot);
+				curRoot = curGraphNode;
+				newroot = temproot;
+				curbackcount += 1;
+			} else {
+				going = false;
+				break;
+			}
+		}
+		// (add a bread crumb)
+		return new JadeTree(newroot);
 	}
 }

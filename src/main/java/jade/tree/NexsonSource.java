@@ -11,7 +11,7 @@ public class NexsonSource {
 	private HashMap<String, Object> properties;
 	private ArrayList<JadeTree> trees;
 	
-	NexsonSource(String sourceId) {
+	public NexsonSource(String sourceId) {
 		this.sourceId = sourceId;
 		properties = new HashMap<String, Object>();
 		trees = new ArrayList<JadeTree>();
