@@ -37,7 +37,7 @@ public class studyJsons extends ServerPlugin {
 		ArrayList<JadeTree> trees = new ArrayList<JadeTree>();
 		JadeTree t = tr.readTree(newickString);
 		trees.add(t);
-		dm.addLocalStudy(trees, studyID);
+		dm.addLocalSource(trees, studyID);
 		return "{\"worked\":1}";
 	}
 	
@@ -93,7 +93,7 @@ public class studyJsons extends ServerPlugin {
 			e.printStackTrace();
 		}
 		DatabaseManager dm = new DatabaseManager(graphDb);
-		dm.addLocalStudy(trees,studyID);
+		dm.addLocalSource(trees,studyID);
 		return "{\"worked\":1}";
 	}
 	

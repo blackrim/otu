@@ -28,20 +28,25 @@ public enum NodeIndexDescription {
     TREE_ROOT_NODES_BY_SOURCE_ID ("treeRootNodesBySourceId"),
 
     /**
-     * Root nodes for trees including a taxon with the supplied name. Key 1 is "name", key 2 is taxon name.
+     * Root nodes for trees including a taxon with the supplied name. Property is "name", key is taxon name.
      */
-    TREE_ROOT_NODES_BY_INCLUDED_TAXON_NAME ("treeRootNodesByInclTaxonName"),
+    TREE_ROOT_NODES_BY_ORIGINAL_TAXON_NAME ("treeRootNodesByOriginalTaxonName"),
+
+    /**
+     * Root nodes for trees including a taxon with the supplied name. Property is "name", key is taxon name.
+     */
+    TREE_ROOT_NODES_BY_MAPPED_TAXON_NAME ("treeRootNodesByMappedTaxonName"),
 
     /**
      * Root nodes for trees including a taxon with the supplied name. Spaces have been replaced with underscores
      * to facilitate whole-word matching. Property is "name", key is taxon name.
      */
-    TREE_ROOT_NODES_BY_INCLUDED_TAXON_NAME_WHITESPACE_FILLED ("treeRootNodesByInclTaxonNameWhitespaceFilled"),
+    TREE_ROOT_NODES_BY_MAPPED_TAXON_NAME_WHITESPACE_FILLED ("treeRootNodesByMappedTaxonNameWhitespaceFilled"),
     
     /**
      * Root nodes for trees including a taxon with the supplied ott id. Property is "uid", key is ott id.
      */
-    TREE_ROOT_NODES_BY_INCLUDED_TAXON_MAPPED_OTT_ID ("treeRootNodesByInclTaxonMappedOTTId"),
+    TREE_ROOT_NODES_BY_MAPPED_TAXON_OTT_ID ("treeRootNodesByMappedTaxonMappedOTTId"),
 
     /**
      * Root nodes for trees indexed by the specified ot namespace property. Property is the ot property name (e.g. "ot:curatorName")

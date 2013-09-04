@@ -3,6 +3,7 @@ package opentree.otu.constants;
 public enum GeneralConstants {
 
 	WHITESPACE_SUBSTITUTE_FOR_SEARCH ("%s%", String.class),
+	LOCAL_SOURCEID_IDENTIFIER ("local_", String.class),
 	LOCAL_TREEID_PREFIX ("__local_id_", String.class);
 	
 	public Object value;

@@ -1,23 +1,18 @@
 package opentree.otu.plugins;
 
 import jade.MessageLogger;
-import jade.tree.JadeTree;
 import jade.tree.NexsonReader;
+import jade.tree.NexsonSource;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.LinkedList;
-import java.util.List;
-
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
 
-import opentree.otu.DatabaseIndexer;
 import opentree.otu.DatabaseManager;
 
 import org.json.simple.parser.JSONParser;
@@ -29,12 +24,8 @@ import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.ListRepresentation;
-import org.neo4j.server.rest.repr.MappingRepresentation;
 import org.neo4j.server.rest.repr.Representation;
-import org.neo4j.server.rest.repr.RepresentationFormat;
 import org.neo4j.server.rest.repr.ValueRepresentation;
-
-import scala.actors.threadpool.Arrays;
 
 /**
  * services for indexing. very preliminary, should probably be reorganized (later).
@@ -46,7 +37,7 @@ public class Indexing extends ServerPlugin {
 
 	private String nexsonCommitsURLStr = "https://bitbucket.org/api/2.0/repositories/blackrim/avatol_nexsons/commits";
 	private String nexsonsBaseURL = "https://bitbucket.org/api/1.0/repositories/blackrim/avatol_nexsons/raw/";
-	
+
 	/**
 	 * Index all remote nexsons. This is slow. Should do atomic indexing of nexsons using AJAX on the page for better feedback and efficiency. Leaving this in though, as it is a useful reference for
 	 * doing URL access and JSON parsing in Java.
@@ -77,34 +68,34 @@ public class Indexing extends ServerPlugin {
 		BufferedReader nexsonsDir = new BufferedReader(new InputStreamReader(new URL(nexsonsDirURL).openStream()));
 
 		// prepare for indexing all studies
-		DatabaseIndexer di = new DatabaseIndexer(graphDb);
+		DatabaseManager dm = new DatabaseManager(graphDb);
 		LinkedList<String> indexedStudies = new LinkedList<String>(); // just for testing really
 		LinkedList<String> errorStudies = new LinkedList<String>(); // currently not used
 
 		// for each nexson in the latest commit
-		String dirEntry = "";
-		while (dirEntry != null) {
-			dirEntry = nexsonsDir.readLine();
+		String fileName = "";
+		while (fileName != null) {
+			fileName = nexsonsDir.readLine();
 			try {
-				Integer.valueOf(dirEntry);
+				Integer.valueOf(fileName);
 			} catch (NumberFormatException ex) {
-				errorStudies.add(dirEntry);
+				errorStudies.add(fileName);
 				continue;
 			}
 
-			List<JadeTree> trees = readRemoteNexson(nexsonsDirURL + dirEntry);
-			String studyId = dirEntry;
+			NexsonSource source = readRemoteNexson(nexsonsDirURL + fileName, fileName);
 
-			di.addStudyToIndexes(trees, studyId);
-			indexedStudies.add(studyId); // remember studies we indexed
+			dm.addSource(source, "remote", true);
+			indexedStudies.add(fileName); // remember studies we indexed
 			break;
 		}
 
 		return ListRepresentation.string(indexedStudies);
 	}
-	
+
 	/**
 	 * Return the url of the most recent commit in the public repo. Facilitates working with these independently in javascript.
+	 * 
 	 * @param graphDb
 	 * @return
 	 * @throws InterruptedException
@@ -124,13 +115,13 @@ public class Indexing extends ServerPlugin {
 		// get just the most recent commit
 		String mostRecentCommitHash = (String) ((JSONObject) ((JSONArray) commitsJSON.get("values")).get(0)).get("hash");
 
-		// open reader for the nexsons dir
 		return ValueRepresentation.string(nexsonsBaseURL + mostRecentCommitHash + "/");
 
 	}
-	
+
 	/**
 	 * Get a list of the nexson files in the public repo commit at the specified url
+	 * 
 	 * @param graphDb
 	 * @param url
 	 * @return
@@ -140,9 +131,8 @@ public class Indexing extends ServerPlugin {
 	 */
 	@Description("Get a list of the nexsons currently in the public nexsons repo")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation getNexsonsListFromURL(@Source GraphDatabaseService graphDb,
-			@Description("remote nexson url") @Parameter(name = "url", optional = false) String url) throws IOException {
-		
+	public Representation getNexsonsListFromURL(@Source GraphDatabaseService graphDb, @Description("remote nexson url") @Parameter(name = "url", optional = false) String url) throws IOException {
+
 		BufferedReader nexsonsDir = new BufferedReader(new InputStreamReader(new URL(url).openStream()));
 
 		// prepare for indexing all studies
@@ -174,23 +164,19 @@ public class Indexing extends ServerPlugin {
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
-	@Description("Index a single remote nexson into the local db under the specified source id."
-			+ "Studies will only be indexed if they have at least one tree. Returns true if the"
-			+ "study is indexed, or false if it has no trees. Trees that cannot be read from nexson"
-			+ "files that otherwise contain some good trees will be skipped.")
+	@Description("Add a single remote nexson into the local db under the specified source id." + "Sources will only be added if they have at least one tree. Returns true if the"
+			+ "source is added, or false if it has no trees. Trees that cannot be read from nexson" + "files that otherwise contain some good trees will be skipped.")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation indexSingleNexson(@Source GraphDatabaseService graphDb,
-			@Description("remote nexson url") @Parameter(name = "url", optional = false) String url,
-			@Description("source id under which this source will be indexed locally") @Parameter(name = "studyID", optional = false) String studyID)
-					throws MalformedURLException, IOException {
+	public Representation indexSingleNexson(@Source GraphDatabaseService graphDb, @Description("remote nexson url") @Parameter(name = "url", optional = false) String url,
+			@Description("source id under which this source will be indexed locally") @Parameter(name = "sourceId", optional = false) String sourceId) throws MalformedURLException, IOException {
 
-		DatabaseIndexer di = new DatabaseIndexer(graphDb);
-		List<JadeTree> trees = readRemoteNexson(url);
-		
-		if (trees == null || trees.size() < 1) {
+		DatabaseManager dm = new DatabaseManager(graphDb);
+		NexsonSource source = readRemoteNexson(url, sourceId);
+
+		if (source.getTrees().iterator().hasNext() == false) {
 			return ValueRepresentation.bool(false);
 		} else {
-			di.addStudyToIndexes(trees, studyID);
+			dm.addSource(source, "remote", true);
 			return ValueRepresentation.bool(true);
 		}
 	}
@@ -203,11 +189,11 @@ public class Indexing extends ServerPlugin {
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
-	private List<JadeTree> readRemoteNexson(String url) throws MalformedURLException, IOException {
+	private NexsonSource readRemoteNexson(String url, String sourceId) throws MalformedURLException, IOException {
 		BufferedReader nexson = new BufferedReader(new InputStreamReader(new URL(url).openStream()));
 		MessageLogger msgLogger = new MessageLogger("");
-		
+
 		// TODO: sometimes this returns a null for the first tree, but no errors. Why? Why don't we get an error?
-		return NexsonReader.readNexson(nexson, false, msgLogger);
+		return NexsonReader.readNexson(nexson, sourceId, false, msgLogger);
 	}
 }
