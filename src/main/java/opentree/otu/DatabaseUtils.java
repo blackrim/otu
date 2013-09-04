@@ -134,7 +134,8 @@ public class DatabaseUtils {
 		LinkedList<Node> result = new LinkedList<Node>();
 		IndexHits<Node> hits = null;
 		try {
-			hits = index.get(property, key);
+//			hits = index.get(property, key);
+			hits = index.query(property+":"+key);
 			for (Node hit : hits) {
 				result.add(hit);
 			}

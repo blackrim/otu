@@ -15,6 +15,7 @@ import jade.tree.JadeTree;
 import jade.tree.NexsonSource;
 import opentree.otu.GeneralUtils;
 import opentree.otu.constants.GeneralConstants;
+import opentree.otu.constants.GraphProperty;
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
 import opentree.otu.constants.SourceProperty;
@@ -34,6 +35,9 @@ import org.neo4j.kernel.Traversal;
 public class DatabaseManager extends DatabaseAbstractBase {
 
 	private DatabaseIndexer indexer;
+	private DatabaseBrowser browser;
+	
+	private HashSet<String> knownRemotes;
 	
 	protected Index<Node> sourceMetaNodesBySourceId = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_SOURCE_ID);
 	protected Index<Node> treeRootNodesByTreeId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
@@ -48,6 +52,8 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	public DatabaseManager(GraphDatabaseService graphService) {
 		super(graphService);
 		indexer = new DatabaseIndexer(graphDb);
+		browser = new DatabaseBrowser(graphDb);
+		updateKnownRemotesInternal();
 	}
 
 	/**
@@ -58,6 +64,8 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	public DatabaseManager(EmbeddedGraphDatabase embeddedGraph) {
 		super(embeddedGraph);
 		indexer = new DatabaseIndexer(graphDb);
+		browser = new DatabaseBrowser(graphDb);
+		updateKnownRemotesInternal();
 	}
 
 	/**
@@ -68,6 +76,8 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	public DatabaseManager(GraphDatabaseAgent gdb) {
 		super(gdb);
 		indexer = new DatabaseIndexer(graphDb);
+		browser = new DatabaseBrowser(graphDb);
+		updateKnownRemotesInternal();
 	}
 
 	// ========== public methods
@@ -118,7 +128,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		
 		Transaction tx = graphDb.beginTx();
 		try {
-
+			
 			String sourceId = source.getId();
 
 			// don't add a study if it already exists, unless overwriting is turned on
@@ -172,12 +182,16 @@ public class DatabaseManager extends DatabaseAbstractBase {
 				i++;
 			}
 			
-			// if this is a local study then attach it to any existing remotes
-			if (location == LOCAL_LOCATION) {
-				for (Node sourceMetaHit : DatabaseUtils.getMultipleNodeIndexHits(sourceMetaNodesBySourceId, "*", sourceId)) {
+			if (location == LOCAL_LOCATION) { // if this is a local study then attach it to any existing remotes
+				for (Node sourceMetaHit : browser.getAllKnownSourceMetaNodesForSourceId(sourceId)) {
 					if (sourceMetaHit.getProperty(NodeProperty.LOCATION.name).equals(LOCAL_LOCATION) == false) {
 						sourceMeta.createRelationshipTo(sourceMetaHit, RelType.ISLOCALCOPYOF);
 					}
+				}
+
+			} else { // if it's a remote study then see if we need to add the remote location
+				if (!knownRemotes.contains(location)) {
+					addKnownRemote(location);
 				}
 			}
 		
@@ -315,6 +329,23 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	// ===== other methods
 	
 	/**
+	 * Add a known remote. We could also just add nodes for all remotes
+	 * @param remote
+	 */
+	public void addKnownRemote(String remote) {
+		String[] knownRemotesPrev = browser.getKnownRemotes();
+		String[] knownRemotesNew = new String[knownRemotesPrev.length];
+		int i;
+		for (i = 0; i < knownRemotesPrev.length; i++) {
+			knownRemotesNew[i] = knownRemotesPrev[i];
+		}
+		knownRemotesNew[i+1] = remote;
+		graphDb.getNodeById((long)0).setProperty(GraphProperty.KNOWN_REMOTES.propertyName, knownRemotesNew);
+		
+		updateKnownRemotesInternal();
+	}
+	
+	/**
 	 * Reroot the tree containing the `newroot` node on that node. Returns the root node of the rerooted tree.
 	 * @param newroot
 	 * @return
@@ -416,6 +447,20 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	}
 	
 	// ========== private methods
+	
+	/**
+	 * Just update the internal cache of known remotes. Called when we add a remote. We keep the cache
+	 * so we don't have to check the graph property array every time we add a study.
+	 */
+	private void updateKnownRemotesInternal() {
+		knownRemotes = new HashSet<String>();
+		String[] knownRemotesArr = browser.getKnownRemotes();
+		if (knownRemotesArr.length > 0) {
+			for (String remote : knownRemotesArr) {
+				knownRemotes.add(remote);
+			}
+		}
+	}
 	
 	/**
 	 * A recursive function used to replicate the tree JadeNode structure below of the passed in JadeNode in the graph.

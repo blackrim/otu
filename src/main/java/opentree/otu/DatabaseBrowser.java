@@ -8,8 +8,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
+import opentree.otu.constants.GraphProperty;
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
 
@@ -40,6 +42,34 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 
 	public DatabaseBrowser(GraphDatabaseAgent gdba) {
 		super(gdba);
+	}
+	
+	/**
+	 * Search all known remotes to see if they contain a source with the specified id. Returns an iterable of source meta
+	 * nodes for all matching sources.
+	 * @param sourceId
+	 * @return
+	 */
+	public Iterable<Node> getAllKnownSourceMetaNodesForSourceId(String sourceId) {
+		
+		List<Node> remoteSourceMetasFound = new LinkedList<Node>();
+		
+		for (String remote : getKnownRemotes()) {
+			Node sourceMeta = DatabaseUtils.getSingleNodeIndexHit(sourceMetaNodesBySourceId, remote+"SourceId",sourceId);
+			if (sourceMeta != null) {
+				remoteSourceMetasFound.add(sourceMeta);
+			}
+		}
+		
+		return remoteSourceMetasFound;
+	}
+	
+	/**
+	 * Get the array of known remote identifier strings
+	 * @return
+	 */
+	public String[] getKnownRemotes() {
+		return (String[]) graphDb.getGraphProperty(GraphProperty.KNOWN_REMOTES);
 	}
 	
 	/**

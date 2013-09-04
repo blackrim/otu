@@ -2,6 +2,8 @@ package opentree.otu;
 
 import java.util.Map;
 
+import opentree.otu.constants.GraphProperty;
+
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -94,6 +96,8 @@ public class GraphDatabaseAgent {
         registerShutdownHook();
     }
 
+    // TODO: add a hasGraphProperty method
+    
     /**
      * These assume that the graph properties will be stored at the 
      * root node as properties. The root node should always be node 0
@@ -112,6 +116,16 @@ public class GraphDatabaseAgent {
     		else
     			return null; 	    		
     	}
+    }
+
+    /**
+     * These assume that the graph properties will be stored at the 
+     * root node as properties. The root node should always be node 0
+     * @param propname
+     * @return
+     */
+    public Object getGraphProperty(GraphProperty gp) {
+    	return getGraphProperty(gp.propertyName);
     }
     
     /**

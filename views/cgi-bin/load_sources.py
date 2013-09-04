@@ -94,7 +94,7 @@ def save_git_file_nexson(form, upload_dir):
     log = open("logging","a")
     recenthash = form["recenthash"].value
     sourceId = form["loadselect"].value
-    geturl = "https://bitbucket.org/api/1.0/repositories/blackrim/avatol_nexsons/raw/"+str(sourceId)
+    geturl = "https://bitbucket.org/api/1.0/repositories/blackrim/avatol_nexsons/raw/"+recenthash+"/"+str(sourceId)
     print geturl
     req = urllib2.Request(geturl)
     f = urllib2.urlopen(req)
@@ -115,7 +115,7 @@ def save_git_file_nexson(form, upload_dir):
 def save_uploaded_file_nexson (form, form_field, upload_dir):
     return False
 
-def get_bitbucket_recenthash():
+def get_bitbucket_recent_hash():
     commiturl = "https://bitbucket.org/api/2.0/repositories/blackrim/avatol_nexsons/commits"
     req = urllib2.Request(commiturl)
     f = urllib2.urlopen(req)
@@ -146,7 +146,7 @@ def print_html_form (success, recenthash, gitfilelist):
 
     print "content-type: text/html\n"
 #    print HTML_TEMPLATE.replace("GITFILELIST",gitfilelist);
-	print HTMLT_TEMPLATE.replace("$GITFILELIST$",gitfilelist).replace("$RECENTHASH$",recenthash)
+    print HTML_TEMPLATE.replace("$GITFILELIST$",gitfilelist).replace("$RECENTHASH$",recenthash)
 
 
 # now actually do stuff
