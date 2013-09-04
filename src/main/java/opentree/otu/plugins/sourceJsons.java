@@ -3,7 +3,6 @@ package opentree.otu.plugins;
 import java.io.IOException;
 import java.io.StringReader;
 
-
 import jade.MessageLogger;
 import jade.tree.*;
 import opentree.otu.DatabaseBrowser;
@@ -14,22 +13,22 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.server.plugins.*;
 
-public class studyJsons extends ServerPlugin {
+public class sourceJsons extends ServerPlugin {
 
 	@Description("Return JSON containing information about local sources and trees")
 	@PluginTarget(GraphDatabaseService.class)
-	public String getStudyTreeList(@Source GraphDatabaseService graphDb) {
+	public String getSourceTreeList(@Source GraphDatabaseService graphDb) {
 		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
-		String studytreelist = browser.getJSONOfSourceIdsAndTreeIdsForImportedTrees();
-		return studytreelist;
+		String sourcetreelist = browser.getJSONOfSourceIdsAndTreeIdsForImportedTrees();
+		return sourcetreelist;
 	}
 
 	@Description("Return JSON containing information about local trees")
 	@PluginTarget(GraphDatabaseService.class)
-	public String getStudyList(@Source GraphDatabaseService graphDb) {
+	public String getSourceList(@Source GraphDatabaseService graphDb) {
 		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
-		String studylist = browser.getJSONOfSourceIdsForImportedTrees();
-		return studylist;
+		String sourcelist = browser.getJSONOfSourceIdsForImportedTrees();
+		return sourcelist;
 	}
 
 	/**
@@ -40,7 +39,7 @@ public class studyJsons extends ServerPlugin {
 	 */
 	@Description("Load a single newick tree into the graph")
 	@PluginTarget(GraphDatabaseService.class)
-	public String putStudyNewickSingle(
+	public String putSourceNewickSingle(
 			@Source GraphDatabaseService graphDb,
 			@Description("A string to be used as the source id for for this source. Source ids must be unique.") @Parameter(name = "sourceId", optional = false) String sourceId,
 			@Description("A newick string containing the tree to be added.") @Parameter(name = "newickString", optional = false) String newickString) {
@@ -65,13 +64,13 @@ public class studyJsons extends ServerPlugin {
 	 * this is single or multiple trees
 	 * 
 	 * @param graphDb
-	 * @param studyID
+	 * @param sourceId
 	 * @param newickString
 	 * @return
 	 */
 	@Description("Incomplete placeholder for multi-tree upload")
 	@PluginTarget(GraphDatabaseService.class)
-	public String putStudyNewickMultiple(
+	public String putSourceNewickMultiple(
 			@Source GraphDatabaseService graphDb,
 			@Description("A string to be used as the source id for for this source. Source ids must be unique.")
 			@Parameter(name = "sourceId", optional = false) String sourceId,
@@ -83,7 +82,7 @@ public class studyJsons extends ServerPlugin {
 
 	@Description("Load a nexson file into the graph database")
 	@PluginTarget(GraphDatabaseService.class)
-	public String putStudyNexsonFile(
+	public String putSourceNexsonFile(
 			@Source GraphDatabaseService graphDb,
 			@Description("A string to be used as the source id for for this source. Source ids must be unique.")
 			@Parameter(name = "sourceId", optional = false) String sourceId,
@@ -107,17 +106,17 @@ public class studyJsons extends ServerPlugin {
 		return "{\"worked\":1}";
 	}
 
-	@Description("Get study metadata")
+	@Description("Get source metadata")
 	@PluginTarget(GraphDatabaseService.class)
-	public String getStudyMetaData(@Source GraphDatabaseService graphDb,
-			@Description("study ID")
-			@Parameter(name = "studyID", optional = false) String studyID) {
+	public String getSourceMetaData(@Source GraphDatabaseService graphDb,
+			@Description("source Id")
+			@Parameter(name = "sourceId", optional = false) String sourceId) {
 		
 		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
 
 		// TODO add that the source don't exist
 
-		Node sourceMeta = browser.getSourceMetaNode(studyID, DatabaseBrowser.LOCAL_LOCATION);
+		Node sourceMeta = browser.getSourceMetaNode(sourceId, DatabaseBrowser.LOCAL_LOCATION);
 		String metadata = DatabaseBrowser.getMetadataJSONForSource(sourceMeta);
 		return metadata;
 	}
@@ -128,12 +127,12 @@ public class studyJsons extends ServerPlugin {
 	 */
 	@Description("Return a JSON with alternative parents presented")
 	@PluginTarget(GraphDatabaseService.class)
-	public String deleteStudyFromStudyID(@Source GraphDatabaseService graphDb,
-			@Description("study ID") @Parameter(name = "studyID", optional = false) String studyID) {
+	public String deleteSourceFromSourceID(@Source GraphDatabaseService graphDb,
+			@Description("source Id") @Parameter(name = "sourceId", optional = false) String sourceId) {
 
 		DatabaseManager dm = new DatabaseManager(graphDb);
 		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
-		Node sourceMeta = browser.getSourceMetaNode(studyID, DatabaseBrowser.LOCAL_LOCATION);
+		Node sourceMeta = browser.getSourceMetaNode(sourceId, DatabaseBrowser.LOCAL_LOCATION);
 
 		dm.deleteSource(sourceMeta);
 

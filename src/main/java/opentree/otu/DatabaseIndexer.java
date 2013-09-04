@@ -135,15 +135,15 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 	 */
 	public void addSourceMetaNodeToIndexes(Node sourceMetaNode) {
 		sourceMetaNodesBySourceId.add(sourceMetaNode,
-				(String) sourceMetaNode.getProperty(NodeProperty.LOCATION.name()),
-				sourceMetaNode.getProperty(NodeProperty.SOURCE_ID.name()));
+				(String) sourceMetaNode.getProperty(NodeProperty.LOCATION.name)+"SourceId",
+				sourceMetaNode.getProperty(NodeProperty.SOURCE_ID.name));
 		indexNodeByOTProperties(sourceMetaNode, sourceMetaNodesByOTProperty);
 	}
 
 	/**
 	 * Remove the indicated node from all source metadata node indexes.
 	 */
-	public void removeSourceMetaNodeFromAllIndexes(Node sourceMetaNode) {
+	public void removeSourceMetaNodeFromIndexes(Node sourceMetaNode) {
 		sourceMetaNodesBySourceId.remove(sourceMetaNode);
 		sourceMetaNodesByOTProperty.remove(sourceMetaNode);
 	}
@@ -185,13 +185,13 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 	public void addTreeRootNodeToIndexes(Node treeRootNode) {
 
 		treeRootNodesByTreeId.add(treeRootNode,
-				(String) treeRootNode.getProperty(NodeProperty.LOCATION.name()),
-				treeRootNode.getProperty(NodeProperty.TREE_ID.name()));
+				(String) treeRootNode.getProperty(NodeProperty.LOCATION.name) + "TreeId",
+				treeRootNode.getProperty(NodeProperty.TREE_ID.name));
 		
 		treeRootNodesBySourceId.add(treeRootNode,
-				(String) treeRootNode.getProperty(NodeProperty.LOCATION.name()),
+				(String) treeRootNode.getProperty(NodeProperty.LOCATION.name) + "SourceId",
 				treeRootNode.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING)
-					.getEndNode().getProperty(NodeProperty.SOURCE_ID.name()));
+					.getEndNode().getProperty(NodeProperty.SOURCE_ID.name));
 		
 		// add to ot property indexes
 		indexNodeByOTProperties(treeRootNode, treeRootNodesByOTProperty);
@@ -221,10 +221,10 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 	 * @param treeRootNode
 	 */
 	private void addTreeToTaxonomicIndexes(Node root) {
-		addArrayEntriesToIndex(root, treeRootNodesByOriginalTaxonName, NodeProperty.ORIGINAL_TAXON_NAMES, "name");
-		addArrayEntriesToIndex(root, treeRootNodesByMappedTaxonName, NodeProperty.MAPPED_TAXON_NAMES, "name");
-		addArrayEntriesToIndex(root, treeRootNodesByMappedTaxonNameNoSpaces, NodeProperty.MAPPED_TAXON_NAMES_WHITESPACE_FILLED, "name");
-		addArrayEntriesToIndex(root, treeRootNodesByMappedTaxonOTTId, NodeProperty.MAPPED_TAXON_OTT_IDS, "uid");
+		addStringArrayEntriesToIndex(root, treeRootNodesByOriginalTaxonName, NodeProperty.ORIGINAL_TAXON_NAMES.name, "name");
+		addStringArrayEntriesToIndex(root, treeRootNodesByMappedTaxonName, NodeProperty.MAPPED_TAXON_NAMES.name, "name");
+		addStringArrayEntriesToIndex(root, treeRootNodesByMappedTaxonNameNoSpaces, NodeProperty.MAPPED_TAXON_NAMES_WHITESPACE_FILLED.name, "name");
+		addLongArrayEntriesToIndex(root, treeRootNodesByMappedTaxonOTTId, NodeProperty.MAPPED_TAXON_OTT_IDS.name, "uid");
 	}
 	
 	// ===== generalized private methods used during indexing
@@ -239,27 +239,48 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 		// TODO: modify this to use an enum/accept an array (that can be populated from an enum) that specifies all the properties to be set.
 		
 		for (String propertyName : node.getPropertyKeys()) {
-			if (propertyName.substring(0, 3).equals("ot:")) {
-				index.add(node, propertyName, node.getProperty(propertyName));
+			if (propertyName.length() > 2) {
+				if (propertyName.substring(0, 3).equals("ot:")) {
+					index.add(node, propertyName, node.getProperty(propertyName));
+				}
 			}
 		}
 	}
 	
-	/**
+	/*
 	 * A generic method for adding a node to an index under a specified property using every element of an array
 	 * as a key. Currently the array must already be stored as a property of the node, but this could be extended to allow
 	 * arbitrary arrays. Used to add root nodes to the indexes for taxon names and ott ids.
+	 * @param <T>
 	 * 
 	 * @param node
 	 * @param dataType
 	 * @param nodeProperty
 	 * @param indexProperty
-	 */
-	private void addArrayEntriesToIndex(Node node, Index<Node> index, NodeProperty nodeProperty, String indexProperty) {
-		if (node.hasProperty(nodeProperty.name())) {
-			Object[] array = (Object[]) node.getProperty(nodeProperty.name());
+	 *
+	private <T> void addArrayEntriesToIndex(Node node, Index<Node> index, String nodePropertyName, Class<T> type, String indexProperty) {
+		if (node.hasProperty(nodePropertyName)) {
+			T[] array = (T[]) node.getProperty(nodePropertyName);
 			for (int i = 0; i < array.length; i++) {
-				index.add(node, indexProperty, (nodeProperty.type.getComponentType()).cast(array[i]));
+				index.add(node, indexProperty, array[i]);
+			}
+		}
+	} */
+	
+	private void addStringArrayEntriesToIndex(Node node, Index<Node> index, String nodePropertyName, String indexProperty) {
+		if (node.hasProperty(nodePropertyName)) {
+			String[] array = (String[]) node.getProperty(nodePropertyName);
+			for (int i = 0; i < array.length; i++) {
+				index.add(node, indexProperty, array[i]);
+			}
+		}
+	}
+
+	private void addLongArrayEntriesToIndex(Node node, Index<Node> index, String nodePropertyName, String indexProperty) {
+		if (node.hasProperty(nodePropertyName)) {
+			long[] array = (long[]) node.getProperty(nodePropertyName);
+			for (int i = 0; i < array.length; i++) {
+				index.add(node, indexProperty, array[i]);
 			}
 		}
 	}

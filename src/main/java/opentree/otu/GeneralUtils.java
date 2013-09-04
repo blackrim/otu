@@ -30,8 +30,28 @@ public class GeneralUtils {
 
 		return sum;
 	}
+    
+    public static String[] convertToStringArray(List<String> list) {
+    	String[] arr = new String[list.size()];
+    	int i = 0;
+    	for (String s : list) {
+    		arr[i] = s;
+    		i++;
+    	}
+    	return arr;
+    }
 
-    public static String escapeString(String dirtyString){
+    public static long[] convertToLongArray(List<Long> list) {
+    	long[] arr = new long[list.size()];
+    	int i = 0;
+    	for (long l : list) {
+    		arr[i] = l;
+    		i++;
+    	}
+    	return arr;
+    }
+
+    public static String escapeStringForJSON(String dirtyString) {
     	String cleanString = dirtyString.replace(offendingJSONChars, ' ');
 	    return cleanString;
     }
@@ -44,12 +64,7 @@ public class GeneralUtils {
 	 * @return cleaned name
 	 */
 	public static String cleanName(String dirtyName) {
-	    String cleanName = dirtyName.replaceAll(offendingChars, "_");
-//	    for (char bad : badchars.toCharArray()) {
-//	        cleanName.replace(bad, '_');
-//	    }
-	    
-	    
+	    String cleanName = dirtyName.replaceAll(offendingChars, "_");	    
 	    return cleanName;
 	}
 }

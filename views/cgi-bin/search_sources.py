@@ -77,11 +77,11 @@ function indexEachRemoteNexson(curNexsonsBaseURL) {
 //        alert(xobj.responseText);
         if (xobj.readyState==4 && xobj.status==200) {
 //            alert(JSON.stringify(xobj.responseText));            
-            var studies = JSON.parse(xobj.responseText)
-            totalCount = studies.length;
-            for (var i=0; i < studies.length; i++) {
-//                alert("sending " + studies[i]); 
-                indexSingleStudy(studies[i], curNexsonsBaseURL + studies[i], i*100);
+            var sources = JSON.parse(xobj.responseText)
+            totalCount = sources.length;
+            for (var i=0; i < sources.length; i++) {
+//                alert("sending " + sources[i]); 
+                indexSingleSource(sources[i], curNexsonsBaseURL + sources[i], i*100);
 //                break;
             }
         }
@@ -93,34 +93,34 @@ function indexEachRemoteNexson(curNexsonsBaseURL) {
 
 }
 
-function indexSingleStudy(sid, url, delay) {
-    var studyID = sid;
+function indexSingleSource(sid, url, delay) {
+    var sourceId = sid;
     var URL = url;
     setTimeout(function() {
         var indexServiceURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/indexSingleNexson";
-//        alert("received " + studyID); 
+//        alert("received " + sourceId); 
 
         var xobj = new XMLHttpRequest();
         xobj.onreadystatechange=function() {
             if (xobj.readyState==4) {
                 if (xobj.status==200) {
                     if (JSON.parse(xobj.responseText) == true) {
-                        setStatus("Indexed study: " + studyID);
+                        setStatus("Indexed source: " + sourceId);
                     } else {
-                        setStatus("Study " + studyID + " was not indexed. It does not appear to contain any trees.");
+                        setStatus("Source " + sourceId + " was not indexed. It does not appear to contain any trees.");
                     }
                 } else if (xobj.status >= 400) {
-                    setStatus("Indexing failed for study " + studyID + ". Server returned status " + xobj.status + ".");
+                    setStatus("Indexing failed for source " + sourceId + ". Server returned status " + xobj.status + ".");
                     setStatus(xobj.responseText);
                 }
                 countProcessed++;
-                document.getElementById("statusCount").innerHTML = "<p>Studies processed: " + countProcessed + " / " + totalCount + "</p>";
+                document.getElementById("statusCount").innerHTML = "<p>Sources processed: " + countProcessed + " / " + totalCount + "</p>";
             }
         }
         xobj.open("POST", indexServiceURL, true);
         xobj.setRequestHeader("Accept", "*/*");
         xobj.setRequestHeader("Content-Type","Application/json");
-        xobj.send(JSON.stringify({ "studyID" : studyID, "url" : url }));
+        xobj.send(JSON.stringify({ "sourceId" : sourceId, "url" : url }));
     }, delay);
 }
 
@@ -138,9 +138,9 @@ function indexSingleStudy(sid, url, delay) {
           <a class="brand" href="#">OTU</a>
           <div class="nav-collapse collapse">
             <ul class="nav">
-              <li><a href="load_studies.py"">Load and List Studies</a></li>
-              <li class="active"><a href="#">Search Public Studies</a></li>
-              <li><a href="../study_view.html">View Study</a></li>
+              <li><a href="load_sources.py"">Load and List Sources</a></li>
+              <li class="active"><a href="#">Search Public Sources</a></li>
+              <li><a href="../source_view.html">View Source</a></li>
               <li><a href="../tree_dyn.html">View Tree</a></li>
             </ul>
           </div><!--/.nav-collapse -->
@@ -148,12 +148,12 @@ function indexSingleStudy(sid, url, delay) {
       </div>
     </div>
     <div class="container">
-      <h1>Search remote studies</h1>
+      <h1>Search remote sources</h1>
       <div class="row">
-        <div id="study-contain" class="span5">
+        <div id="source-contain" class="span5">
           <form name="makeIndexes" method="post" action="">
             <!--input type="hidden" id="init_remote_indexing_flag" name="init_remote_indexing_flag"/-->
-            <button type="button" class="btn" onclick="initRemoteIndexing(); return false;">Index public studies for searching</button>
+            <button type="button" class="btn" onclick="initRemoteIndexing(); return false;">Index public sources for searching</button>
           </form>
           <div id="statusCount"></div>
           <div id="statusMessage"></div>
@@ -164,7 +164,7 @@ function indexSingleStudy(sid, url, delay) {
 </html>
 """
 
-#remote_study_indexing_service_url = "http://localhost:7474/db/data/ext/Indexing/graphdb/indexRemoteStudies"
+#remote_source_indexing_service_url = "http://localhost:7474/db/data/ext/Indexing/graphdb/indexRemoteSources"
 
 def print_html_form():
     """This just prints out the html form. We then substitute things into it with javascript."""
@@ -176,7 +176,7 @@ def print_html_form():
 #    form = cgi.FieldStorage()
 #    if form.has_key("init_remote_indexing_flag"):
         ### here is an example of how to call a neo4j rest service
-#        req = urllib2.Request(remote_study_indexing_service_url, headers = {"Content-Type": "application/json",
+#        req = urllib2.Request(remote_source_indexing_service_url, headers = {"Content-Type": "application/json",
 #            # Some extra headers for fun
 #            "Accept": "*/*",   # curl does this
 #            "User-Agent": "my-python-app/1", # otherwise it uses "Python-urllib/..."
@@ -184,7 +184,7 @@ def print_html_form():
 #        f = urllib2.urlopen(req)
         # attempting to use grequests for asynchronous call
 
-#        rs = grequests.post(remote_study_indexing_service_url,headers={"Content-type":"Application/json"}, callback=print_completed, data=None)
+#        rs = grequests.post(remote_source_indexing_service_url,headers={"Content-type":"Application/json"}, callback=print_completed, data=None)
 
 #        print HTML_TEMPLATE.replace("$INDEXING_RESPONSE$", "<p>Indexing in progress! This message will be updated when indexing is complete. Closing this window will cancel indexing.</p>")
 #        sys.stdout.flush()
@@ -216,17 +216,17 @@ def print_html_form():
     # here is an example of how to print the rest results to the page. see below for how to get the rest results
 #    print HTML_TEMPLATE.replace("GITFILELIST",gitfilelist)
 
-################################# old stuff from load_studies.py for reference below here
+################################# old stuff from load_sources.py for reference below here
 
-#resturlsinglenewick = "http://localhost:7474/db/data/ext/studyJsons/graphdb/putStudyNewickSingle"
-#resturlnexsonfile = "http://localhost:7474/db/data/ext/studyJsons/graphdb/putStudyNexsonFile"
+#resturlsinglenewick = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/putSourceNewickSingle"
+#resturlnexsonfile = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/putSourceNexsonFile"
 #
-#def make_json_with_newick(studyname,newick):
-#    data = json.dumps({"studyID": studyname, "newickString": newick})
+#def make_json_with_newick(sourcename,newick):
+#    data = json.dumps({"sourceId": sourcename, "newickString": newick})
 #    return data
 #
-#def make_json_with_nexson(studyname,nexson):
-#    data = json.dumps({"studyID": studyname, "nexsonString": nexson})
+#def make_json_with_nexson(sourcename,nexson):
+#    data = json.dumps({"sourceId": sourcename, "nexsonString": nexson})
 #    return data
 #    
 ## replaced with new version above
@@ -289,7 +289,7 @@ def print_html_form():
 #       this does nothing.
 #    """
 #    if not form.has_key(form_field): return False
-#    studyid = form["studyID"].value
+#    sourceid = form["sourceId"].value
 #    fileitem = form[form_field]
 #    if not fileitem.file: return False
 #    fout = file (os.path.join(upload_dir, fileitem.filename), 'wb')
@@ -301,7 +301,7 @@ def print_html_form():
 #    fout = open (os.path.join(upload_dir, fileitem.filename), 'r')
 #    data = ""
 #    for i in fout:
-#        data = make_json_with_newick(studyid,i.strip())
+#        data = make_json_with_newick(sourceid,i.strip())
 #        log.write( data+"\n")
 #        break
 #    fout.close()
@@ -321,12 +321,12 @@ def print_html_form():
 #
 #def save_git_file_nexson(form, upload_dir):
 #    log = open("logging","a")
-#    studyID = form["loadselect"].value
-#    geturl = "https://bitbucket.org/api/1.0/repositories/blackrim/avatol_nexsons/raw/"+str(studyID)
+#    sourceId = form["loadselect"].value
+#    geturl = "https://bitbucket.org/api/1.0/repositories/blackrim/avatol_nexsons/raw/"+str(sourceId)
 #    req = urllib2.Request(geturl)
 #    f = urllib2.urlopen(req)
 #    nexson = json.dumps(json.loads(f.read()))
-#    data = make_json_with_nexson(studyID,nexson)
+#    data = make_json_with_nexson(sourceId,nexson)
 #    clen = len(data)
 #    req2 = urllib2.Request(resturlnexsonfile, headers = {"Content-Type": "application/json",
 #    "Content-Length": clen,
@@ -346,7 +346,7 @@ def print_html_form():
 #gitfilelist = get_bitbucket_file_list()
 #print_html_form (success,gitfilelist)
 
-#init_build_remote_study_indexes()
+#init_build_remote_source_indexes()
 
 # print the html to the web browser which will render it
 print_html_form()

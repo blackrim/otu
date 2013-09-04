@@ -1,6 +1,6 @@
 <html lang="en">
 <head>
-<title>OTU: look at that study</title>
+<title>OTU: look at that source</title>
  <script src="js/jquery-1.9.1.js"></script>
  <script src="js/jquery-ui-1.10.3.custom.min.js"></script>
  <script src="js/d3.v3.min.js" charset="utf-8"></script>
@@ -33,9 +33,9 @@
           <a class="brand" href="#">OTU</a>
           <div class="nav-collapse collapse">
             <ul class="nav">
-              <li><a href="cgi-bin/load_studies.py">Load and List Studies</a></li>
-			  <li><a href="cgi-bin/search_studies.py">Search Public Studies</a></li>
-              <li class="active"><a href="#">View Study</a></li>
+              <li><a href="cgi-bin/load_sources.py">Load and List Sources</a></li>
+			  <li><a href="cgi-bin/search_sources.py">Search Public Sources</a></li>
+              <li class="active"><a href="#">View Source</a></li>
               <li><a href="tree_dyn.html">View Tree</a></li>
             </ul>
           </div><!--/.nav-collapse -->
@@ -45,43 +45,37 @@
 <div class="container">
     <body>
     <div class="offset5">
-    Load a different study...
+    Load a different source...
 	<form class="form-inline" >
 	    <select id="loadselect" style="width: 450px">
 	    </select>
-	    <button type="button" class="btn" onClick='loadSelectStudy()'>Load</button>
+	    <button type="button" class="btn" onClick='submitDetailsForm()'>Load</button>
 	</form>
     </div>
-    <h5 id="studyID"></h5>
+    <h5 id="sourceId"></h5>
 	<div class="btn-group">
-	    <button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick="viewStudyInfo()" id="viewStudytn">View</button>
-	    <button type="button" class="btn btn-large btn-success" name="cac" value=1 onClick="exportStudy()">Export</button>
+	    <button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick=editSourceInfo() id="editSourcetn">Edit</button>
+	    <button type="button" class="btn btn-large btn-success" name="cac" value=1 onClick="exportSource()">Export</button>
 	</div>
-	<button type="button" class="btn btn-large btn-primary" name="cac" value=2 onClick="pushStudy()">Push</button>
-	<button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick='deleteStudyDB()' id="deleteStudyDBBtn">Delete Study from DB</button>
-	<button type="button" class="btn btn-large btn-danger" name="cac" value=4 onClick="deleteStudyGIT()">Delete Study from GIT</button>
+	<button type="button" class="btn btn-large btn-primary" name="cac" value=2 onClick="pushSource()">Push</button>
+	<button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick='deleteSourceDB()' id="deleteSourceDBBtn">Delete Source from DB</button>
+	<button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick="deleteSourceGIT()">Delete Source from GIT</button>
 <br/><br/>
-<h2>Study Info</h2>
-<form>
-<fieldset>
-<table class="table table-striped" id="studyinfoTBL">
-
+<h2>Source Info</h2>
+<table class="table table-striped" id="sourceinfoTBL">
 
 </table>
-<button type="submit" class="btn btn-large btn-warning">Submit study edits</button>
-</fieldset>
-</form>
 <div id="treeInfo">
 
 </div>
 </div>
 <script>
-function setStudyTitle(tt){
-    $("#studyID").replaceWith('<h3 id=study class="text-error">Editing studyID: '+tt+'</h3>');
+function setSourceTitle(tt){
+    $("#sourceId").replaceWith('<h3 id=source class="text-info">Viewing sourceId: '+tt+'</h3>');
 }
 
-function getStudyList(id){
-    var baseurl = "http://localhost:7474/db/data/ext/studyJsons/graphdb/getStudyList";
+function getSourceList(id){
+    var baseurl = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getSourceList";
     var method = "POST";
     var xobjPost = new XMLHttpRequest();
     xobjPost.open(method, baseurl, false);
@@ -90,26 +84,22 @@ function getStudyList(id){
     xobjPost.send("");
     var jsonrespstr = xobjPost.responseText;
     var evjson = jQuery.parseJSON(eval(jsonrespstr));
-    $(evjson.studies).each(function(index, element){
+    $(evjson.sources).each(function(index, element){
 	if(element != id){
-	 $('#loadselect').append('<option value='+element+'> studyID:'+element+'</option>');
+	 $('#loadselect').append('<option value='+element+'> sourceId:'+element+'</option>');
 	 }
     })
 }
 
-function viewStudyInfo(sid){
-    window.location.href="study_view.html?studyID="+sid
-}
-
-function loadSelectStudy(){
+function submitDetailsForm(){
     var st = $("#loadselect").val();
-    window.location.href="study_view.html?studyID="+st+""
+    window.location.href="source_view.html?sourceId="+st+""
 }
 
 function addTreeInfo(id, tid){
     var baseurl = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getTreeMetaData";
     var method = "POST";
-    var senddata = "{\"studyID\":\""+id+"\", \"treeID\": \""+tid+"\"}";
+    var senddata = "{\"sourceId\":\""+id+"\", \"treeId\": \""+tid+"\"}";
     var xobjPost = new XMLHttpRequest();
     xobjPost.open(method, baseurl, false);
     xobjPost.setRequestHeader("Accept", "");
@@ -125,13 +115,13 @@ function addTreeInfo(id, tid){
     
 }
 
-function setStudyInfo(id){
-    $("#deleteStudyDBBtn").replaceWith('<button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick=\'deleteStudyDB(\"'+id+'\")\' id="deleteStudyDBBtn">Delete Study from DB</button>');
-    $("#viewStudytn").replaceWith('<button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick=\'viewStudyInfo(\"'+id+'\")\' id="viewStudytn">View</button>');
-    $("#studyinfoTBL").replaceWith('<table class="table table-striped" id="studyinfoTBL">');
-    var baseurl = "http://localhost:7474/db/data/ext/studyJsons/graphdb/getStudyMetaData";
+function setSourceInfo(id){
+    $("#deleteSourceDBBtn").replaceWith('<button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick=\'deleteSourceDB(\"'+id+'\")\' id="deleteSourceDBBtn">Delete Source from DB</button>');
+    $("#editSourcetn").replaceWith('<button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick=\'editSourceInfo(\"'+id+'\")\'>Edit</button>');
+    $("#sourceinfoTBL").replaceWith('<table class="table table-striped" id="sourceinfoTBL">');
+    var baseurl = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getSourceMetaData";
     var method = "POST";
-    var senddata = "{\"studyID\":\""+id+"\"}";
+    var senddata = "{\"sourceId\":\""+id+"\"}";
     var xobjPost = new XMLHttpRequest();
     xobjPost.open(method, baseurl, false);
     xobjPost.setRequestHeader("Accept", "");
@@ -142,44 +132,51 @@ function setStudyInfo(id){
     ev = JSON.parse(evjson);
     var keys = Object.keys(ev.metadata);
     $(keys).each(function(index){
-	    $('#studyinfoTBL').append('<tr> <td>'+keys[index]+' </td> <td> <input type="text" class="input-xxlarge" value=\''+ev.metadata[keys[index]]+'\'> </td> </tr>');       
+	if(keys[index]=="ot:sourcePublication"){
+	    $('#sourceinfoTBL').append('<tr> <td>'+keys[index]+' </td> <td> <a href="'+ev.metadata[keys[index]]+'">'+ev.metadata[keys[index]]+'</a> </td> </tr>');
+	}else{
+	    $('#sourceinfoTBL').append('<tr> <td>'+keys[index]+' </td> <td> '+ev.metadata[keys[index]]+' </td> </tr>');       
+	}
     })
     var trees = ev.trees;
     var n_trees = trees.length;
     if(n_trees > 0){
-	$('#studyinfoTBL').append('<tr><td>Trees ('+n_trees+')</td><td id="studytreelistID"></td></tr>');
+	$('#sourceinfoTBL').append('<tr><td>Trees ('+n_trees+')</td><td id="sourcetreelistId"></td></tr>');
 	$(trees).each(function(index,element){
-	    $('#studytreelistID').append('  <a href=tree_dyn.html?treeID='+element+' target="_blank">'+element+'</a>');
+	    $('#sourcetreelistId').append('  <a href=tree_dyn.html?treeId='+element+' target="_blank">'+element+'</a>');
 	    if(index != n_trees-1){
-		$('#studytreelistID').append(',');
+		$('#sourcetreelistId').append(',');
 	    }
 	})
     }
     //something about status
-    $('#studyinfoTBL').append('<tr><td><b>Status</b></td><td>Info about mapped names, rooting, ingroup</td></tr>');
-    $('#studyinfoTBL').append('</table>');
+    $('#sourceinfoTBL').append('<tr><td><b>Status</b></td><td>Info about mapped names, rooting, ingroup</td></tr>');
+    $('#sourceinfoTBL').append('</table>');
     //add the trees
     $(trees).each(function(index,element){
-	$('#treeInfo').append('<h2>Tree: <a href="tree_dyn.html?treeID='+element+'">'+element+'</a> <button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick="editTreeInfo()">Edit</button> <button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick=\'deleteTree("'+id+'","'+element+'")\'>Delete Tree</button></h2> <table class="table table-striped" id="treetable'+element+'">');
+	$('#treeInfo').append('<h2>Tree: <a href="tree_dyn.html?treeId='+element+'">'+element+'</a> <button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick="editTreeInfo()">Edit</button> <button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick=\'deleteTree("'+id+'","'+element+'")\'>Delete Tree</button></h2> <table class="table table-striped" id="treetable'+element+'">');
 	addTreeInfo(id,element);
 	$('#treeInfo').append('</table>');
     })
     
 }
 
-function editStudyInfo(){
-    alert("this will edit the study metadata");
+function editSourceInfo(sid){
+    window.location.href="source_edit.html?sourceId="+sid
 }
-function exportStudy(){
-    alert("this will export the study");
+function editTreeInfo(){
+    alert("this will edit the tree metadata");
 }
-function pushStudy(){
-    alert("this will push the study (after comparing to the git)");
+function exportSource(){
+    alert("this will export the source");
 }
-function deleteStudyDB(sid){
-    var baseurl = "http://localhost:7474/db/data/ext/studyJsons/graphdb/deleteStudyFromStudyID";
+function pushSource(){
+    alert("this will push the source (after comparing to the git)");
+}
+function deleteSourceDB(sid){
+    var baseurl = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/deleteSourceFromSourceId";
     var method = "POST";
-    var senddata = "{\"studyID\":\""+sid+"\"}";
+    var senddata = "{\"sourceId\":\""+sid+"\"}";
     var xobjPost = new XMLHttpRequest();
     xobjPost.open(method, baseurl, false);
     xobjPost.setRequestHeader("Accept", "");
@@ -187,15 +184,15 @@ function deleteStudyDB(sid){
     xobjPost.send(senddata);    
     var jsonrespstr = xobjPost.responseText;
     var evjson = eval(jsonrespstr);
-    window.location.href = "cgi-bin/load_studies.py";
+    window.location.href = "cgi-bin/load_sources.py";
 }
-function deleteStudyGIT(){
-    alert("this will delete the study from git");
+function deleteSourceGIT(){
+    alert("this will delete the source from git");
 }
 function deleteTree(sid, tid){
-    var baseurl = "http://localhost:7474/db/data/ext/treeJsons/graphdb/deleteTreeFromTreeID";
+    var baseurl = "http://localhost:7474/db/data/ext/treeJsons/graphdb/deleteTreeFromTreeId";
     var method = "POST";
-    var senddata = "{\"studyID\":\""+sid+"\",\"treeID\":\""+tid+"\"}";
+    var senddata = "{\"sourceId\":\""+sid+"\",\"treeId\":\""+tid+"\"}";
     var xobjPost = new XMLHttpRequest();
     xobjPost.open(method, baseurl, false);
     xobjPost.setRequestHeader("Accept", "");
@@ -217,10 +214,10 @@ function getQueryVariable(variable){
   }
   return(false);
 }
-var id = getQueryVariable('studyID');
-getStudyList(id);
-setStudyTitle(id);
-setStudyInfo(id);
+var id = getQueryVariable('sourceId');
+getSourceList(id);
+setSourceTitle(id);
+setSourceInfo(id);
 </script>
 </body>
 </html>

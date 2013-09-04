@@ -21,7 +21,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
  */
 public abstract class DatabaseAbstractBase {
 
-	public static final String LOCAL_LOCATION = "local_";
+	public static final String LOCAL_LOCATION = "local";
 	protected GraphDatabaseAgent graphDb;
 	
 	/**

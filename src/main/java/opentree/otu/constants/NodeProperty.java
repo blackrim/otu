@@ -57,7 +57,7 @@ public enum NodeProperty {
 	 * A primitive string array containing all the ott ids for taxa mapped to the tip children of a given tree node.
 	 * This is stored as a property of the root of each imported tree.
 	 */
-	MAPPED_TAXON_OTT_IDS ("tip_mapped_ottids", Long[].class),
+	MAPPED_TAXON_OTT_IDS ("tip_mapped_ottids", long[].class),
 	
 	// ===== ot namespace node properties
 	

@@ -181,6 +181,8 @@ public class DatabaseManager extends DatabaseAbstractBase {
 					}
 				}
 			}
+		
+			indexer.addSourceMetaNodeToIndexes(sourceMeta);
 			
 			tx.success();
 		} finally {
@@ -206,18 +208,20 @@ public class DatabaseManager extends DatabaseAbstractBase {
 
 		// get the location from the source meta node
 		String location = (String) sourceMetaNode.getProperty(NodeProperty.LOCATION.name);
+		String sourceId = (String) sourceMetaNode.getProperty(NodeProperty.SOURCE_ID.name);
 
 		// add the tree to the graph; only add tree structure if this is a local tree
 		Node root = null;
-		if (location == LOCAL_LOCATION) {
+		if (location.equals(LOCAL_LOCATION)) {
 			root = preorderAddTreeToDB(tree.getRoot(), null);
 		} else {
 			root = graphDb.createNode();
 		}
 
-		// attach to source and set the location
+		// attach to source and set the id information
 		sourceMetaNode.createRelationshipTo(root, RelType.METADATAFOR);
 		root.setProperty(NodeProperty.LOCATION.name, location);
+		root.setProperty(NodeProperty.SOURCE_ID.name, sourceId);
 		
 		// designate the root as the ingroup this is specified in the tree properties (e.g. from a nexson)
 		if (tree.getRoot().getObject(NodeProperty.IS_INGROUP.name) != null) {
@@ -231,7 +235,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 
 		collectTipTaxonArrayProperties(root, tree);
 
-		// index the tree
 		indexer.addTreeRootNodeToIndexes(root);
 		
 		return root;
@@ -288,7 +291,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		try {
 
 			// clean up the source indexes
-			indexer.removeSourceMetaNodeFromAllIndexes(sourceMeta);
+			indexer.removeSourceMetaNodeFromIndexes(sourceMeta);
 
 			// remove all trees
 			for (Relationship rel : sourceMeta.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
@@ -482,10 +485,10 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		}
 
 		// store the properties in the nodes
-		node.setProperty(NodeProperty.ORIGINAL_TAXON_NAMES.name, originalTaxonNames.toArray());
-		node.setProperty(NodeProperty.MAPPED_TAXON_NAMES.name, mappedTaxonNames.toArray());
-		node.setProperty(NodeProperty.MAPPED_TAXON_NAMES_WHITESPACE_FILLED.name, mappedTaxonNamesNoSpaces.toArray());
-		node.setProperty(NodeProperty.MAPPED_TAXON_OTT_IDS.name, mappedOTTIds.toArray());
+		node.setProperty(NodeProperty.ORIGINAL_TAXON_NAMES.name, GeneralUtils.convertToStringArray(originalTaxonNames));
+		node.setProperty(NodeProperty.MAPPED_TAXON_NAMES.name, GeneralUtils.convertToStringArray(mappedTaxonNames));
+		node.setProperty(NodeProperty.MAPPED_TAXON_NAMES_WHITESPACE_FILLED.name, GeneralUtils.convertToStringArray(mappedTaxonNamesNoSpaces));
+		node.setProperty(NodeProperty.MAPPED_TAXON_OTT_IDS.name, GeneralUtils.convertToLongArray(mappedOTTIds));
 	}
 
 	/* // potentially replaced by more general method in DatabaseUtils

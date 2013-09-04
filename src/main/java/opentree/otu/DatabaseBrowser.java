@@ -13,6 +13,8 @@ import java.util.Set;
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
 
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.TermQuery;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -41,30 +43,29 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	}
 	
 	/**
-	 * Returns a JSON array string of studies that have imported trees.
+	 * Returns a JSON array string of sources that have imported trees.
 	 * @return
 	 */
 	public String getJSONOfSourceIdsForImportedTrees() {
 
 		// find all imported trees, get their study ids from the attached metadata nodes
-		HashSet<String> studyIds = new HashSet<String>();
-		IndexHits<Node> importedTreesFound = null;
+		HashSet<String> sourceIds = new HashSet<String>();
+		IndexHits<Node> sourcesFound = null;
 		try {
-			importedTreesFound = treeRootNodesByTreeId.query(LOCAL_LOCATION + "TreeId", "*");
-			for (Node t : importedTreesFound) {
-				studyIds.add((String) t.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING)
-						.getStartNode().getProperty(NodeProperty.SOURCE_ID.name()));
+			sourcesFound = sourceMetaNodesBySourceId.query(LOCAL_LOCATION+"SourceId"+":*");
+			for (Node s : sourcesFound) {
+				sourceIds.add((String) s.getProperty(NodeProperty.SOURCE_ID.name));
 			}
 		} finally {
-			importedTreesFound.close();
+			sourcesFound.close();
 		}
 		
 		// write the string
-		StringBuffer json = new StringBuffer("{ \"studies\" : [");
-		Iterator<String> studyIdsIter = studyIds.iterator();
-		while (studyIdsIter.hasNext()) {
-			json.append("\"" + studyIdsIter.next() + "\" ");
-			if (studyIdsIter.hasNext()) {
+		StringBuffer json = new StringBuffer("{ \"sources\" : [");
+		Iterator<String> sourceIdsIter = sourceIds.iterator();
+		while (sourceIdsIter.hasNext()) {
+			json.append("\"" + sourceIdsIter.next() + "\" ");
+			if (sourceIdsIter.hasNext()) {
 				json.append(",");
 			}
 		}
@@ -85,9 +86,9 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 			retstr.append("[ \"");
 			Node x = hits.next();
 			retstr.append((String) x.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING)
-					.getStartNode().getProperty(NodeProperty.SOURCE_ID.name()));
+					.getStartNode().getProperty(NodeProperty.SOURCE_ID.name));
 			retstr.append("\", \"");
-			retstr.append((String) x.getProperty(NodeProperty.TREE_ID.name()));
+			retstr.append((String) x.getProperty(NodeProperty.TREE_ID.name));
 			retstr.append("\"]");
 			if (hits.hasNext()) {
 				retstr.append(",");
@@ -98,9 +99,9 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		return retstr.toString();
 	}
 	
-	/* // Does not appear to do what it sounds like... Is it used?
-	 * get a list of otu nodes based on a study metadatanode
-	 *
+	/**
+	 * get a list of otu nodes based on a study metadatanode. Used by NexsonWriter.
+	 */
 	public HashSet<Node> getOTUsFromMetadataNode(Node sourceMeta){
 		HashSet<Node> reths =  new HashSet<Node>();
 		for (Relationship rel: sourceMeta.getRelationships(Direction.OUTGOING, RelType.METADATAFOR)){
@@ -108,22 +109,21 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 			reths.addAll(getDescendantTips(treeroot));
 		}
 		return reths;
-	} */
+	}
 	 
 	/**
-	 * Get the set of tip nodes descended from a tree node
+	 * Get the set of tip nodes descended from a tree node. Used by NexsonWriter
 	 * 
 	 * @param ancestor
 	 * 		The start node for the traversal. All tip nodes descended from this node will be included in the result.
 	 * @return
 	 * 		A set containing the nodes found by the tree traversal. Returns an empty set if no nodes are found.
 	 */
-	@Deprecated
 	public static Set<Node> getDescendantTips(Node ancestor){ // does not appear to be used.
 		HashSet<Node> descendantTips = new HashSet<Node>();
 		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
 		for(Node curGraphNode: CHILDOF_TRAVERSAL.breadthFirst().traverse(ancestor).nodes()){
-			if(curGraphNode.hasProperty("oty")){ // what is this? should this be "otu"
+			if(curGraphNode.hasProperty("oty")){ // what is this? should this be "otu"?
 				descendantTips.add(curGraphNode);
 			}
 		}
@@ -181,7 +181,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		}
 		bf.append("\", \"ot:studyPublicationReference\": \"");
 		if (sourceMeta.hasProperty("ot:studyPublicationReference")) {
-			bf.append(GeneralUtils.escapeString((String) sourceMeta.getProperty("ot:studyPublicationReference")));
+			bf.append(GeneralUtils.escapeStringForJSON((String) sourceMeta.getProperty("ot:studyPublicationReference")));
 		}
 		bf.append("\", \"ot:studyYear\": \"");
 		if (sourceMeta.hasProperty("ot:studyYear")) {
@@ -191,7 +191,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		// add the trees
 		ArrayList<String> trees = new ArrayList<String>();
 		for (Relationship rel : sourceMeta.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
-			trees.add((String) rel.getEndNode().getProperty(NodeProperty.TREE_ID.name()));
+			trees.add((String) rel.getEndNode().getProperty(NodeProperty.TREE_ID.name));
 		}
 		for (int i = 0; i < trees.size(); i++) {
 			bf.append("\"" + trees.get(i));
