@@ -30,14 +30,8 @@ HTML_TEMPLATE = open("cgi-bin/load_sources_TEMPLATE.html","rU").read()
 resturlsinglenewick = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/putSourceNewickSingle"
 resturlnexsonfile = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/putSourceNexsonFile"
 
-def make_json_with_newick(sourcename,newick):
-    data = json.dumps({"sourceId": sourcename, "newickString": newick})
-    return data
+# ===== functions for saving uploaded files
 
-def make_json_with_nexson(sourcename,nexson):
-    data = json.dumps({"sourceId": sourcename, "nexsonString": nexson})
-    return data
-    
 def save_uploaded_file(form_field, upload_dir):
     form = cgi.FieldStorage()
     log = open("logging","w")
@@ -115,6 +109,16 @@ def save_git_file_nexson(form, upload_dir):
 def save_uploaded_file_nexson (form, form_field, upload_dir):
     return False
 
+def make_json_with_newick(sourcename,newick):
+    data = json.dumps({"sourceId": sourcename, "newickString": newick})
+    return data
+
+def make_json_with_nexson(sourcename,nexson):
+    data = json.dumps({"sourceId": sourcename, "nexsonString": nexson})
+    return data
+    
+# ===== functions for getting source info
+
 def get_bitbucket_recent_hash():
     commiturl = "https://bitbucket.org/api/2.0/repositories/blackrim/avatol_nexsons/commits"
     req = urllib2.Request(commiturl)
@@ -138,6 +142,8 @@ def get_bitbucket_file_list(recenthash):
 	retstr += "<option value="+i+">"+i+"</option>\n"
     return retstr
 
+# ===== functions for making the web page
+
 def print_html_form (success, recenthash, gitfilelist):
     """This prints out the html form. Note that the action is set to
       the name of the script which makes this is a self-posting form.
@@ -145,7 +151,6 @@ def print_html_form (success, recenthash, gitfilelist):
     """
 
     print "content-type: text/html\n"
-#    print HTML_TEMPLATE.replace("GITFILELIST",gitfilelist);
     print HTML_TEMPLATE.replace("$GITFILELIST$",gitfilelist).replace("$RECENTHASH$",recenthash)
 
 
