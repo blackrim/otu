@@ -37,7 +37,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	
 	protected Index<Node> sourceMetaNodesBySourceId = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_SOURCE_ID);
 	protected Index<Node> treeRootNodesByTreeId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
-//	protected Index<Node> treeRootNodesBySourceId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_OT_SOURCE_ID);
 
 	// ===== constructors
 
@@ -321,8 +320,10 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	 * @return
 	 */
 	public Node rerootTree(Node newroot) {
+		
 		// first get the root of the old tree
 		Node oldRoot = DatabaseUtils.getRootOfTreeContaining(newroot);
+		
 		// not rerooting
 		if (oldRoot == newroot) {
 			Transaction tx1 = graphDb.beginTx();
@@ -353,6 +354,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			
 			// process the reroot
 			actualRoot = graphDb.createNode();
+
 			Relationship nrprel = newroot.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING);
 			Node tempParent = nrprel.getEndNode();
 			actualRoot.createRelationshipTo(tempParent, RelType.CHILDOF);
@@ -364,21 +366,23 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			Relationship prevStudyToTreeRootLinkRel = oldRoot.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING);
 			Node metadata = prevStudyToTreeRootLinkRel.getStartNode();
 			prevStudyToTreeRootLinkRel.delete();
+		
 			actualRoot.setProperty(NodeProperty.TREE_ID.name, treeID);
+
 			metadata.createRelationshipTo(actualRoot, RelType.METADATAFOR);
 			
 			// clean up properties
-//			exchangeRootProperties(oldRoot, actualRoot); // attempt to replace with more general method
 			DatabaseUtils.exchangeAllProperties(oldRoot, actualRoot); // TODO: are there properties we don't want to exchange?
 			
 			// update indexes
 			indexer.removeTreeRootNodeFromIndexes(oldRoot);
-			indexer.addTreeRootNodeToIndexes(newroot);
+			indexer.addTreeRootNodeToIndexes(actualRoot);
 
 			tx.success();
 		} finally {
 			tx.finish();
 		}
+		
 		return actualRoot;
 	}
 	
@@ -491,28 +495,6 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		node.setProperty(NodeProperty.MAPPED_TAXON_OTT_IDS.name, GeneralUtils.convertToLongArray(mappedOTTIds));
 	}
 
-	/* // potentially replaced by more general method in DatabaseUtils
-	 * Old method
-	 * @param oldRoot
-	 * @param newRoot
-	 *
-	private void exchangeRootProperties(Node oldRoot, Node newRoot) {
-
-		/*
-		// exchange relevant properties
-		DatabaseUtils.exchangeNodeProperty(oldRoot, newRoot, "treeId");
-		DatabaseUtils.exchangeNodeProperty(oldRoot, newRoot, "isroot");
-		DatabaseUtils.exchangeNodeProperty(oldRoot, newRoot, "ot:branchLengthMode");
-		DatabaseUtils.exchangeNodeProperty(oldRoot, newRoot, "ingroup");
-		DatabaseUtils.exchangeNodeProperty(oldRoot, newRoot, "ot:inGroupClade");
-		DatabaseUtils.exchangeNodeProperty(oldRoot, newRoot, "ot:focalClade");
-		DatabaseUtils.exchangeNodeProperty(oldRoot, newRoot, "ot:tag");
-
-		// this seems odd... not sure why we aren't just setting this manually
-		oldRoot.setProperty(NodeProperty.ROOTING_IS_SET.name, true);
-		DatabaseUtils.exchangeNodeProperty(oldRoot, newRoot, NodeProperty.ROOTING_IS_SET.name);
-	} */
-	
 	/**
 	 * Used by the rerooting function
 	 * @param oldRoot
@@ -555,31 +537,12 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			parent = innode.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING).getEndNode();
 			processRerootRecursive(parent);
 		}
-		// Exchange branch label, length et cetera
-//		exchangeInfoReroot(parent, innode); // switched to DatabaseUtils method... need to validate
+
 		DatabaseUtils.exchangeNodeProperty(parent, innode, NodeProperty.NAME.name);
+
 		// Rearrange topology
 		innode.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING).delete();
 		parent.createRelationshipTo(innode, RelType.CHILDOF);
 	}
-
-	/*
-	// TODO: I think this is redundant with the DatabaseUtils method. It has been switched. leaving it in until 
-	// it is sure that it is actually redudant
-	@Deprecated
-	private void exchangeInfoReroot(Node innode1, Node innode2) {
-		String swaps = null;
-		double swapd;
-		if (innode1.hasProperty("name"))
-			swaps = (String) innode1.getProperty("name");
-		if (innode2.hasProperty("name"))
-			innode1.setProperty("name", (String) innode2.getProperty("name"));
-		if (swaps != null)
-			innode2.setProperty("name", swaps);
-
-		// swapd = node1.getBL();
-		// node1.setBL(node2.getBL());
-		// node2.setBL(swapd);
-	} */
 
 }

@@ -1,14 +1,8 @@
 package opentree.otu;
 
-import java.util.LinkedList;
-
-import opentree.otu.constants.RelType;
-
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
-import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 /**

@@ -34,9 +34,10 @@
           <div class="nav-collapse collapse">
             <ul class="nav">
               <li><a href="cgi-bin/load_sources.py">Load and List Sources</a></li>
-			  <li><a href="cgi-bin/search_sources.py">Search Public Sources</a></li>
+			  <li><a href="search_sources.html">Search Public Sources</a></li>
               <li class="active"><a href="#">View Source</a></li>
               <li><a href="tree_dyn.html">View Tree</a></li>
+              <li><a href="conf.html">Configure</a></li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -63,11 +64,12 @@
 <br/><br/>
 <h2>Source Info</h2>
 <table class="table table-striped" id="sourceinfoTBL">
-
 </table>
-<div id="treeInfo">
-
+<div id="treeinfo">
 </div>
+<!--div id="treeInfo">
+
+</div-->
 </div>
 <script>
 function setSourceTitle(tt){
@@ -83,6 +85,7 @@ function getSourceList(id){
     xobjPost.setRequestHeader("Content-Type","application/json");
     xobjPost.send("");
     var jsonrespstr = xobjPost.responseText;
+//    alert(jsonrespstr)
     var evjson = jQuery.parseJSON(eval(jsonrespstr));
     $(evjson.sources).each(function(index, element){
 	if(element != id){
@@ -94,25 +97,6 @@ function getSourceList(id){
 function submitDetailsForm(){
     var st = $("#loadselect").val();
     window.location.href="source_view.html?sourceId="+st+""
-}
-
-function addTreeInfo(id, tid){
-    var baseurl = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getTreeMetaData";
-    var method = "POST";
-    var senddata = "{\"sourceId\":\""+id+"\", \"treeId\": \""+tid+"\"}";
-    var xobjPost = new XMLHttpRequest();
-    xobjPost.open(method, baseurl, false);
-    xobjPost.setRequestHeader("Accept", "");
-    xobjPost.setRequestHeader("Content-Type","application/json");
-    xobjPost.send(senddata);
-    var jsonrespstr = xobjPost.responseText;
-    var evjson = eval(jsonrespstr);
-    ev = JSON.parse(evjson);
-    var keys = Object.keys(ev.metadata);
-    $(keys).each(function(index){
-	$('#treetable'+tid).append('<tr> <td>'+keys[index]+'</td><td> '+ev.metadata[keys[index]]+' </td></tr>');
-    })
-    
 }
 
 function setSourceInfo(id){
@@ -128,6 +112,7 @@ function setSourceInfo(id){
     xobjPost.setRequestHeader("Content-Type","application/json");
     xobjPost.send(senddata);
     var jsonrespstr = xobjPost.responseText;
+//    alert(jsonrespstr);
     var evjson = eval(jsonrespstr);    
     ev = JSON.parse(evjson);
     var keys = Object.keys(ev.metadata);
@@ -141,23 +126,54 @@ function setSourceInfo(id){
     var trees = ev.trees;
     var n_trees = trees.length;
     if(n_trees > 0){
-	$('#sourceinfoTBL').append('<tr><td>Trees ('+n_trees+')</td><td id="sourcetreelistId"></td></tr>');
-	$(trees).each(function(index,element){
-	    $('#sourcetreelistId').append('  <a href=tree_dyn.html?treeId='+element+' target="_blank">'+element+'</a>');
-	    if(index != n_trees-1){
-		$('#sourcetreelistId').append(',');
-	    }
-	})
+//	$('#sourceinfoTBL').append('<tr><td>Trees ('+n_trees+')</td><td id="sourcetreelistId"></td></tr>');
+//	$(trees).each(function(index,element){
+//	    $('#sourcetreelistId').append('  <a href=tree_dyn.html?treeId='+element+' target="_blank">'+element+'</a>');
+//	    if(index != n_trees-1){
+//		$('#sourcetreelistId').append(',');
+//	    }
+//	})
     }
     //something about status
     $('#sourceinfoTBL').append('<tr><td><b>Status</b></td><td>Info about mapped names, rooting, ingroup</td></tr>');
     $('#sourceinfoTBL').append('</table>');
     //add the trees
+//    $('#sourceinfoTBL').apppend('
     $(trees).each(function(index,element){
-	$('#treeInfo').append('<h2>Tree: <a href="tree_dyn.html?treeId='+element+'">'+element+'</a> <button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick="editTreeInfo()">Edit</button> <button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick=\'deleteTree("'+id+'","'+element+'")\'>Delete Tree</button></h2> <table class="table table-striped" id="treetable'+element+'">');
-	addTreeInfo(id,element);
-	$('#treeInfo').append('</table>');
+		var treeheader = document.createElement("h3");
+//		$('#treeInfo').append('<tr><h3>Tree: <a href="tree_dyn.html?treeId='+element+'">'+element+'</a> <button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick="editTreeInfo()">Edit</button> <button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick=\'deleteTree("'+id+'","'+element+'")\'>Delete Tree</button></h3></tr>');
+		treeheader.innerHTML = 'Tree: <a href="tree_dyn.html?treeId='+element+'">'+element+'</a> <button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick="editTreeInfo()">Edit</button> <button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick=\'deleteTree("'+id+'","'+element+'")\'>Delete Tree</button>';
+		document.getElementById("treeinfo").appendChild(treeheader);
+		addTreeInfo(element);
     })
+//	$('#treeInfo').append('</table>');
+}
+
+function addTreeInfo(treeId, element){
+    var baseurl = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getTreeMetaData";
+    var method = "POST";
+//    var senddata = "{\"sourceId\":\""+id+"\", \"treeId\": \""+tid+"\"}";
+    var senddata = "{\"treeId\": \""+treeId+"\"}";
+    var xobjPost = new XMLHttpRequest();
+    xobjPost.open(method, baseurl, false);
+    xobjPost.setRequestHeader("Accept", "");
+    xobjPost.setRequestHeader("Content-Type","application/json");
+    xobjPost.send(senddata);
+    var jsonrespstr = xobjPost.responseText;
+//    alert(jsonrespstr)
+    var evjson = eval(jsonrespstr);
+    var ev = JSON.parse(evjson);
+    var keys = Object.keys(ev.metadata);
+    var treetable = document.createElement("table");
+    treetable.className = "table";
+    treetable.className += " table-striped";
+
+    $(keys).each(function(i){
+//		$('#treetable'+tid).append('<tr> <td>'+keys[index]+'</td><td> '+ev.metadata[keys[index]]+' </td></tr>');
+		treetable.innerHTML += '<tr> <td>'+keys[i]+'</td><td> '+ev.metadata[keys[i]]+' </td></tr>';
+    })
+
+	document.getElementById("treeinfo").appendChild(treetable);
     
 }
 
@@ -183,6 +199,7 @@ function deleteSourceDB(sid){
     xobjPost.setRequestHeader("Content-Type","application/json");
     xobjPost.send(senddata);    
     var jsonrespstr = xobjPost.responseText;
+//	alert(jsonrespstr)
     var evjson = eval(jsonrespstr);
     window.location.href = "cgi-bin/load_sources.py";
 }
@@ -199,6 +216,7 @@ function deleteTree(sid, tid){
     xobjPost.setRequestHeader("Content-Type","application/json");
     xobjPost.send(senddata);
     var jsonrespstr = xobjPost.responseText;
+//    alert(jsonrespstr)
     var evjson = eval(jsonrespstr);
     location.reload();
 }

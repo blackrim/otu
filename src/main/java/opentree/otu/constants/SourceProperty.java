@@ -6,8 +6,6 @@ package opentree.otu.constants;
  * export (ArgusRepresentationConverter.class). For more information see:
  * 
  * https://github.com/OpenTreeOfLife/treemachine/wiki/Vocabulary
- * 
- * @author cody hinchliff
  *
  */
 public enum SourceProperty {

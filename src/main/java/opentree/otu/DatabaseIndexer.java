@@ -1,29 +1,13 @@
 package opentree.otu;
 
-import jade.tree.JadeNode;
-import jade.tree.JadeTree;
-
-import java.util.HashSet;
-import java.util.List;
-
-import opentree.otu.constants.GeneralConstants;
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
-import opentree.otu.constants.SourceProperty;
-
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
-import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.kernel.Traversal;
 
 public class DatabaseIndexer extends DatabaseAbstractBase {
-
-//	private TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
 
 	// tree root indexes
 	public final Index<Node> treeRootNodesByTreeId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
@@ -51,80 +35,6 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 
 	// ===== indexing source metadata nodes
 	
-/*	public void addStudyToIndexes(/*List<JadeTree> trees,* Node sourceMeta /*, String sourceId, String location*) {
-		
-		Transaction tx = graphDb.beginTx();
-		try {
-
-//			for (int i = 0; i < trees.size(); i++) {
-				
-//				JadeTree tree = trees.get(i);
-			
-			
-				
-				// sometimes the nexson reader returns null trees. should be fixed in nexson reader.
-				if (tree == null) {
-					continue;
-				}
-
-				String treeId = null;
-				if (tree.getObject("id") != null) {
-					treeId = (String) tree.getObject("id");
-				} else {
-					// changed this to make it clearer that we're setting this manually... noted in case it breaks something...
-					treeId = sourceId + GeneralConstants.LOCAL_TREEID_PREFIX.value + String.valueOf(i);
-				}
-				
-				// get the tree root from the graph if it's already in there.
-				IndexHits<Node> treesFound = null;
-				Node treeRootNode = null;
-				try {
-					treesFound = treeRootNodesByTreeId.get("treeID", treeId);
-					if (treesFound.size() > 0) {
-						treeRootNode = treesFound.getSingle(); // there better only be one...
-					} else {
-						// just add the root node, not the whole tree. (we also don't set ingroup when we're just indexing)
-						treeRootNode = graphDb.createNode();
-//						sourceMetadataNode.createRelationshipTo(treeRootNode, RelType.METADATAFOR);
-					}
-				} finally {
-					treesFound.close();
-				}
-
-				// install the tree properties and index entries
-				setTreeRootNodePropertiesAndIndex(treeRootNode, tree, treeId, sourceId);
-			}
-			tx.success();
-		} finally {
-			tx.finish();
-		}
-	} */
-
-	/*
-	 * Index the indicated node as a local source metadata node. Uses properties stored in the node when adding, so requires that
-	 * this study has already been added to the graph.
-	 * @param sourceMetaNode
-	 *
-	public void addSourceMetaNodeToLocalIndexes(Node sourceMetaNode) {
-		addSourceMetaNodeToIndexes(sourceMetaNode, "localSourceId");
-	}
-	
-	/*
-	 * Index the indicated node as a remote source tree root node. This could be modified to support multiple
-	 * remotes if that is a direction we take. Uses properties stored in the node when adding, so requires that
-	 * this study has already been added to the graph.
-	 * 
-	 * @param treeRootNode
-	 *
-	public void addSourceMetaNodeToRemoteIndexes(Node sourceMetaNode) {
-		
-		String location = ""; // allow this to be set to support multiple remotes.
-		// this would also require other changes elsewhere to keep track of remotes
-
-		String propertyNameForIdIndexes = "remote" + location + "TreeId";
-		addSourceMetaNodeToIndexes(sourceMetaNode, propertyNameForIdIndexes);
-	} */
-
 	/**
 	 * Generalized method for adding source metadata nodes to indexes. This method uses properties stored in
 	 * the graph during study import, and thus should be called *after* a study has been added to the graph.
@@ -149,33 +59,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 	}
 		
 	// ===== indexing tree root nodes
-	
-	/*
-	 * Index the indicated node as a local source tree root node. Uses graph traversals and node properties to
-	 * install the node in the indexes, so requires that this study has already been set up in the graph.
-	 * 
-	 * @param treeRootNode
-	 *
-	public void addTreeRootNodeToLocalIndexes(Node treeRootNode) {
-		addTreeRootNodeToIndexes(treeRootNode, "localTreeId");
-	}
 
-	/*
-	 * Index the indicated node as a remote source tree root node. This could be modified to support multiple
-	 * remotes if that is a direction we take. Uses graph traversals and node properties to install the node in the
-	 * indexes, so requires that this node has already been set up in the graph.
-	 * 
-	 * @param treeRootNode
-	 *
-	public void addTreeRootNodeToRemoteIndexes(Node treeRootNode) {
-		
-		String location = ""; // allow this to be set to support multiple remotes.
-		// this would also require other changes elsewhere to keep track of remotes
-
-		String propertyNameForIdIndexes = "remote" + location + "TreeId";
-		addTreeRootNodeToIndexes(treeRootNode, propertyNameForIdIndexes);
-	} */
-	
 	/**
 	 * Install the indicated tree root node into the indexes. Uses graph traversals and node properties set during study
 	 * import, and thus should be called *after* the study has been added to the graph.
@@ -246,26 +130,6 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 			}
 		}
 	}
-	
-	/*
-	 * A generic method for adding a node to an index under a specified property using every element of an array
-	 * as a key. Currently the array must already be stored as a property of the node, but this could be extended to allow
-	 * arbitrary arrays. Used to add root nodes to the indexes for taxon names and ott ids.
-	 * @param <T>
-	 * 
-	 * @param node
-	 * @param dataType
-	 * @param nodeProperty
-	 * @param indexProperty
-	 *
-	private <T> void addArrayEntriesToIndex(Node node, Index<Node> index, String nodePropertyName, Class<T> type, String indexProperty) {
-		if (node.hasProperty(nodePropertyName)) {
-			T[] array = (T[]) node.getProperty(nodePropertyName);
-			for (int i = 0; i < array.length; i++) {
-				index.add(node, indexProperty, array[i]);
-			}
-		}
-	} */
 	
 	private void addStringArrayEntriesToIndex(Node node, Index<Node> index, String nodePropertyName, String indexProperty) {
 		if (node.hasProperty(nodePropertyName)) {

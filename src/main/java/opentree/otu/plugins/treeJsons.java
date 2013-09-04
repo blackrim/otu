@@ -15,13 +15,13 @@ import org.neo4j.server.plugins.*;
 public class treeJsons extends ServerPlugin{
 	
 	/**
-	 * @param nodeid
+	 * @param nodeId
 	 * @return
 	 * @throws NoSuchTreeException 
 	 */
 	@Description( "Get the neo4j root node for a given tree id" )
 	@PluginTarget( GraphDatabaseService.class )
-	public Long getRootNodeIdFromTreeId(@Source GraphDatabaseService graphDb,
+	public Long getRootNodeIdForTreeId(@Source GraphDatabaseService graphDb,
 			@Description( "The id of the tree to be found.")
 			@Parameter(name = "treeId", optional = false) String treeId) throws NoSuchTreeException {
 
@@ -34,7 +34,7 @@ public class treeJsons extends ServerPlugin{
 	}
 	
 	/**
-	 * @param nodeid
+	 * @param nodeId
 	 * @return
 	 */
 	@Description( "Remove a previously imported tree from the graph" )
@@ -56,7 +56,7 @@ public class treeJsons extends ServerPlugin{
 	}
 	
 	/**
-	 * @param nodeid
+	 * @param nodeId
 	 * @return
 	 */
 	@Description( "Reroot the tree containing the indicated node, using that node as the new root. Returns the neo4j node id of the new root." )
@@ -72,7 +72,7 @@ public class treeJsons extends ServerPlugin{
 	}
 	
 	/**
-	 * @param nodeid
+	 * @param nodeId
 	 * @return
 	 */
 	@Description( "Set the ingroup of the tree containing the indicated node to that node." )
@@ -88,19 +88,19 @@ public class treeJsons extends ServerPlugin{
 	}
 	
 	/**
-	 * @param nodeid
+	 * @param nodeId
 	 * @return
 	 */
 	@Description( "Return a tree in JSON format, starting from the indicated tree node" )
 	@PluginTarget( GraphDatabaseService.class )
 	public String getTreeJson(@Source GraphDatabaseService graphDb,
 			@Description( "The Neo4j node id of the node to be used as the root for the tree (can be used to extract subtrees as well).")
-			@Parameter(name = "nodeID", optional = false) Long nodeId) {
-		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
+			@Parameter(name = "nodeId", optional = false) Long nodeId) {
+//		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
 
 		// TODO: add check for whether tree is imported. If not then return error instead of just empty tree
 		Node rootNode = graphDb.getNodeById(nodeId);
-		JadeTree t = browser.getTreeFromNode(rootNode, 100);
+		JadeTree t = DatabaseBrowser.getTreeFromNode(rootNode, 100);
 
 		return t.getRoot().getJSON(false);
 	}

@@ -18,12 +18,6 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
  *
  */
 public class GraphDatabaseAgent {
-
-    /*
-    private static EmbeddedGraphDatabase embeddedGraphDb;
-    private static GraphDatabaseService graphDbService;
-    private static boolean embedded;
-    */
     
     private EmbeddedGraphDatabase embeddedGraphDb;
     private GraphDatabaseService graphDbService;
@@ -146,7 +140,7 @@ public class GraphDatabaseAgent {
     	}
     }
     
-    protected /*static */ void registerShutdownHook() {
+    protected void registerShutdownHook() {
     	
     	
         if (embedded) {

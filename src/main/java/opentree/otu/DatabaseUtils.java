@@ -16,20 +16,6 @@ import org.neo4j.graphdb.index.IndexHits;
  * Static methods for performing common tasks with the database.
  */
 public class DatabaseUtils {
-
-	// does not appear to be used
-	// this is easy to do by getting the source meta node and getting the property.
-	/* 
-	 * Get the source id for the source containing the specified tree.
-	 * @param root
-	 * 		The root node of the tree
-	 * @return
-	 * 		The source id for the study containing this tree
-	 *
-	public static String getSourceIdForTree(Node root) {
-		return (String) root.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING)
-				.getStartNode().getProperty(NodeProperty.SOURCE_ID.name());
-	} */
 	
 	/**
 	 * Count the number of relationships of the specified type and direction connected to the node
@@ -180,36 +166,74 @@ public class DatabaseUtils {
 			exchangeNodeProperty(n1, n2, p);
 		}
 	}
-	
+
 	/**
 	 * Switches the value of the specified property between two nodes. If only one node has the property, it will be
 	 * removed from that node and set on the other. If neither node has the property, there is no effect.
 	 * @param n1
 	 * @param n2
-	 * @param propertyName
+	 * @param p
 	 */
-	public static void exchangeNodeProperty(Node n1, Node n2, String propertyName) {
-		
-		if (n1.hasProperty(propertyName)) {
-			Object n1Value = n1.getProperty(propertyName);
-
-			if (n2.hasProperty(propertyName)) { // both nodes have the property
-				Object n2Value = n2.getProperty(propertyName);
-				n2.setProperty(propertyName, n1Value);
-				n1.setProperty(propertyName, n2Value);
-
+	public static void exchangeNodeProperty(Node n1, Node n2, String p) {
+	
+		if (n1.hasProperty(p)) {
+			Object n1Value = n1.getProperty(p);
+	
+			if (n2.hasProperty(p)) { // both nodes have the property
+				Object n2Value = n2.getProperty(p);
+				n2.setProperty(p, n1Value);
+				n1.setProperty(p, n2Value);
+	
 			} else { // only node 1 has the property
-				n2.setProperty(propertyName, n1Value);
-				n1.removeProperty(propertyName);	
+				n2.setProperty(p, n1Value);
+				n1.removeProperty(p);	
 			}
-			
-		} else if (n2.hasProperty(propertyName)) { // only node 2 has the property
-			Object n2Value = n2.getProperty(propertyName);
-			n1.setProperty(propertyName, n2Value);
-			n2.removeProperty(propertyName);
-
+	
+		} else if (n2.hasProperty(p)) { // only node 2 has the property
+			Object n2Value = n2.getProperty(p);
+			n1.setProperty(p, n2Value);
+			n2.removeProperty(p);
+	
 		} else { // neither node has the property
 			return;
+		}
+	}
+	
+	/**
+	 * Alternative method kept in case currently implemented one fails for some reason
+	 * @param n1
+	 * @param n2
+	 * @param p
+	 */
+	@Deprecated
+	public static void exchangeNodePropertyALTERNATIVE(Node n1, Node n2, String p) {
+	
+		Object n1Value = null;
+		Object n2Value = null;
+		
+		boolean n1HasProperty = false;
+		boolean n2HasProperty = false;
+
+		if (n1.hasProperty(p)) {
+			n1HasProperty = true;
+			n1Value = n1.getProperty(p);
+		}
+
+		if (n2.hasProperty(p)) {
+			n2HasProperty = true;
+			n2Value = n2.getProperty(p);
+		}
+
+		if (n1HasProperty) {
+			n2.setProperty(p, n1Value);
+		} else if (n2.hasProperty(p)) {
+			n2.removeProperty(p);
+		}
+		
+		if (n2HasProperty) {
+			n1.setProperty(p, n2Value);
+		} else if (n1.hasProperty(p)) {
+			n1.removeProperty(p);
 		}
 	}
 }

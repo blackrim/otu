@@ -39,61 +39,6 @@ public class Indexing extends ServerPlugin {
 	private String nexsonsBaseURL = "https://bitbucket.org/api/1.0/repositories/blackrim/avatol_nexsons/raw/";
 
 	/**
-	 * Index all remote nexsons. This is slow. Should do atomic indexing of nexsons using AJAX on the page for better feedback and efficiency. Leaving this in though, as it is a useful reference for
-	 * doing URL access and JSON parsing in Java.
-	 * 
-	 * @param graphDb
-	 * @return
-	 * @throws InterruptedException
-	 * @throws IOException
-	 * @throws ParseException
-	 */
-	@Deprecated
-	@Description("Perform indexing of public nexsons repo")
-	@PluginTarget(GraphDatabaseService.class)
-	public Representation indexAllPublicStudies(@Source GraphDatabaseService graphDb) throws InterruptedException, IOException, ParseException {
-
-		// will be re-used
-		JSONParser parser = new JSONParser();
-
-		// get the commits from the public repo
-		BufferedReader nexsonCommits = new BufferedReader(new InputStreamReader(new URL(nexsonCommitsURLStr).openStream()));
-		JSONObject commitsJSON = (JSONObject) parser.parse(nexsonCommits);
-
-		// get just the most recent commit
-		String mostRecentCommitHash = (String) ((JSONObject) ((JSONArray) commitsJSON.get("values")).get(0)).get("hash");
-
-		// open reader for the nexsons dir
-		String nexsonsDirURL = "https://bitbucket.org/api/1.0/repositories/blackrim/avatol_nexsons/raw/" + mostRecentCommitHash + "/";
-		BufferedReader nexsonsDir = new BufferedReader(new InputStreamReader(new URL(nexsonsDirURL).openStream()));
-
-		// prepare for indexing all studies
-		DatabaseManager dm = new DatabaseManager(graphDb);
-		LinkedList<String> indexedStudies = new LinkedList<String>(); // just for testing really
-		LinkedList<String> errorStudies = new LinkedList<String>(); // currently not used
-
-		// for each nexson in the latest commit
-		String fileName = "";
-		while (fileName != null) {
-			fileName = nexsonsDir.readLine();
-			try {
-				Integer.valueOf(fileName);
-			} catch (NumberFormatException ex) {
-				errorStudies.add(fileName);
-				continue;
-			}
-
-			NexsonSource source = readRemoteNexson(nexsonsDirURL + fileName, fileName);
-
-			dm.addSource(source, "remote", true);
-			indexedStudies.add(fileName); // remember studies we indexed
-			break;
-		}
-
-		return ListRepresentation.string(indexedStudies);
-	}
-
-	/**
 	 * Return the url of the most recent commit in the public repo. Facilitates working with these independently in javascript.
 	 * 
 	 * @param graphDb

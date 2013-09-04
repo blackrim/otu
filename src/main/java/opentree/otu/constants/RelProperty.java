@@ -6,11 +6,12 @@ package opentree.otu.constants;
  * 
  * https://github.com/OpenTreeOfLife/treemachine/wiki/Vocabulary
  * 
- * @author cody hinchliff
- *
  */
 public enum RelProperty {
 
+	/*
+	// examples below from taxomachine, none of which apply to otu
+	
 	// TAXCHILDOF relationships
 	CHILD_TAX_UID ("childid", String.class, "The tax_uid of the child of this relationship. Used for taxnonomic rels."),
 	PARENT_TAX_UID ("parentid", String.class, "The tax_uid of the parent of this relationship. Used for taxonomic rels."),
@@ -26,7 +27,9 @@ public enum RelProperty {
 
 	// SYNTHCHILDOF relationships
 	NAME ("name", String.class, "The name used to identify this synthetic tree"),
-	SUPPORTING_SOURCES ("supporting_sources", String[].class, "The phylografter ids of the source trees supporting this synthetic rel. Format is <studyid>_<treeid>");
+	SUPPORTING_SOURCES ("supporting_sources", String[].class, "The phylografter ids of the source trees supporting this synthetic rel. Format is <studyid>_<treeid>"); */
+	
+	;
 	
 	public String propertyName;
 	public final Class<?> type;

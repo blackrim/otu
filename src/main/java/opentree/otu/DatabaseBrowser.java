@@ -167,8 +167,21 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 */
 	public static String getMetadataJSONForSource(Node sourceMeta) {
 		
-		StringBuffer bf = new StringBuffer("{ \"metadata\": {\"ot:curatorName\": \"");
-		if (sourceMeta.hasProperty("ot:curatorName")) {
+		// TODO: abstract this so it just gets all the node properties and dumps them into a json string
+		
+		StringBuffer bf = new StringBuffer("{ \"metadata\": {");
+
+		boolean first = true;
+		for (String p : sourceMeta.getPropertyKeys()) {
+			if (first) {
+				first = false;
+			} else {
+				bf.append(","); 
+			}
+			bf.append("\"" + p + "\" : \"" + String.valueOf(sourceMeta.getProperty(p)) + "\"");
+		}
+
+/*		if (sourceMeta.hasProperty("ot:curatorName")) {
 			bf.append((String) sourceMeta.getProperty("ot:curatorName"));
 		}
 		bf.append("\", \"ot:dataDeposit\": \"");
@@ -185,10 +198,13 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		}
 		bf.append("\", \"ot:studyYear\": \"");
 		if (sourceMeta.hasProperty("ot:studyYear")) {
-			bf.append((String) sourceMeta.getProperty("ot:studyYear"));
+			bf.append(String.valueOf(sourceMeta.getProperty("ot:studyYear")));
 		}
-		bf.append("\"}, \"trees\" : [");
+		 */
+		
 		// add the trees
+		bf.append("}, \"trees\" : [");
+
 		ArrayList<String> trees = new ArrayList<String>();
 		for (Relationship rel : sourceMeta.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
 			trees.add((String) rel.getEndNode().getProperty(NodeProperty.TREE_ID.name));
@@ -200,8 +216,8 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 			} else {
 				bf.append("\"");
 			}
-		}
-		bf.append("]  }");
+		} 
+		bf.append("] }");
 		return bf.toString();
 	}
 
@@ -215,32 +231,48 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * 		A JSON string containing of the metadata for this tree
 	 */
 	public static String getMetadataForTree(Node root) {
+		
+		// TODO: abstract this so it just gets all the node properties and dumps them into a json string
 
-		StringBuffer bf = new StringBuffer("{ \"metadata\": {\"ot:branchLengthMode\": \"");
-		if (root.hasProperty("ot:branchLengthMode")) {
-			bf.append((String) root.getProperty("ot:branchLengthMode"));
+		// we could set properties to *always* be included in a separate enum. as it stands, we will only
+		// see properties that actually exist for the node
+		
+		StringBuffer bf = new StringBuffer("{ \"metadata\": {");
+
+		boolean first = true;
+		for (String p : root.getPropertyKeys()) {
+			if (first) {
+				first = false;
+			} else {
+				bf.append(",");
+			}
+			bf.append("\"" + p + "\" : \"" + String.valueOf(root.getProperty(p)) + "\"");
+		}
+/*		if (root.hasProperty("ot:branchLengthMode")) {
+			bf.append(String.valueOf(root.getProperty("ot:branchLengthMode")));
 		}
 		bf.append("\", \"ot:inGroupClade\": \"");
 		if (root.hasProperty("ot:inGroupClade")) {
-			bf.append((String) root.getProperty("ot:inGroupClade"));
+			bf.append(String.valueOf(root.getProperty("ot:inGroupClade")));
 		}
 		bf.append("\", \"ot:focalClade\": \"");
 		if (root.hasProperty("ot:focalClade")) {
-			bf.append((String) root.getProperty("ot:focalClade"));
+			bf.append(String.valueOf(root.getProperty("ot:focalClade")));
 		}
 		bf.append("\", \"ot:tag\": \"");
 		if (root.hasProperty("ot:tag")) {
-			bf.append((String) root.getProperty("ot:tag"));
+			bf.append(String.valueOf(root.getProperty("ot:tag")));
 		}
 		bf.append("\", \"rooting_set\": \"");
 		if (root.hasProperty("rooting_set")) {
-			bf.append((String) root.getProperty("rooting_set"));
+			bf.append(String.valueOf(root.getProperty("rooting_set")));
 		}
 		bf.append("\", \"ingroup_set\": \"");
 		if (root.hasProperty("ingroup_set")) {
-			bf.append((String) root.getProperty("ingroup_set"));
-		}
-		bf.append("\"} }");
+			bf.append(String.valueOf(root.getProperty("ingroup_set")));
+		} */
+
+		bf.append("} }");
 		return bf.toString();
 	}
 	
