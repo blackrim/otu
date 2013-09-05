@@ -45,9 +45,9 @@ HTML_TEMPLATE = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN
           <a class="brand" href="#">OTU</a>
           <div class="nav-collapse collapse">
             <ul class="nav">
-              <li class="active"><a href="#">Load and List Studies</a></li>
-              <li><a href="search_studies.py">Search Public Studies</a></li>
-              <li><a href="../study_view.html">View Study</a></li>
+              <li class="active"><a href="#">Load and List Sources</a></li>
+              <li><a href="search_sources.py">Search Public Sources</a></li>
+              <li><a href="../source_view.html">View Source</a></li>
               <li><a href="../tree_dyn.html">View Tree</a></li>
             </ul>
           </div><!--/.nav-collapse -->
@@ -56,14 +56,14 @@ HTML_TEMPLATE = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN
     </div>
 
 <div class="container">
-<h1>Add and List studies in the local database</h1>
+<h1>Add and List sources in the local database</h1>
 <div class="row">
-<div id="study-contain" class="span5">
+<div id="source-contain" class="span5">
 <h1>Nexson</h1>
 <h3>Upload From Git</h3>
-<form action="load_studies_local.py" method="POST" class="form-inline" id="gitform" enctype="multipart/form-data">
+<form action="load_sources_local.py" method="POST" class="form-inline" id="gitform" enctype="multipart/form-data">
 <input type="hidden" id="hidden_nexson_from_git" name="hidden_nexson_from_git"/>
-Study ID:
+Source ID:
 	    <select name="loadselect" id="loadselect" form="gitform">
 	    GITFILELIST
 	    </select>
@@ -71,7 +71,7 @@ Study ID:
 </form>
 
 <h3>Upload File</h3>
-<form action=load_studies_local.py method="POST" enctype="multipart/form-data">
+<form action=load_sources_local.py method="POST" enctype="multipart/form-data">
 <input type="hidden" id="hidden_nexson_from_file" name="hidden_nexson_from_file"/>
 <input name="file" type="file"><br>
 <button class="btn disabled">Coming soon</button>
@@ -79,19 +79,19 @@ Study ID:
 <hr/>
 <h1><b>Newick</b></h1>
 <h3>Upload File</h3>
-<form action=load_studies_local.py method="POST" enctype="multipart/form-data">
+<form action=load_sources_local.py method="POST" enctype="multipart/form-data">
 <input type="hidden" id="hidden_newick_from_file" name="hidden_newick_from_file"/>
-Study ID:<input type="text" id="studyID" name="studyID"/> <br/>
+Source ID:<input type="text" id="sourceID" name="sourceID"/> <br/>
 File name: <input name="file" type="file"><br>
 <button name="submit" type="submit" class="btn">Submit</button>
 </form>
 </div>
-<div id="study-contain" class="span7">
-<h1>Study list</h1>
-<table id="studies" class="table table-striped">
+<div id="source-contain" class="span7">
+<h1>Source list</h1>
+<table id="sources" class="table table-striped">
 <thead>
 <tr>
-<th>Study</th>
+<th>Source</th>
 <!--<th>Tree</th>-->
 </tr>
 </thead>
@@ -101,10 +101,10 @@ File name: <input name="file" type="file"><br>
 </div>
 <script language ="javascript" type = "text/javascript" >
 var treelinkurl ="../tree_dyn.html?treeID="
-var studylinkurl ="../study_view.html?studyID="
+var sourcelinkurl ="../source_view.html?sourceID="
 
-function getStudyTreeList(){
-    var baseurl = "http://localhost:7474/db/data/ext/studyJsons/graphdb/getStudyTreeList";
+function getSourceTreeList(){
+    var baseurl = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getSourceTreeList";
     var method = "POST";
     var xobjPost = new XMLHttpRequest();
     xobjPost.open(method, baseurl, false);
@@ -113,13 +113,13 @@ function getStudyTreeList(){
     xobjPost.send("");
     var jsonrespstr = xobjPost.responseText;
     var evjson = jQuery.parseJSON(eval(jsonrespstr));
-    $(evjson.studies).each(function(index, element){
-      $('#studies').append('<tr><td> <a href="'+studylinkurl+element[0]+'">'+element[0]+'</a> </td> <td> <a href="'+treelinkurl+element[1]+'" target="_blank">'+element[1]+'</a> </td></tr>');       
+    $(evjson.sources).each(function(index, element){
+      $('#sources').append('<tr><td> <a href="'+sourcelinkurl+element[0]+'">'+element[0]+'</a> </td> <td> <a href="'+treelinkurl+element[1]+'" target="_blank">'+element[1]+'</a> </td></tr>');       
     })
 }
 
-function getStudyList(){
-    var baseurl = "http://localhost:7474/db/data/ext/studyJsons/graphdb/getStudyList";
+function getSourceList(){
+    var baseurl = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getSourceList";
     var method = "POST";
     var xobjPost = new XMLHttpRequest();
     xobjPost.open(method, baseurl, false);
@@ -128,28 +128,28 @@ function getStudyList(){
     xobjPost.send("");
     var jsonrespstr = xobjPost.responseText;
     var evjson = jQuery.parseJSON(eval(jsonrespstr));
-    $(evjson.studies).each(function(index, element){
-      $('#studies').append('<tr><td> <a href="'+studylinkurl+element+'">'+element+'</a> </td></tr>');       
+    $(evjson.sources).each(function(index, element){
+      $('#sources').append('<tr><td> <a href="'+sourcelinkurl+element+'">'+element+'</a> </td></tr>');       
     })
 }
 
-//getStudyTreeList();
-getStudyList();
+//getSourceTreeList();
+getSourceList();
 </script> 
 </body>
 </html>
 """
 
-resturlsinglenewick = "http://localhost:7474/db/data/ext/studyJsons/graphdb/putStudyNewickSingle"
-resturlnexsonfile = "http://localhost:7474/db/data/ext/studyJsons/graphdb/putStudyNexsonFile"
+resturlsinglenewick = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/putSourceNewickSingle"
+resturlnexsonfile = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/putSourceNexsonFile"
 resturlnexsongitdir = "http://localhost:7474/db/data/ext/ConfigurationPlugins/graphdb/getNexsonGitDir"
 
-def make_json_with_newick(studyname,newick):
-    data = json.dumps({"studyID": studyname, "newickString": newick})
+def make_json_with_newick(sourcename,newick):
+    data = json.dumps({"sourceID": sourcename, "newickString": newick})
     return data
 
-def make_json_with_nexson(studyname,nexson):
-    data = json.dumps({"studyID": studyname, "nexsonString": nexson})
+def make_json_with_nexson(sourcename,nexson):
+    data = json.dumps({"sourceID": sourcename, "nexsonString": nexson})
     return data
     
 def print_html_form (success,gitfilelist):
@@ -212,7 +212,7 @@ def save_uploaded_file_newick (form, form_field, upload_dir):
        this does nothing.
     """
     if not form.has_key(form_field): return False
-    studyid = form["studyID"].value
+    sourceid = form["sourceID"].value
     fileitem = form[form_field]
     if not fileitem.file: return False
     fout = file (os.path.join(upload_dir, fileitem.filename), 'wb')
@@ -224,7 +224,7 @@ def save_uploaded_file_newick (form, form_field, upload_dir):
     fout = open (os.path.join(upload_dir, fileitem.filename), 'r')
     data = ""
     for i in fout:
-        data = make_json_with_newick(studyid,i.strip())
+        data = make_json_with_newick(sourceid,i.strip())
         log.write( data+"\n")
         break
     fout.close()
@@ -239,11 +239,11 @@ def save_uploaded_file_newick (form, form_field, upload_dir):
 
 def save_git_file_nexson(form, upload_dir):
     log = open("logging","a")
-    studyID = form["loadselect"].value
-    fl = open(bitbucket_location+"/"+studyID)
+    sourceID = form["loadselect"].value
+    fl = open(bitbucket_location+"/"+sourceID)
     nexson = json.dumps(json.loads(fl.read()))
     fl.close()
-    data = make_json_with_nexson(studyID,nexson)
+    data = make_json_with_nexson(sourceID,nexson)
     clen = len(data)
     req2 = urllib2.Request(resturlnexsonfile, headers = {"Content-Type": "application/json",
 	"Content-Length": clen,

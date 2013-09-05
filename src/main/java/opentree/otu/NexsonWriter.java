@@ -44,7 +44,7 @@ public class NexsonWriter {
 
 	/* main method for testing - just dumps out Newick */
 	public static void main(String argv[]) throws Exception {
-		String filename = "study15.json";
+/*		String filename = "study15.json";
 		if (argv.length == 1) {
 			filename = argv[0];
 		}
@@ -70,12 +70,12 @@ public class NexsonWriter {
 				}
 			}
 			++treeIndex;
-		}
+		} */
 	}
 	
 	/* Return Nexson String  given a list of trees and a studyID*/
 	//
-	public static void writeNexson(Node metadatanode, DatabaseManager dm) throws java.io.IOException {
+	public static void writeNexson(Node metadatanode, DatabaseBrowser browser) throws java.io.IOException {
 		StringBuffer sb = new StringBuffer();
 		/*
 		  The format of the file, roughly speaking (some noise omitted):
@@ -160,8 +160,8 @@ public class NexsonWriter {
 		sb.append("\"otu\": [\n");
 		//do the otus
 		//get this by getting all the names that are in the trees
-		HashSet<Node> otus = dm.getOTUsFromMetadataNode(metadatanode);
 		boolean first = true;
+		HashSet<Node> otus = browser.getOTUsFromMetadataNode(metadatanode);
 		for(Node nd: otus){
 			if (first){
 				sb.append("{\n");

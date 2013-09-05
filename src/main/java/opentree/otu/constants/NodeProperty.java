@@ -9,29 +9,117 @@ package opentree.otu.constants;
  */
 public enum NodeProperty {
 
-	// ===== All nodes
-	MRCA ("mrca", long[].class, "An array containing the node ids of all descendant nodes of this node. Used in graph algorithms."),
-	NESTED_MRCA ("nested_mrca", long[].class, ""),
+	/**
+	 * The original taxon name associated with this node.
+	 */
+	ORIGINAL_NAME ("original_name", String.class),	
 	
-	// ===== Taxonomy nodes
-	NAME ("name", String.class, "The taxonomic name of this node. Generally used only for taxonomy nodes..."),
-	NAME_UNIQUE ("uniqname", String.class, "A unique identifier made using taxonomic information. Used only for taxonomy nodes."),
-	TAX_UID ("tax_uid", String.class, "The OTT uid of the node. Used only for taxonomy nodes."),
-	TAX_PARENT_UID ("tax_parent_uid", String.class, "The UID of the taxonomic parent of this node. Used for taxonomy nodes."),
-	TAX_RANK ("tax_rank", String.class, "The taxonomic rank of this node. Used for taxonomy nodes."),
-	TAX_SOURCE ("tax_source", String.class, "Contains identifying information for this node in the taxonomy(ies) that define it. A string of the format \"<sourcename>:<taxid>, etc.\" where <taxid> is the id of this taxon for the indicated source. Used for taxonomy nodes."),
+	/**
+	 * The taxon name associated with this node. SHOULD BE THE MAPPED NAME, not the original. Should not be set if the
+	 * node has not been mapped (although I have no idea if this is actually the case).
+	 */
+	NAME ("name", String.class),
 	
-	// ===== Synonym nodes
-	NAMETYPE ("nametype", String.class, "The type of synonym. Used for synonym nodes"),
-	SOURCE ("source", String.class, "The taxonomic source of this synonym.");
+	/**
+	 * The ott id associated with the taxon mapped to this node. Should not be set if the node has not been mapped.
+	 */
+	OTT_ID ("uid", String.class),
 	
-	public String propertyName;
-	public final Class<?> type;
-	public final String description;
+	/**
+	 * A unique string used to identify this tree within the db. The convention is to use the study id concatenated
+	 * by an underscore to an id unique for trees within studies, e.g. 10_1. For trees incoming from nexsons, we attempt
+	 * to use any incoming tree id. If this is absent, or if the tree is not coming from a nexson, we assign an arbitrary
+	 * id string that is unique for trees within the originating study, e.g. 10____local_id_1.
+	 */
+	TREE_ID ("tree_id", String.class),
+			
+	/**
+	 * A unique string used to identify this source. For nexsons, this is the study id. For local sources, this is assigned
+	 * on import.
+	 */
+	SOURCE_ID ("source_id", String.class),
+	
+	/**
+	 * A unique string identifying the repository to which tree and source nodes belong. Currently, the only options are
+	 * "remote" and "local", although multiple repos could be indicated by using other values.
+	 */
+	LOCATION ("location", String.class),
+	
+	/**
+	 * A primitive string array containing all the original taxon names applied to tip children of a given tree node.
+	 * This is stored as a property of the root of each imported tree.
+	 */
+	DESCENDANT_ORIGINAL_TAXON_NAMES ("tip_original_names", String[].class),
+	
+	/**
+	 * A primitive string array containing all the currently mapped taxon names applied to tip children of a given tree node.
+	 * This is stored as a property of the root of each imported tree.
+	 */
+	DESCENDANT_MAPPED_TAXON_NAMES ("tip_mapped_names", String[].class),
+
+	/**
+	 * A primitive string array containing all the currently mapped taxon names applied to tip children of a given tree node,
+	 * with whitespace replaced by the whitespace replacement substring specified in GeneralConstants. This is stored as a
+	 * property of the root of each imported tree.
+	 */
+	DESCENDANT_MAPPED_TAXON_NAMES_WHITESPACE_FILLED ("tip_mapped_names_no_spaces", String[].class),
+	
+	/**
+	 * A primitive string array containing all the ott ids for taxa mapped to the tip children of a given tree node.
+	 * This is stored as a property of the root of each imported tree.
+	 */
+	DESCENDANT_MAPPED_TAXON_OTT_IDS ("tip_mapped_ottids", long[].class),
+	
+	// ===== ot namespace node properties
+	
+	/**
+	 * The original label assigned to this node.
+	 */
+	OT_ORIGINAL_LABEL ("ot:originalLabel", String.class),	
+
+	/**
+	 * The ott id associated with the node. A property of tip nodes
+	 */
+	OT_OTTID ("ot:ottolid", Long.class),	
+	
+	/**
+	 * A boolean indicating whether this tree has been rooted. Stored as a property of the root node. If the tree root lacks
+	 * this property then it can be inferred that the tree has not been rooted.
+	 */
+	ROOTING_IS_SET ("is_rooted", boolean.class),
+	
+	/**
+	 * A boolean indicating that this node is the root for its tree. Should always (and only) be set to true for the root
+	 * node. All other tree nodes should lack this property entirely.
+	 */
+	IS_ROOT ("is_root", boolean.class),
+	
+	/**
+	 * A boolean indicating whether the ingroup is set for this tree. Stored as a property of the tree root node. If the
+	 * tree root lacks this property, then the ingroup can be inferred not to be set.
+	 */
+	INGROUP_IS_SET ("ingroup_set", boolean.class),
+	
+	/**
+	 * A flag specifying that the clade represented by the node is the ingroup for the tree. Is only set on ingroup nodes.
+	 * Thus, any node without this property can be inferred not to be the ingroup on a tree for which the ingroup is set.
+	 */
+	IS_INGROUP ("ingroup_start", boolean.class),	
+
+	// TODO: fix this formatting
+	NEWICK_STRING("newick", String.class), //, "The newick string that was originally imported for the file. Used for study sources."),
+	OT_CURATOR_NAME("ot:curatorName", String.class), //, "The name of curator who uploaded the study. Used for study sources."),
+    OT_DATA_DEPOSIT("ot:dataDeposit", String.class), //, "A URI (or other identifier) for the published data. Used for study sources."),
+    OT_PUBLICATION_REFERENCE ("ot:studyPublicationReference", String.class), //, "The citation string. Used for study sources."),
+    OT_STUDY_ID ("ot:studyId", String.class), //, "The phylografter study id. Used for study sources."),
+    OT_STUDY_PUBLICATION("ot:studyPublication", String.class), //, "A URI (or other identifier) for the published study itself. Used for study sources."),
+    OT_YEAR ("ot:studyYear", int.class); //, "The year the study was created. Used for study sources.");  // TODO: currently stored as a long, but should be int
+	
+	public final Class<?> type; // indicates the datatype for this property
+	public final String name;
     
-    NodeProperty(String propertyName, Class<?> T, String description) {
-        this.propertyName = propertyName;
+    NodeProperty(String name, Class<?> T) {
+    	this.name = name;
         this.type = T;
-        this.description = description;
     }
 }

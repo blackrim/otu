@@ -12,12 +12,12 @@
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j</artifactId>
-        <version>1.8.M05</version>
+        <version>1.9.2</version>
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>server-api</artifactId>
-      <version>1.8.M05</version>
+      <version>1.9.2</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
@@ -27,9 +27,8 @@
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-kernel</artifactId>
-        <version>1.8.M05</version>
-        <type>test-jar</type>
-        <scope>test</scope>
+        <version>1.9.2</version>
+        <type>jar</type>
     </dependency>
     <dependency>
       <groupId>junit</groupId>

@@ -10,7 +10,8 @@ package opentree.otu.constants;
  */
 public enum GraphProperty {
 	
-	NEXSON_GIT_DIR ("nexsonGitDir", String.class, "The directory on the current system where the nexson git lies");//, to add more
+	NEXSON_GIT_DIR ("nexsonGitDir", String.class, "The directory on the current system where the nexson git lies"),//, to add more
+	KNOWN_REMOTES ("known_remotes", String[].class, "An array containing the names for all known remotes. To facilitate multiple remotes");
 	
 	public String propertyName;
 	public final Class<?> type;

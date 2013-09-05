@@ -6,15 +6,21 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
+import jade.tree.NexsonSource;
 import opentree.otu.GeneralUtils;
 import opentree.otu.constants.GeneralConstants;
+import opentree.otu.constants.GraphProperty;
+import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
+import opentree.otu.constants.SourceProperty;
 import opentree.otu.exceptions.NoSuchTreeException;
 
-import org.json.simple.parser.JSONParser;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -29,11 +35,12 @@ import org.neo4j.kernel.Traversal;
 public class DatabaseManager extends DatabaseAbstractBase {
 
 	private DatabaseIndexer indexer;
+	private DatabaseBrowser browser;
 	
-	protected Index<Node> sourceMetaIndex = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_OT_SOURCE_ID);
-	protected Index<Node> allTreeRootIndex = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
-	protected Index<Node> importedTreeRootIndex = getNodeIndex(NodeIndexDescription.LOCAL_TREE_ROOT_NODES_BY_TREE_ID);
-	protected Index<Node> sourceTreeIndex = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_OT_SOURCE_ID);
+	private HashSet<String> knownRemotes;
+	
+	protected Index<Node> sourceMetaNodesBySourceId = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_SOURCE_ID);
+	protected Index<Node> treeRootNodesByTreeId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
 
 	// ===== constructors
 
@@ -45,7 +52,8 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	public DatabaseManager(GraphDatabaseService graphService) {
 		super(graphService);
 		indexer = new DatabaseIndexer(graphDb);
-//		initNodeIndexes();
+		browser = new DatabaseBrowser(graphDb);
+		updateKnownRemotesInternal();
 	}
 
 	/**
@@ -56,7 +64,8 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	public DatabaseManager(EmbeddedGraphDatabase embeddedGraph) {
 		super(embeddedGraph);
 		indexer = new DatabaseIndexer(graphDb);
-//		initNodeIndexes();
+		browser = new DatabaseBrowser(graphDb);
+		updateKnownRemotesInternal();
 	}
 
 	/**
@@ -67,128 +76,281 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	public DatabaseManager(GraphDatabaseAgent gdb) {
 		super(gdb);
 		indexer = new DatabaseIndexer(graphDb);
-//		initNodeIndexes();
+		browser = new DatabaseBrowser(graphDb);
+		updateKnownRemotesInternal();
 	}
 
-	// ===== importing methods
-
+	// ========== public methods
+	
+	// ===== adding sources and trees
+	
 	/**
-	 * Installs a study into the db, including loading all included trees.
+	 * Install a study into the db, including loading all included trees.
 	 * 
-	 * @param trees
-	 * @param sourceID
+	 * @param source
+	 * 		A NexsonSource object that contains the source metadata and trees
+	 * 
+	 * @param location
+	 * 		Used to indicate remote vs local studies. To recognize a study as local, pass the location
+	 * 		string in DatabaseManager.LOCAL_LOCATION. Using any other value for the location will result in this study
+	 * 		being treated as a remote study.
+	 * 
 	 * @return
+	 * 		The source metadata node for the newly added study
 	 */
-	public boolean addStudyToDB(List<JadeTree> trees, String sourceID) {
+	public Node addSource(NexsonSource source, String location) {
+		return addSource(source, location, false);
+	}
+	
+	/**
+	 * Install a study into the db, including loading all included trees.
+	 * 
+	 * @param source
+	 * 		A NexsonSource object that contains the source metadata and trees.
+	 * 
+	 * @param location
+	 * 		Used to indicate remote vs local studies. To recognize a study as local, pass the location
+	 * 		string in DatabaseManager.LOCAL_LOCATION. Using any other value for the location will result in this study
+	 * 		being treated as a remote study.
+	 * 
+	 * @param overwrite
+	 * 		Pass a value of true to cause any preexisting studies with this location and source id to be deleted and replaced
+	 * 		by this source. Otherwise the method will throw an exception if there are preexisting studies.
+	 * 
+	 * @return
+	 * 		The source metadata node for the newly added study
+	 */
+	public Node addSource(NexsonSource source, String location, boolean overwrite) {
 		
-		// TODO: return false from the REST so you know, just doesn't show up otherwise
-		
-/*		// won't add an identical source id
-		IndexHits<Node> hits = sourceMetaIndex.get("sourceID", sourceID);
-		try {
-			if (hits.size() > 0) {
-//				return false;
-			}
-		} finally {
-			hits.close();
-		} */
+		// TODO: return meaningful information about the result to the rest query that calls this method
 
+		Node sourceMeta = null;
+		
 		Transaction tx = graphDb.beginTx();
 		try {
 			
-			// check if the study already exists
-			Node sourceMeta = null;
-			IndexHits<Node> studiesFound = sourceMetaIndex.get("sourceID", sourceID);
-			try {
-				if (studiesFound.size() > 0) {
-					// already exists, so use the existing one
-					sourceMeta = studiesFound.getSingle(); // should only ever be one, right?
+			String sourceId = source.getId();
+
+			// don't add a study if it already exists, unless overwriting is turned on
+			String property = location + "SourceId";
+			sourceMeta = DatabaseUtils.getSingleNodeIndexHit(sourceMetaNodesBySourceId, property, sourceId);
+			if (sourceMeta != null) {
+				if (overwrite) {
+					deleteSource(sourceMeta);
 				} else {
-					// no existing study, so install it. use study properties stored in the first tree
-					sourceMeta = graphDb.createNode();
-					indexer.setStudyMetadataNodePropertiesAndIndex(sourceMeta, trees.get(0), sourceID);
+					throw new UnsupportedOperationException("Attempt to add a source with the same source id as an "
+							+ "existing local source. This would require merging, but merging is not (yet?) supported.");
 				}
-			} finally {
-				studiesFound.close();
 			}
 			
-			// for each tree
-			for (int i = 0; i < trees.size(); i++) {
+			// create the source
+			sourceMeta = graphDb.createNode();
+			sourceMeta.setProperty(NodeProperty.LOCATION.name, location);
+			sourceMeta.setProperty(NodeProperty.SOURCE_ID.name, sourceId);
+			
+			// set source properties
+			setNodePropertiesFromMap(sourceMeta, source.getProperties());
 
-				// get the tree id if there is one or create an arbitrary one if not
-				String tid = null;
-				if (trees.get(i).getObject("id") != null) {
-					tid = (String) trees.get(i).getObject("id");
-				} else {
-					tid = sourceID + GeneralConstants.LOCAL_TREEID_PREFIX.value + String.valueOf(i);
+			// add the trees
+			boolean noValidTrees = true;
+			int i = 0;
+			Iterator<JadeTree> treesIter = source.getTrees().iterator();
+			while (treesIter.hasNext()) {
+
+				JadeTree tree = treesIter.next();
+
+				// TODO: sometimes the nexson reader returns null trees. this is a hack to deal with that.
+				// really we should fix the nexson reader so it doesn't return null trees
+				if (tree == null) {
+					continue;
+				} else if (noValidTrees == true) {
+					noValidTrees = false;
 				}
 
-				// only attempt to install the tree if it doesn't already exist
-				IndexHits<Node> treesFound = null;
-				boolean treeWasAddedSuccessfully = false;
-				try {
-					treesFound = importedTreeRootIndex.get("treeID", tid);
-					if (treesFound.size() < 1) {
-						treeWasAddedSuccessfully = addTreeToDB(trees.get(i), tid, sourceMeta);
+				// get the tree id from the nexson if there is one or create an arbitrary one if not
+				String treeIdSuffix = (String) tree.getObject("id");
+				if (treeIdSuffix ==  null) {
+					treeIdSuffix = GeneralConstants.LOCAL_TREEID_PREFIX.value + String.valueOf(i);
+				}
+				
+				// create a unique tree id by including the study id, this is the convention from treemachine
+				String treeId = sourceId + "_" + treeIdSuffix;
+
+				// add the tree
+				addTree(tree, treeId, sourceMeta);
+
+				i++;
+			}
+			
+			if (location == LOCAL_LOCATION) { // if this is a local study then attach it to any existing remotes
+				for (Node sourceMetaHit : browser.getAllKnownSourceMetaNodesForSourceId(sourceId)) {
+					if (sourceMetaHit.getProperty(NodeProperty.LOCATION.name).equals(LOCAL_LOCATION) == false) {
+						sourceMeta.createRelationshipTo(sourceMetaHit, RelType.LOCALCOPYOF);
 					}
-				} finally {
-					treesFound.close();
 				}
 
-				if (treeWasAddedSuccessfully == false) { // tree already exists
-					; // TODO: should this trigger something?
+			} else { // remote study
+
+				// check if there is a local study to attach this remote one to
+				Node localSourceMeta = DatabaseUtils.getSingleNodeIndexHit(sourceMetaNodesBySourceId, LOCAL_LOCATION+"SourceId", sourceId);
+				if (localSourceMeta != null) {
+					localSourceMeta.createRelationshipTo(sourceMeta, RelType.LOCALCOPYOF);
+				}
+				
+				// add the remote location if necessary
+				if (!knownRemotes.contains(location)) {
+					addKnownRemote(location);
 				}
 			}
+		
+			indexer.addSourceMetaNodeToIndexes(sourceMeta);
+			
 			tx.success();
 		} finally {
 			tx.finish();
 		}
-		return true;
+		
+		return sourceMeta;
 	}
-
-	/* moved to DatabaseIndexer to reduce duplication
-	private boolean addNodeMetaDataOnInput(JadeTree tree, Node dbroot, String propname) {
-		if (tree.getObject(propname) != null) {
-			dbroot.setProperty(propname, String.valueOf(tree.getObject(propname)));
-			return true;
-		}
-		return false;
-	} */
-
+	
 	/**
-	 * Adds a tree in a JadeTree format into the database.
+	 * Adds a tree in a JadeTree format into the database under the specified study.
 	 * 
-	 * @param intree
+	 * @param tree
+	 * 		A JadeTree object containing the tree to be added
+	 * @param treeId
+	 * 		The id string to use for this tree. Will be used in indexing so must be unique across all trees in the database
+	 * @param sourceMetaNode
+	 * 		The source metadata node for the source that this tree will be added to
 	 * @return
+	 * 		The root node for the added tree.
 	 */
-	private boolean addTreeToDB(JadeTree intree, String tree_id, Node metadatanode) {
+	public Node addTree(JadeTree tree, String treeId, Node sourceMetaNode) {
 
-		// add the tree to the graph
-		Node root = preorderAddTreeToDB(intree.getRoot(), null, tree_id);
-		metadatanode.createRelationshipTo(root, RelType.METADATAFOR);
+		// get the location from the source meta node
+		String location = (String) sourceMetaNode.getProperty(NodeProperty.LOCATION.name);
+		String sourceId = (String) sourceMetaNode.getProperty(NodeProperty.SOURCE_ID.name);
 
-		// designate ingroup if known
-		if (intree.getRoot().getObject("ingroup_start") != null) {
+		// add the tree to the graph; only add tree structure if this is a local tree
+		Node root = null;
+		if (location.equals(LOCAL_LOCATION)) {
+			root = preorderAddTreeToDB(tree.getRoot(), null);
+		} else {
+			root = graphDb.createNode();
+		}
+
+		// attach to source and set the id information
+		sourceMetaNode.createRelationshipTo(root, RelType.METADATAFOR);
+		root.setProperty(NodeProperty.LOCATION.name, location);
+		root.setProperty(NodeProperty.SOURCE_ID.name, sourceId);
+		
+		// designate the root as the ingroup this is specified in the tree properties (e.g. from a nexson)
+		if (tree.getRoot().getObject(NodeProperty.IS_INGROUP.name) != null) {
 			designateIngroup(root);
 		}
 
-		// add node properties and add to indexes
-		indexer.setTreeRootNodePropertiesAndIndex(root, intree, tree_id, (String) metadatanode.getProperty("sourceID"));
-		
-		// also add to the imported tree index
-		importedTreeRootIndex.add(root, "treeID", tree_id);
+		// add node properties
+		root.setProperty(NodeProperty.TREE_ID.name, treeId);
+		root.setProperty(NodeProperty.IS_ROOT.name, true);
+		setNodePropertiesFromMap(root, tree.getAssoc());
 
-		return true;
+		collectTipTaxonArrayProperties(root, tree);
+
+		indexer.addTreeRootNodeToIndexes(root);
+		
+		return root;
+	}
+	
+	// ===== delete methods
+
+	/**
+	 * Deletes a local tree
+	 * @param treeId
+	 */
+	public void deleteTree(Node root) {
+
+		Transaction tx = graphDb.beginTx();
+		try {
+
+			// clean up the tree indexes
+			indexer.removeTreeRootNodeFromIndexes(root);
+
+			// collect the tree nodes
+			HashSet<Node> todelete = new HashSet<Node>();
+			TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
+			todelete.add(root);
+			for (Node curGraphNode : CHILDOF_TRAVERSAL.breadthFirst().traverse(root).nodes()) {
+				todelete.add(curGraphNode);
+			}
+			
+			// remove them
+			for (Node nd : todelete) {
+				for (Relationship rel : nd.getRelationships()) {
+					rel.delete();
+				}
+				nd.delete();
+			}
+			
+			// delete the tree root
+			treeRootNodesByTreeId.remove(root);
+			
+			tx.success();
+
+		} finally {
+			tx.finish();
+		}
 	}
 
+	/**
+	 * Remove a local source and all its trees.
+	 * @param sourceId
+	 * @throws NoSuchTreeException 
+	 */
+	public void deleteSource(Node sourceMeta) {
+		
+		Transaction tx = graphDb.beginTx();
+		try {
+
+			// clean up the source indexes
+			indexer.removeSourceMetaNodeFromIndexes(sourceMeta);
+
+			// remove all trees
+			for (Relationship rel : sourceMeta.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
+				deleteTree(rel.getEndNode()); // will also remove the METADATAFOR rels pointing at this metadata node
+			}
+
+			// delete remaining relationships
+			for (Relationship rel : sourceMeta.getRelationships()) {
+				rel.delete();
+			}
+			
+			// delete the source meta node itself
+			sourceMeta.delete();			
+			
+			tx.success();
+			
+		} finally {
+			tx.finish();
+		}
+	}
+	
+	// ===== other methods
+	
+	/**
+	 * Reroot the tree containing the `newroot` node on that node. Returns the root node of the rerooted tree.
+	 * @param newroot
+	 * @return
+	 */
 	public Node rerootTree(Node newroot) {
+		
 		// first get the root of the old tree
-		Node oldRoot = getRootFromNode(newroot);
+		Node oldRoot = DatabaseUtils.getRootOfTreeContaining(newroot);
+		
 		// not rerooting
 		if (oldRoot == newroot) {
 			Transaction tx1 = graphDb.beginTx();
 			try {
-				oldRoot.setProperty("rooting_set", "true");
+				oldRoot.setProperty(NodeProperty.ROOTING_IS_SET.name, true);
 				tx1.success();
 			} finally {
 				tx1.finish();
@@ -197,14 +359,12 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		}
 		Node actualRoot = null;
 		String treeID = null;
-		treeID = (String) oldRoot.getProperty("treeID");
+		treeID = (String) oldRoot.getProperty(NodeProperty.TREE_ID.name);
 		Transaction tx = graphDb.beginTx();
 		try {
 			// tritomy the root
-			int oldrootchildcount = 0;
-			for (Relationship rel : oldRoot.getRelationships(RelType.CHILDOF, Direction.INCOMING)) {
-				oldrootchildcount += 1;
-			}
+			int oldrootchildcount = DatabaseUtils.getNumberOfRelationships(oldRoot, RelType.CHILDOF, Direction.INCOMING);
+					
 			if (oldrootchildcount == 2) {
 				boolean retvalue = tritomyRoot(oldRoot, newroot);
 				if (retvalue == false) {
@@ -216,30 +376,185 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			
 			// process the reroot
 			actualRoot = graphDb.createNode();
+
 			Relationship nrprel = newroot.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING);
 			Node tempParent = nrprel.getEndNode();
 			actualRoot.createRelationshipTo(tempParent, RelType.CHILDOF);
 			nrprel.delete();
 			newroot.createRelationshipTo(actualRoot, RelType.CHILDOF);
-			processReroot(actualRoot);
+			processRerootRecursive(actualRoot);
 
-			// switch the METADATA_FOR relationship to the new root node
+			// switch the METADATAFOR relationship to the new root node
 			Relationship prevStudyToTreeRootLinkRel = oldRoot.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING);
 			Node metadata = prevStudyToTreeRootLinkRel.getStartNode();
 			prevStudyToTreeRootLinkRel.delete();
-			actualRoot.setProperty("treeID", treeID);
+		
+			actualRoot.setProperty(NodeProperty.TREE_ID.name, treeID);
+
 			metadata.createRelationshipTo(actualRoot, RelType.METADATAFOR);
 			
-			// clean up metadata and index entries
-			indexer.exchangeRootPropertiesAndUpdateIndexes(oldRoot, actualRoot);
+			// clean up properties
+			DatabaseUtils.exchangeAllProperties(oldRoot, actualRoot); // TODO: are there properties we don't want to exchange?
+			
+			// update indexes
+			indexer.removeTreeRootNodeFromIndexes(oldRoot);
+			indexer.addTreeRootNodeToIndexes(actualRoot);
 
 			tx.success();
 		} finally {
 			tx.finish();
 		}
+		
 		return actualRoot;
 	}
+	
+	/**
+	 * Set the ingroup for the tree containing `innode` to `innode`.
+	 * @param innode
+	 */
+	public void designateIngroup(Node innode) {
 
+		// first get the root of the old tree
+		Node root = DatabaseUtils.getRootOfTreeContaining(innode);
+
+		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
+		Transaction tx = graphDb.beginTx();
+		try {
+			root.setProperty(NodeProperty.INGROUP_IS_SET.name, true);
+			if (root != innode) {
+				for (Node node : CHILDOF_TRAVERSAL.breadthFirst().traverse(root).nodes()) {
+					if (node.hasProperty(NodeProperty.IS_INGROUP.name))
+						node.removeProperty(NodeProperty.IS_INGROUP.name);
+				}
+			}
+			innode.setProperty(NodeProperty.IS_INGROUP.name, true);
+			for (Node node : CHILDOF_TRAVERSAL.breadthFirst().traverse(innode).nodes()) {
+				node.setProperty(NodeProperty.IS_INGROUP.name, true);
+			}
+			tx.success();
+		} finally {
+			tx.finish();
+		}
+	}
+	
+	// ========== private methods
+	
+	/**
+	 * Add a known remote to the graph property for known remotes, which is a primitive string array. We
+	 * could also just add nodes for all remotes and index them
+	 * @param remote
+	 */
+	private void addKnownRemote(String newRemote) {
+		
+		List<String> knownRemotesPrev = browser.getKnownRemotes();
+		String[] knownRemotesNew = new String[knownRemotesPrev.size()+1];
+		
+		int i = 0;
+		for (String r : knownRemotesPrev) {
+			knownRemotesNew[i++] = r;
+		}
+
+		knownRemotesNew[i] = newRemote;
+		graphDb.getNodeById((long)0).setProperty(GraphProperty.KNOWN_REMOTES.propertyName, knownRemotesNew);
+		
+		updateKnownRemotesInternal();
+	}
+	
+	/**
+	 * Just update the internal cache of known remotes. Called when we add a remote and also during construction.
+	 * We keep this cached so we don't have to check the graph property array every time we add a source.
+	 */
+	private void updateKnownRemotesInternal() {
+		knownRemotes = new HashSet<String>();
+		for (String remote : browser.getKnownRemotes()) {
+			knownRemotes.add(remote);
+		}
+	}
+	
+	/**
+	 * A recursive function used to replicate the tree JadeNode structure below the passed in JadeNode in the graph.
+	 * @param curJadeNode
+	 * @param parentGraphNode
+	 * @return
+	 */
+	private Node preorderAddTreeToDB(JadeNode curJadeNode, Node parentGraphNode) {
+
+		Node curGraphNode = graphDb.createNode();
+		
+		// add properties
+		if (curJadeNode.getName() != null) {
+			curGraphNode.setProperty(NodeProperty.NAME.name, curJadeNode.getName());
+			// TODO: also set properties from the JadeNode.getAssoc() map?
+		}
+
+		// TODO: add bl
+		// dbnode.setProperty("bl", innode.getBL());
+		// TODO: add support
+		
+		if (parentGraphNode != null) {
+			curGraphNode.createRelationshipTo(parentGraphNode, RelType.CHILDOF);
+		}
+
+		for (JadeNode childJadeNode : curJadeNode.getChildren()) {
+			preorderAddTreeToDB(childJadeNode, curGraphNode);
+		}
+
+		return curGraphNode;
+	}
+	
+	/**
+	 * Import entries from a map into the database as properties of the specified node.
+	 * @param node
+	 * @param properties
+	 */
+	private static void setNodePropertiesFromMap(Node node, Map<String, Object> properties) {
+		for (Entry<String, Object> property : properties.entrySet()) {
+			node.setProperty(property.getKey(), property.getValue());
+		}
+	}
+	
+	/**
+	 * Collects taxonomic names and ids for all the tips of the provided JadeTree and stores this info as node properties
+	 * of the provided graph node. Used to store taxonomic mapping info for the root nodes of trees in the graph.
+	 * @param node
+	 * @param tree
+	 */
+	private void collectTipTaxonArrayProperties(Node node, JadeTree tree) {
+		
+		List<String> originalTaxonNames = new ArrayList<String>();
+		List<String> mappedTaxonNames = new ArrayList<String>();
+		List<String> mappedTaxonNamesNoSpaces = new ArrayList<String>();
+		List<Long> mappedOTTIds = new ArrayList<Long>();
+
+		for (JadeNode treeNode : tree.getRoot().getDescendantLeaves()) {
+
+			originalTaxonNames.add((String) treeNode.getObject(NodeProperty.OT_ORIGINAL_LABEL.name));
+
+			String name = treeNode.getName(); // TODO: make sure we aren't setting these to original taxon names.
+			// If the node has not been explicitly mapped, then this should be null.
+
+			mappedTaxonNames.add(name);
+			mappedTaxonNamesNoSpaces.add(name.replace("\\s+", (String) GeneralConstants.WHITESPACE_SUBSTITUTE_FOR_SEARCH.value));
+
+			Long ottId = (Long) treeNode.getObject(NodeProperty.OT_OTTID.name);
+			if (ottId != null) {
+				mappedOTTIds.add(ottId);
+			}
+		}
+
+		// store the properties in the nodes
+		node.setProperty(NodeProperty.DESCENDANT_ORIGINAL_TAXON_NAMES.name, GeneralUtils.convertToStringArray(originalTaxonNames));
+		node.setProperty(NodeProperty.DESCENDANT_MAPPED_TAXON_NAMES.name, GeneralUtils.convertToStringArray(mappedTaxonNames));
+		node.setProperty(NodeProperty.DESCENDANT_MAPPED_TAXON_NAMES_WHITESPACE_FILLED.name, GeneralUtils.convertToStringArray(mappedTaxonNamesNoSpaces));
+		node.setProperty(NodeProperty.DESCENDANT_MAPPED_TAXON_OTT_IDS.name, GeneralUtils.convertToLongArray(mappedOTTIds));
+	}
+
+	/**
+	 * Used by the rerooting function
+	 * @param oldRoot
+	 * @param newRoot
+	 * @return
+	 */
 	private boolean tritomyRoot(Node oldRoot, Node newRoot) {
 		Node thisNode = null;// this will be the node that is sunk
 		// find the first child that is not a tip
@@ -263,504 +578,25 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		return true;
 	}
 
-	private void processReroot(Node innode) {
-		if (innode.hasProperty("isroot") || innode.hasRelationship(Direction.INCOMING, RelType.CHILDOF) == false) {
+	/**
+	 * Recursive function to process a re-rooted tree to fix relationship direction, etc.
+	 * @param innode
+	 */
+	private void processRerootRecursive(Node innode) {
+		if (innode.hasProperty(NodeProperty.IS_ROOT.name) || innode.hasRelationship(Direction.INCOMING, RelType.CHILDOF) == false) {
 			return;
 		}
 		Node parent = null;
 		if (innode.hasRelationship(Direction.OUTGOING, RelType.CHILDOF)) {
 			parent = innode.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING).getEndNode();
-			processReroot(parent);
+			processRerootRecursive(parent);
 		}
-		// Exchange branch label, length et cetera
-		exchangeInfoReroot(parent, innode);
+
+		DatabaseUtils.exchangeNodeProperty(parent, innode, NodeProperty.NAME.name);
+
 		// Rearrange topology
 		innode.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING).delete();
 		parent.createRelationshipTo(innode, RelType.CHILDOF);
 	}
 
-	private void exchangeInfoReroot(Node innode1, Node innode2) {
-		String swaps = null;
-		double swapd;
-		if (innode1.hasProperty("name"))
-			swaps = (String) innode1.getProperty("name");
-		if (innode2.hasProperty("name"))
-			innode1.setProperty("name", (String) innode2.getProperty("name"));
-		if (swaps != null)
-			innode2.setProperty("name", swaps);
-
-		// swapd = node1.getBL();
-		// node1.setBL(node2.getBL());
-		// node2.setBL(swapd);
-	}
-
-	private Node preorderAddTreeToDB(JadeNode innode, Node parent, String tree_id) {
-		Node dbnode = graphDb.createNode();
-		// add properties
-		if (innode.getName() != null) {
-			dbnode.setProperty("name", innode.getName());
-		}
-		// add bl
-		// dbnode.setProperty("bl", innode.getBL());
-		// add support
-		if (parent != null) {
-			Relationship trel = dbnode.createRelationshipTo(parent, RelType.CHILDOF);
-		}
-		for (int i = 0; i < innode.getChildCount(); i++) {
-			preorderAddTreeToDB(innode.getChild(i), dbnode, tree_id);
-		}
-		return dbnode;
-	}
-
-	/**
-	 * Get a tree root node from the graph. Will do error checking to make sure tree is available and unique, and will throw an exception if not.
-	 * @param treeID
-	 * @return
-	 * @throws NoSuchTreeException
-	 */
-	public Node getRootNodeFromTreeIDValidated(String treeID) throws NoSuchTreeException {
-		IndexHits<Node> importedTreesFound = importedTreeRootIndex.get("treeID", treeID);
-		if (importedTreesFound.size() < 1) {
-			throw new NoSuchTreeException("The tree " + treeID + " has not been imported into the database.");
-		} else if (importedTreesFound.size() > 1) {
-			throw new IllegalStateException("More than one tree was found with the id " + treeID + ". Not a good sign.");
-		}
-
-		Node rootNode = importedTreesFound.getSingle();
-		importedTreesFound.close();
-		return rootNode;
-	}
-
-	/**
-	 * Get the subtree of a given tree graph node. Does not perform error checks to make sure the tree exists.
-	 * @param inRoot
-	 * @param maxNodes
-	 * @return
-	 */
-	public JadeTree getTreeFromNode(Node inRoot, int maxNodes) {
-		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
-		JadeNode root = new JadeNode();
-		HashMap<Node, JadeNode> traveledNodes = new HashMap<Node, JadeNode>();
-		int maxtips = maxNodes;
-		HashSet<Node> includednodes = new HashSet<Node>();
-		HashSet<Node> parents = new HashSet<Node>();
-		for (Node curGraphNode : CHILDOF_TRAVERSAL.breadthFirst().traverse(inRoot).nodes()) {
-			if (includednodes.size() > maxtips && parents.size() > 1) {
-				break;
-			}
-			JadeNode curNode = null;
-			if (curGraphNode == inRoot) {
-				curNode = root;
-			} else {
-				curNode = new JadeNode();
-			}
-			traveledNodes.put(curGraphNode, curNode);
-			if (curGraphNode.hasProperty("name")) {
-				curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
-				// curNode.setName(GeneralUtils.cleanName(curNode.getName()));
-			}
-			if (curGraphNode.hasProperty("ingroup")) {
-				curNode.assocObject("ingroup", "true");
-			}
-			curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
-			JadeNode parentJadeNode = null;
-			Relationship incomingRel = null;
-			if (curGraphNode.hasRelationship(Direction.OUTGOING, RelType.CHILDOF) && curGraphNode != inRoot) {
-				Node parentGraphNode = curGraphNode.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING).getEndNode();
-				if (includednodes.contains(parentGraphNode)) {
-					includednodes.remove(parentGraphNode);
-				}
-				parents.add(parentGraphNode);
-				if (traveledNodes.containsKey(parentGraphNode)) {
-					parentJadeNode = traveledNodes.get(parentGraphNode);
-					incomingRel = curGraphNode.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING);
-				}
-			}
-			includednodes.add(curGraphNode);
-			// add the current node to the tree we're building
-
-			if (parentJadeNode != null) {
-				parentJadeNode.addChild(curNode);
-			}
-			// get the immediate synth children of the current node
-			LinkedList<Relationship> taxChildRels = new LinkedList<Relationship>();
-			int numchild = 0;
-			for (Relationship taxChildRel : curGraphNode.getRelationships(Direction.INCOMING, RelType.CHILDOF)) {
-				taxChildRels.add(taxChildRel);
-				numchild += 1;
-			}
-			if (numchild > 0) {
-				// need to add a property of the jadenode if there are children, so if they aren't included, we can color it
-				curNode.assocObject("haschild", true);
-				curNode.assocObject("numchild", numchild);
-			}
-		}
-		int curbackcount = 0;
-		boolean going = true;
-		JadeNode newroot = root;
-		Node curRoot = inRoot;
-		while (going && curbackcount < 5) {
-			if (curRoot.hasRelationship(Direction.OUTGOING, RelType.CHILDOF)) {
-				Node curGraphNode = curRoot.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING).getEndNode();
-				JadeNode temproot = new JadeNode();
-				if (curGraphNode.hasProperty("name")) {
-					temproot.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
-				}
-				temproot.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
-				temproot.addChild(newroot);
-				curRoot = curGraphNode;
-				newroot = temproot;
-				curbackcount += 1;
-			} else {
-				going = false;
-				break;
-			}
-		}
-		// (add a bread crumb)
-		return new JadeTree(newroot);
-	}
-
-	/**
-	 * Return the root graph node for the tree containing `innode`.
-	 * @param innode
-	 * @return
-	 */
-	public Node getRootFromNode(Node innode) {
-		// first get the root of the old tree
-		Node root = innode;
-		boolean going = true;
-		while (going) {
-			if (root.hasRelationship(RelType.CHILDOF, Direction.OUTGOING)) {
-				root = root.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING).getEndNode();
-			} else {
-				break;
-			}
-		}
-		return root;
-	}
-
-	/**
-	 * Set the ingroup for the tree containing `innode` to `innode`.
-	 * @param innode
-	 */
-	public void designateIngroup(Node innode) {
-		Node root = getRootFromNode(innode);
-		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
-		Transaction tx = graphDb.beginTx();
-		try {
-			root.setProperty("ingroup_set", "true");
-			if (root != innode) {
-				for (Node node : CHILDOF_TRAVERSAL.breadthFirst().traverse(root).nodes()) {
-					if (node.hasProperty("ingroup"))
-						node.removeProperty("ingroup");
-				}
-			}
-			innode.setProperty("ingroup", "true");
-			for (Node node : CHILDOF_TRAVERSAL.breadthFirst().traverse(innode).nodes()) {
-				node.setProperty("ingroup", "true");
-			}
-			tx.success();
-		} finally {
-			tx.finish();
-		}
-	}
-
-	/**
-	 * 
-	 * @param studyID
-	 * @return
-	 */
-	public String getStudyMetaData(String studyID) {
-		IndexHits<Node> sourcesFound = sourceMetaIndex.get("sourceID", studyID);
-		Node sourcemeta = sourcesFound.getSingle();
-		sourcesFound.close();
-		StringBuffer bf = new StringBuffer("{ \"metadata\": {\"ot:curatorName\": \"");
-		if (sourcemeta.hasProperty("ot:curatorName")) {
-			bf.append((String) sourcemeta.getProperty("ot:curatorName"));
-		}
-		bf.append("\", \"ot:dataDeposit\": \"");
-		if (sourcemeta.hasProperty("ot:dataDeposit")) {
-			bf.append((String) sourcemeta.getProperty("ot:dataDeposit"));
-		}
-		bf.append("\", \"ot:studyPublication\": \"");
-		if (sourcemeta.hasProperty("ot:studyPublication")) {
-			bf.append((String) sourcemeta.getProperty("ot:studyPublication"));
-		}
-		bf.append("\", \"ot:studyPublicationReference\": \"");
-		if (sourcemeta.hasProperty("ot:studyPublicationReference")) {
-			bf.append(GeneralUtils.escapeString((String) sourcemeta.getProperty("ot:studyPublicationReference")));
-		}
-		bf.append("\", \"ot:studyYear\": \"");
-		if (sourcemeta.hasProperty("ot:studyYear")) {
-			bf.append((String) sourcemeta.getProperty("ot:studyYear"));
-		}
-		bf.append("\"}, \"trees\" : [");
-		// add the trees
-		ArrayList<String> trees = new ArrayList<String>();
-		for (Relationship rel : sourcemeta.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
-			trees.add((String) rel.getEndNode().getProperty("treeID"));
-		}
-		for (int i = 0; i < trees.size(); i++) {
-			bf.append("\"" + trees.get(i));
-			if (i != trees.size() - 1) {
-				bf.append("\",");
-			} else {
-				bf.append("\"");
-			}
-		}
-		bf.append("]  }");
-		return bf.toString();
-	}
-
-	/**
-	 * 
-	 * @param studyID
-	 * @param treeID
-	 * @return
-	 */
-	public String getTreeMetaData(String studyID, String treeID) {
-		
-		// TODO: might need to update this to make sure it is only getting imported trees?
-//		IndexHits<Node> treesFound = importedTreeRootIndex.get("treeID", treeID);
-//		IndexHits<Node> sourcesFound = importedSourceMetaIndex.get("sourceID", studyID);
-
-		IndexHits<Node> treesFound = allTreeRootIndex.get("treeID", treeID);
-//		IndexHits<Node> sourcesFound = sourceMetaIndex.get("sourceID", studyID); // never used
-		
-//		Node sourcemeta = sourcesFound.getSingle(); // never used
-		Node root = null;
-		while (treesFound.hasNext()) {
-			Node tnode = treesFound.next();
-			if (((String) tnode.getProperty("treeID")).equals(treeID)) {
-				root = tnode;
-				break;
-			}
-		}
-//		sourcesFound.close(); // never used
-		treesFound.close();
-		StringBuffer bf = new StringBuffer("{ \"metadata\": {\"ot:branchLengthMode\": \"");
-		if (root.hasProperty("ot:branchLengthMode")) {
-			bf.append((String) root.getProperty("ot:branchLengthMode"));
-		}
-		bf.append("\", \"ot:inGroupClade\": \"");
-		if (root.hasProperty("ot:inGroupClade")) {
-			bf.append((String) root.getProperty("ot:inGroupClade"));
-		}
-		bf.append("\", \"ot:focalClade\": \"");
-		if (root.hasProperty("ot:focalClade")) {
-			bf.append((String) root.getProperty("ot:focalClade"));
-		}
-		bf.append("\", \"ot:tag\": \"");
-		if (root.hasProperty("ot:tag")) {
-			bf.append((String) root.getProperty("ot:tag"));
-		}
-		bf.append("\", \"rooting_set\": \"");
-		if (root.hasProperty("rooting_set")) {
-			bf.append((String) root.getProperty("rooting_set"));
-		}
-		bf.append("\", \"ingroup_set\": \"");
-		if (root.hasProperty("ingroup_set")) {
-			bf.append((String) root.getProperty("ingroup_set"));
-		}
-		bf.append("\"} }");
-		return bf.toString();
-	}
-
-	/**
-	 * Deletes a local tree
-	 * @param treeID
-	 */
-	public void deleteLocalTreeFromTreeID(String treeID) {
-		IndexHits<Node> treesFound = importedTreeRootIndex.get("treeID", treeID);
-		Node root = null;
-
-		try {
-			while (treesFound.hasNext()) {
-				Node tnode = treesFound.next();
-				if (((String) tnode.getProperty("treeID")).equals(treeID)) {
-					root = tnode;
-					break;
-				}
-			}
-		} finally {
-			treesFound.close();
-		}
-
-		Transaction tx = graphDb.beginTx();
-		try {
-			HashSet<Node> todelete = new HashSet<Node>();
-			TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
-			todelete.add(root);
-			for (Node curGraphNode : CHILDOF_TRAVERSAL.breadthFirst().traverse(root).nodes()) {
-				if (!curGraphNode.equals(root)) {
-					todelete.add(curGraphNode);
-				}
-			}
-			for (Node nd : todelete) {
-				for (Relationship rel : nd.getRelationships()) {
-					rel.delete();
-				}
-				nd.delete();
-			}
-			importedTreeRootIndex.remove(root);
-			
-			tx.success();
-		} finally {
-			tx.finish();
-		}
-	}
-
-	/**
-	 * Returns a JSON array string of all indexed studies.
-	 * @return
-	 */
-	public String getJSONOfSourceIdsForAllTrees() {
-
-		StringBuffer retstr = new StringBuffer("{ \"studies\" : [");
-		IndexHits<Node> hits = sourceMetaIndex.query("*:*");
-		while (hits.hasNext()) {
-			Node x = hits.next();
-			retstr.append("\"" + (String) x.getProperty("sourceID") + "\" ");
-			if (hits.hasNext()) {
-				retstr.append(",");
-			}
-		}
-		hits.close();
-		retstr.append("] }");
-		return retstr.toString();
-	}
-
-	/**
-	 * Returns a JSON array string of studies that have imported trees.
-	 * @return
-	 */
-	public String getJSONOfSourceIdsForImportedTrees() {
-
-		// find all imported trees, get their study ids from the attached metadata nodes
-		HashSet<String> studyIds = new HashSet<String>();
-		IndexHits<Node> importedTreesFound = null;
-		try {
-			importedTreesFound = importedTreeRootIndex.query("*:*");
-			for (Node t : importedTreesFound) {
-				studyIds.add((String) t.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING).getStartNode().getProperty("sourceID"));
-			}
-		} finally {
-			importedTreesFound.close();
-		}
-		
-		// write the string
-		StringBuffer retstr = new StringBuffer("{ \"studies\" : [");
-		Iterator<String> studyIdsIter = studyIds.iterator();
-		while (studyIdsIter.hasNext()) {
-			retstr.append("\"" + studyIdsIter.next() + "\" ");
-			if (studyIdsIter.hasNext()) {
-				retstr.append(",");
-			}
-		}
-		retstr.append("] }");
-		
-		return retstr.toString();
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	public String getJSONOfSourceIdsAndTreeIdsForImportedTrees() {
-
-		// TODO: should this be returning all tree ids? Should it only be returning the sources that have imported trees?
-
-		StringBuffer retstr = new StringBuffer("{ \"studies\" : [");
-		IndexHits<Node> hits = importedTreeRootIndex.query("*:*");
-		while (hits.hasNext()) {
-			retstr.append("[ \"");
-			Node x = hits.next();
-			retstr.append((String) x.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING).getStartNode().getProperty("sourceID"));
-			retstr.append("\", \"");
-			retstr.append((String) x.getProperty("treeID"));
-			retstr.append("\"]");
-			if (hits.hasNext()) {
-				retstr.append(",");
-			}
-		}
-		hits.close();
-		retstr.append("] }");
-		return retstr.toString();
-	}
-
-	/**
-	 * Remove a local study and all its trees.
-	 * @param studyID
-	 */
-	public void deleteStudyFromStudyID(String studyID) {
-
-		// get the study
-		Node sourceMeta = null;
-		IndexHits<Node> studiesFound = null;
-		try {
-			studiesFound = sourceMetaIndex.get("sourceID", studyID);
-			sourceMeta = studiesFound.getSingle();
-		} finally {
-			studiesFound.close();
-		}
-		
-		Transaction tx = graphDb.beginTx();
-		try {
-			// remove all study trees
-			for (Relationship rel : sourceMeta.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
-				String treeID = (String) rel.getEndNode().getProperty("treeID");
-				deleteLocalTreeFromTreeID(treeID);
-				//need to delete the relationships in order to delete the node
-				rel.delete();
-			}
-			
-			// delete the study node itself
-			// TODO: once db structure has changed, will need to remove the rel pointing to the remote study node before we delete the local one
-			sourceMeta.delete();			
-			tx.success();
-			
-		} finally {
-			tx.finish();
-		}
-	}
-
-	/**
-	 * 
-	 * @param treeID
-	 * @return
-	 */
-	public String getStudyIDFromTreeID(String treeID) {
-		// TODO: update with new db structure
-		IndexHits<Node> hits = allTreeRootIndex.get("treeID", treeID);
-		Node rootNode = hits.getSingle();
-		hits.close();
-		String studyID = (String) rootNode.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING).getStartNode().getProperty("sourceID");
-		return studyID;
-	}
-	
-	/*
-	 * get a list of otu nodes based on a study metadatanode
-	 */
-	public HashSet<Node> getOTUsFromMetadataNode(Node metadata){
-		HashSet<Node> reths =  new HashSet<Node>();
-		for (Relationship rel: metadata.getRelationships(Direction.OUTGOING, RelType.METADATAFOR)){
-			Node treeroot = rel.getEndNode();
-			reths.addAll(getOTUsFromTreeRootNode(treeroot));
-		}
-		return reths;
-	}
-	 
-	/*
-	 * get a list of otu nodes starting from a treeroot node
-	 */
-	public HashSet<Node> getOTUsFromTreeRootNode(Node treeroot){
-		HashSet<Node> reths = new HashSet<Node>();
-		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
-		for(Node curGraphNode: CHILDOF_TRAVERSAL.breadthFirst().traverse(treeroot).nodes()){
-			if(curGraphNode.hasProperty("otu")){
-				reths.add(curGraphNode);
-			}
-		}
-		return reths;
-	}
 }

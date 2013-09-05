@@ -24,51 +24,51 @@
       }
     </style>
 </head>
-<div class="navbar navbar-inverse navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="brand" href="#">OTU</a>
-          <div class="nav-collapse collapse">
-            <ul class="nav">
-              <li><a href="cgi-bin/load_studies.py" target="_blank">Load and List Studies</a></li>
-              <li><a href="cgi-bin/search_studies.py">Search Public Studies</a></li>
-              <li><a href="study_view.html">View Study</a></li>
-              <li class="active"><a href="#">View Tree</a></li>
-            </ul>
-          </div><!--/.nav-collapse -->
-        </div>
+<body>
+  <div class="navbar navbar-inverse navbar-fixed-top">
+    <div class="navbar-inner">
+      <div class="container">
+        <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        </button>
+        <a class="brand" href="#">OTU</a>
+        <div class="nav-collapse collapse">
+          <ul class="nav">
+            <li><a href="cgi-bin/load_sources.py">Load and List Sources</a></li>
+            <li><a href="search_sources.html">Search Sources</a></li>
+            <li><a href="source_view.html">View Source</a></li>
+            <li class="active"><a href="#">View Tree</a></li>
+            <li><a href="conf.html">Configure</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
       </div>
     </div>
-
-<div class="container">
-<body>
-<div class="offset5">
+  </div>
+  <div class="container">
+    <div class="offset5">
     Load a different tree...
 	<form class="form-inline" >
-	    <select id="loadselect" style="width:400px">
-	    </select>
-	    <button type="button" class="btn" onClick='submitDetailsForm()'>Load</button>
+	  <select id="loadselect" style="width:400px">
+	  </select>
+	  <button type="button" class="btn" onClick='submitDetailsForm()'>Load</button>
 	</form>
-    </div>
-<h5 id="treeID"></h5>
-    <h4>Click on a node and it will...</h4>
-    <div class="btn-group" data-toggle="buttons-radio">
-	<button type="button" class="btn btn-large btn-success" name="cac" value=1 id="refocus">Refocus</button>
+  </div>
+  <h5 id="treeId"></h5>
+  <h4>Click on a node and it will...</h4>
+  <div class="btn-group" data-toggle="buttons-radio">
+    <button type="button" class="btn btn-large btn-success" name="cac" value=1 id="refocus">Refocus</button>
 	<button type="button" class="btn btn-large btn-primary" name="cac" value=2>Reroot</button>
 	<button type="button" class="btn btn-large btn-primary" name="cac" value=3>Choose Ingroup</button>
-    </div>
-	<button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree()" id>Delete Tree</button>
-    
+  </div>
+  <button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree()" id>Delete Tree</button>
+</div> 
 <script>
 
 //this needs to ignore the current one we are looking at
-function getStudyTreeList(studyid,id){
-    var baseurl = "http://localhost:7474/db/data/ext/studyJsons/graphdb/getStudyTreeList";
+function getSourceTreeList(sourceid,id){
+    var baseurl = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getSourceTreeList";
     var method = "POST";
     var xobjPost = new XMLHttpRequest();
     xobjPost.open(method, baseurl, false);
@@ -76,39 +76,41 @@ function getStudyTreeList(studyid,id){
     xobjPost.setRequestHeader("Content-Type","application/json");
     xobjPost.send("");
     var jsonrespstr = xobjPost.responseText;
+//    alert(jsonrespstr);
     var evjson = jQuery.parseJSON(eval(jsonrespstr));
-    $(evjson.studies).each(function(index, element){
-	if(element[0] != studyid && element[1] != id){
-	 $('#loadselect').append('<option value='+element[1]+'> studyID:'+element[0]+' treeID:'+element[1]+'</option>');
+    $(evjson.sources).each(function(index, element){
+	if(element[0] != sourceid && element[1] != id){
+	 $('#loadselect').append('<option value='+element[1]+'> sourceId:'+element[0]+' treeId:'+element[1]+'</option>');
 	 }
     })
 }
 
 
 function deleteTree(sid, tid){
-    var baseurl = "http://localhost:7474/db/data/ext/treeJsons/graphdb/deleteTreeFromTreeID";
+    var baseurl = "http://localhost:7474/db/data/ext/treeJsons/graphdb/deleteTreeFromTreeId";
     var method = "POST";
-    var senddata = "{\"studyID\":\""+sid+"\",\"treeID\":\""+tid+"\"}";
+    var senddata = "{\"sourceId\":\""+sid+"\",\"treeId\":\""+tid+"\"}";
     var xobjPost = new XMLHttpRequest();
     xobjPost.open(method, baseurl, false);
     xobjPost.setRequestHeader("Accept", "");
     xobjPost.setRequestHeader("Content-Type","application/json");
     xobjPost.send(senddata);
     var jsonrespstr = xobjPost.responseText;
+//    alert(jsonrespstr);
     var evjson = eval(jsonrespstr);
-    window.location.href="study_view.html?studyID="+sid;
+    window.location.href="source_view.html?sourceId="+sid;
 }
 
 function setTreeTitle(sid, tt){
-    $("#treeID").replaceWith('<h3 id=treeID>treeID: '+tt+' studyID <a href="study_view.html?studyID='+sid+'">'+sid+'</a></h3>');
+    $("#treeId").replaceWith('<h3 id=treeId>treeId: '+tt+' sourceId <a href="source_view.html?sourceId='+sid+'">'+sid+'</a></h3>');
     $("#deleteTreeBtn").replaceWith('<button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree(\''+sid+'\',\''+tt+'\')" id>Delete Tree</button>');
 }
 
 function submitDetailsForm(){
     var st = $("#loadselect").val();
-    var stid = getRootIDFromTreeID(st);
-    var studyid = getStudyIDFromTreeID(st);
-    setTreeTitle(studyid,st);
+    var stid = getRootIdFromTreeId(st);
+    var sourceid = getSourceIdForTreeId(st);
+    setTreeTitle(sourceid,st);
     setup(stid);
     setup(stid);
 }
@@ -148,6 +150,7 @@ function loadData(argsobj) {
   xobjPost.setRequestHeader("Content-Type","application/json");
   xobjPost.send(jsonquerystr);
   var jsonrespstr = xobjPost.responseText;
+//  alert(jsonrespstr);
   var evjson = eval(jsonrespstr);
     
   d3.json("", function(error, flare) {
@@ -165,7 +168,7 @@ function resetRadio() {
 
 
 function setup(node){
-  var nodeid = "{\"nodeID\":"+node+"}";
+  var nodeid = "{\"nodeId\":"+node+"}";
   var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getTreeJson";
   var argsobj = {"url":url,"method":"POST","jsonquerystring":nodeid};
   loadData(argsobj);
@@ -174,9 +177,9 @@ function setup(node){
 /*
  * Used to get the nodeid from a start ottol id
  */
-function getRootIDFromTreeID(oid){
-  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getRootNodeIDFromTreeID";
-  var jsonquerystr = "{\"treeID\":\""+oid+"\"}";
+function getRootIdFromTreeId(oid){
+  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getRootNodeIdForTreeId";
+  var jsonquerystr = "{\"treeId\":\""+oid+"\"}";
   var method = "POST";
   var xobjPost = new XMLHttpRequest();
   xobjPost.open(method, url, false);
@@ -184,6 +187,7 @@ function getRootIDFromTreeID(oid){
   xobjPost.setRequestHeader("Content-Type","application/json");
   xobjPost.send(jsonquerystr);
   var jsonrespstr = xobjPost.responseText;
+//  alert(jsonrespstr);
   var evjson = eval(jsonrespstr);
   return evjson;
 }
@@ -191,12 +195,12 @@ function getRootIDFromTreeID(oid){
 /*
  * Used to get the nodeid from a start ottol id
  */
-function getStudyIDFromTreeID(oid){
+function getSourceIdForTreeId(oid){
   if(oid == ""){
     return "";
   }
-  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getStudyIDFromTreeID";
-  var jsonquerystr = "{\"treeID\":\""+oid+"\"}";
+  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getSourceIdForTreeId";
+  var jsonquerystr = "{\"treeId\":\""+oid+"\"}";
   var method = "POST";
   var xobjPost = new XMLHttpRequest();
   xobjPost.open(method, url, false);
@@ -204,7 +208,7 @@ function getStudyIDFromTreeID(oid){
   xobjPost.setRequestHeader("Content-Type","application/json");
   xobjPost.send(jsonquerystr);
   var jsonrespstr = xobjPost.responseText;
-  alert(jsonrespstr);
+//  alert(jsonrespstr);
   var evjson = eval(jsonrespstr);
   return evjson;
 }
@@ -330,7 +334,7 @@ function update(source) {
 
 function reroot(nodeid){
   var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/rerootTree";
-  var jsonquerystr = "{\"nodeID\":"+nodeid+"}";
+  var jsonquerystr = "{\"nodeId\":"+nodeid+"}";
   var method = "POST";
   var xobjPost = new XMLHttpRequest();
   xobjPost.open(method, url, false);
@@ -338,13 +342,14 @@ function reroot(nodeid){
   xobjPost.setRequestHeader("Content-Type","application/json");
   xobjPost.send(jsonquerystr);
   var jsonrespstr = xobjPost.responseText;
+//  alert(jsonrespstr);
   var evjson = eval(jsonrespstr);
   setup(evjson);
 }
 
 function ingroup(nodeid){
   var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/ingroupSelect";
-  var jsonquerystr = "{\"nodeID\":"+nodeid+"}";
+  var jsonquerystr = "{\"nodeId\":"+nodeid+"}";
   var method = "POST";
   var xobjPost = new XMLHttpRequest();
   xobjPost.open(method, url, false);
@@ -352,6 +357,7 @@ function ingroup(nodeid){
   xobjPost.setRequestHeader("Content-Type","application/json");
   xobjPost.send(jsonquerystr);
   var jsonrespstr = xobjPost.responseText;
+//  alert(jsonrespstr);
   var evjson = eval(jsonrespstr);
   setup(evjson);
 }
@@ -382,15 +388,15 @@ function click(d){
 /*
  * This is what happens when the page is first loaded
  */
-var id = getQueryVariable('treeID');
-var studyid = getStudyIDFromTreeID(id);
-setTreeTitle(studyid,id);
-getStudyTreeList(studyid,id);
+var id = getQueryVariable('treeId');
+var sourceid = getSourceIdForTreeId(id);
+setTreeTitle(sourceid,id);
+getSourceTreeList(sourceid,id);
 var start;
 if(id != false){
-  start = getRootIDFromTreeID(id);
+  start = getRootIdFromTreeId(id);
 }else{
-  start = getRootIDFromTreeID("mt___local_id_0");
+  start = getRootIdFromTreeId("mt___local_id_0");
 }
 //do it twice to get the height right
 setup(start);
@@ -398,6 +404,5 @@ setup(start);
 
 d3.select(self.frameElement).style("height", "800px");
 </script>
-</dev>
 </body>
 </html>

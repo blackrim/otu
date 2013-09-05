@@ -1,0 +1,213 @@
+<html>
+  <head>
+    <title>OTU: get data in there</title>
+    <link href="../css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link href="../css/bootstrap-responsive.css" rel="stylesheet">
+    <script src="../js/jquery-1.9.1.js"></script>
+    <script src="../js/bootstrap.min.js"></script>
+    <script src="../js/jquery-ui-1.10.3.custom.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      body {
+        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="#">OTU</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li><a href="cgi-bin/load_sources.py">Load and List Sources</a></li>
+              <li class="active"><a href="#">Search Sources</a></li>
+              <li><a href="source_view.html">View Source</a></li>
+              <li><a href="tree_dyn.html">View Tree</a></li>
+              <li><a href="conf.html">Configure</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+    <div class="container">
+    <div style="position:absolute; top:8.7em; right:0; width: 25em; padding-right:3em;">
+      <form class="form-inline">
+        <button type="button" class="btn btn-large btn-primary" onclick="initRemoteIndexing(); return false;">Index remote sources for searching</button>
+      </form>
+      <div id="statusCount"></div>
+      <div id="statusMessage"></div>
+    </div>
+      <h2>Search all sources</h2>
+          <form id="searchform" class="form-inline">
+            <div class="btn-group" data-toggle="buttons-radio">
+              <input id="searchtext" type="text" style="height:3.2em; width:20em; margin:0;"></input>
+              <select id="propertyselect" class="select-large" style="height: 3.2em; width:15em"></select>
+            </div>
+              <button type="button" class="btn btn-large btn-success" onclick="search(); return false;">Search</button>
+          </form>
+          <div id="results">
+            <table id="resultsTable"></table>
+          </div>
+    </div>
+  <script language ="javascript" type = "text/javascript" >
+
+function search() {
+    var propertyServiceURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/search";
+
+    var property = $("#propertyselect").val();
+    var value = $("#searchtext").val();
+//    alert(property + " " + value);
+    document.getElementById("resultsTable").innerHTML = "";
+    var xobj = new XMLHttpRequest();
+    xobj.onreadystatechange=function() {
+        if (xobj.readyState==4 && xobj.status==200) {
+        
+            jsonrespstr = xobj.responseText;
+//            alert(jsonrespstr);
+        
+            var resultIds = JSON.parse(jsonrespstr);
+//            var names = Object.keys(pMap);
+
+            $(resultIds).each(function(i) {
+                $("#resultsTable").append('<tr><td>'+resultIds[i]+'</td></tr>');
+//                var item = document.createElement("tr").createElement("td");
+//                item.setAttribute("value", pMap[names[i]]);
+//                item.innerHTML=names[i];
+//                document.getElementById("propertyselect").appendChild(item);
+            });
+        }
+    }
+    xobj.open("POST", propertyServiceURL, true);
+    xobj.setRequestHeader("Accept", "");
+    xobj.setRequestHeader("Content-Type","Application/json");
+    xobj.send(JSON.stringify({"property":property,"value":value}));
+}
+
+// TODO: get/display information about each result
+
+// used during source indexing
+var countProcessed = 0;
+var totalCount = 0;
+
+function setStatus(statusMsg, replace) {
+    var msg = document.createElement('p');
+    msg.innerHTML = statusMsg;
+    if (replace == true) {
+        document.getElementById("statusMessage").innerHTML=msg.innerHTML;
+    } else {
+        document.getElementById("statusMessage").appendChild(document.createElement("p"));
+        document.getElementById("statusMessage").appendChild(msg);
+    }
+}
+
+function initRemoteIndexing() {
+    setStatus("Indexing in progress! This message will be updated as indexing proceeds.");
+    setStatus("Keep this window open until indexing is complete, or close this window to stop indexing.");
+
+    var mostCurrentCommitURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/getMostCurrentNexsonsURL";
+    var xobj = new XMLHttpRequest();
+    xobj.onreadystatechange=function() {
+        if (xobj.readyState==4 && xobj.status==200) {
+            curNexsonsBaseURL = JSON.parse(xobj.responseText);
+            alert("Attempting to read nexsons from: " + curNexsonsBaseURL);
+            indexEachRemoteNexson(curNexsonsBaseURL);
+        }
+    }
+    xobj.open("POST", mostCurrentCommitURL, true);
+    xobj.setRequestHeader("Accept", "*/*");
+    xobj.setRequestHeader("Content-Type","Application/json");
+    xobj.send("");
+
+}
+
+function indexEachRemoteNexson(curNexsonsBaseURL) {
+    var nexsonsListURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/getNexsonsListFromURL";
+
+    var xobj = new XMLHttpRequest();
+    xobj.onreadystatechange=function() {
+        if (xobj.readyState==4 && xobj.status==200) {
+//        alert(xobj.responseText);
+            var sources = JSON.parse(xobj.responseText)
+            totalCount = sources.length;
+            for (var i=0; i < sources.length; i++) {
+//                alert("sending " + sources[i]); 
+                indexSingleSource(sources[i], curNexsonsBaseURL + sources[i], i*100);
+            }
+        }
+    }
+    xobj.open("POST", nexsonsListURL, true);
+    xobj.setRequestHeader("Accept", "*/*");
+    xobj.setRequestHeader("Content-Type","Application/json; charset=utf-8");
+    xobj.send(JSON.stringify({"url":curNexsonsBaseURL}));
+
+}
+
+function indexSingleSource(sid, url, delay) {
+    var sourceId = sid;
+    var URL = url;
+    setTimeout(function() {
+        var indexServiceURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/indexSingleNexson";
+//        alert("received " + sourceId); 
+
+        var xobj = new XMLHttpRequest();
+        xobj.onreadystatechange=function() {
+            if (xobj.readyState==4) {
+                if (xobj.status==200) {
+                    if (JSON.parse(xobj.responseText) == true) {
+                        setStatus("Indexed source: " + sourceId);
+                    } else {
+                        setStatus("Source " + sourceId + " was not indexed. It does not appear to contain any trees.");
+                    }
+                } else if (xobj.status >= 400) {
+                    setStatus("Indexing failed for source " + sourceId + ". Server returned status " + xobj.status + ".");
+                    setStatus(xobj.responseText);
+                }
+                countProcessed++;
+                document.getElementById("statusCount").innerHTML = "<p>Sources processed: " + countProcessed + " / " + totalCount + "</p>";
+            }
+        }
+        xobj.open("POST", indexServiceURL, true);
+        xobj.setRequestHeader("Accept", "*/*");
+        xobj.setRequestHeader("Content-Type","Application/json");
+        xobj.send(JSON.stringify({ "sourceId" : sourceId, "url" : url }));
+    }, delay);
+}
+
+// called on page load (see below)
+function fillPropertyList(){
+    var propertyServiceURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/getSearchableProperties";
+    var xobj = new XMLHttpRequest();
+    xobj.onreadystatechange=function() {
+        if (xobj.readyState==4 && xobj.status==200) {
+        
+            jsonrespstr = xobj.responseText;
+//            alert(jsonrespstr);
+        
+            var pMap = JSON.parse(jsonrespstr);
+            var names = Object.keys(pMap);
+
+            $(names).each(function(i){
+                var item = document.createElement("option");
+                item.setAttribute("value", pMap[names[i]]);
+                item.innerHTML=names[i];
+                document.getElementById("propertyselect").appendChild(item);
+            });
+        }
+    }
+    xobj.open("POST", propertyServiceURL, true);
+    xobj.setRequestHeader("Accept", "");
+    xobj.setRequestHeader("Content-Type","Application/json");
+    xobj.send("");
+}
+
+fillPropertyList();
+
+  </script> 
+</body>
+</html>

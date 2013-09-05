@@ -17,7 +17,6 @@ package jade.tree;
 
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
-
 import jade.MessageLogger;
 
 import org.json.simple.JSONValue;
@@ -31,10 +30,16 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map.Entry;
 
 public class NexsonReader {
 
+	// TODO: do not add nulls to the set of trees. instead throw exceptions when trees cannot be read.
+	
+	// TODO: convert this to use enums for properties
+	
 	/* main method for testing - just dumps out Newick */
+	// note: this may be been broken by the addition of the NexsonSource wrapper object
 	public static void main(String argv[]) throws Exception {
 		String filename = "study15.json";
 		if (argv.length == 1) {
@@ -42,7 +47,7 @@ public class NexsonReader {
 		}
 		MessageLogger msgLogger = new MessageLogger("nexsonReader:");
 		int treeIndex = 0;
-		for (JadeTree tree : readNexson(filename, true, msgLogger)) {
+		for (JadeTree tree : readNexson(filename, "", true, msgLogger).getTrees()) {
 			if (tree == null) {
 				msgLogger.messageInt("Null tree indicating unparseable NexSON", "index", treeIndex);
 			} else {
@@ -66,16 +71,26 @@ public class NexsonReader {
 	}
 
 	/* Read Nexson study from a file, given file name */
-	public static List<JadeTree> readNexson(String filename, Boolean verbose, MessageLogger msgLogger) throws java.io.IOException {
-		Reader r = new BufferedReader(new FileReader(filename));
-		List<JadeTree> result = readNexson(r, verbose, msgLogger);
-		r.close();
-		return result;
+	public static NexsonSource readNexson(String filename, String sourceId, Boolean verbose, MessageLogger msgLogger) throws java.io.IOException {
+
+		Reader r = null;
+		NexsonSource source = null;
+//		List<JadeTree> result;
+		try {
+			r = new BufferedReader(new FileReader(filename));
+			source = readNexson(r, sourceId, verbose, msgLogger);
+		} finally {
+			r.close();
+		}
+		return source;
 	}
 	
 	/* Read Nexson study from a Reader */
 	// TODO: tree(s) may be deprecated. Need to check this. May result in no trees to return.
-	public static List<JadeTree> readNexson(Reader r, Boolean verbose, MessageLogger msgLogger) throws java.io.IOException {
+	public static NexsonSource readNexson(Reader r, String sourceId, Boolean verbose, MessageLogger msgLogger) throws java.io.IOException {
+
+		NexsonSource source = new NexsonSource(sourceId);
+
 		JSONObject all = (JSONObject)JSONValue.parse(r);
 
 		/*
@@ -91,7 +106,7 @@ public class NexsonReader {
 		*/
 		
 		// the desired result: a list of valid trees
-		List<JadeTree> result = new ArrayList<JadeTree>();
+		List<JadeTree> parsedTrees = new ArrayList<JadeTree>();
 		
 		// The XML root element
 		JSONObject root = (JSONObject)all.get("nexml");
@@ -103,7 +118,7 @@ public class NexsonReader {
 		// check if study is flagged as deprecated. if so, skip.
 		if (studyMetaList != null && checkDeprecated(studyMetaList)) {
 			msgLogger.message("Study tagged as deprecated. Ignore.");
-			return result;
+			return source;
 		}
 		
 		// All of the <otu> elements
@@ -123,6 +138,12 @@ public class NexsonReader {
 		JSONObject trees = (JSONObject)root.get("trees");
 		JSONArray treeList = (JSONArray)trees.get("tree");
 
+		// Copy STUDY-level metadata into the source
+		// See https://github.com/nexml/nexml/wiki/NeXML-Manual#wiki-Metadata_annotations_and_NeXML
+		if (studyMetaList != null) {
+			associateMetadata(source, extractMetadataMap(studyMetaList, verbose ? msgLogger : null));
+		}
+		
 		// Process each tree in turn, yielding a JadeTree
 		for (Object tree : treeList) {
 			JSONObject tree2 = (JSONObject)tree;
@@ -141,24 +162,25 @@ public class NexsonReader {
 				msgLogger.messageStr("Tree tagged as deprecated. Ignoring.", "@id", treeID);
 			} else {
 				// tree2 = {"node": [...], "edge": [...]}
-				result.add(importTree(otuMap, 
+				parsedTrees.add(importTree(otuMap, 
 									  (JSONArray)tree2.get("node"),
 									  (JSONArray)tree2.get("edge"),
-									  studyMetaList,
+//									  studyMetaList,
 									  treeMetaList,
 									  treeID,
 									  verbose,
 									  msgLogger));
 			}
 		}
-		return result;
+		source.addTrees(parsedTrees);
+		return source;
 	}
 
 	/* Process a single tree (subroutine of above) */
 	private static JadeTree importTree(Map<String,JSONObject> otuMap,
 									   JSONArray nodeList,
 									   JSONArray edgeList,
-									   List<Object> studyMetaList,
+//									   List<Object> studyMetaList,
 									   List<Object> treeMetaList,
 									   String treeID,
 									   Boolean verbose,
@@ -237,7 +259,7 @@ public class NexsonReader {
 								System.err.println("Error with: " + m);
 								throw new RuntimeException("Invalid ottolid value: " + value);
 							}
-						} else if(propname.equals("ot:originalLabel")){
+//						} else if(propname.equals("ot:originalLabel")){ // attempting to store original names by removing this clause
 							// ignoring originalLabel, but not emitting the unknown property warning
 						} else {
 							msgLogger.indentMessageStrStr(1, "Warning: dealing with unknown property. Don't know what to do...", "property name", propname, "nexsonid", id);
@@ -284,16 +306,10 @@ public class NexsonReader {
 		
 		int nc = tree.getExternalNodeCount();
 		msgLogger.indentMessageInt(1, "Ingested tree", "number of external nodes", nc);
-
 		
-		// Copy STUDY-level metadata into the JadeTree
-		// See https://github.com/nexml/nexml/wiki/NeXML-Manual#wiki-Metadata_annotations_and_NeXML
-		if (studyMetaList != null) {
-			associateMetadata(tree, studyMetaList, (verbose ? msgLogger : null));
-		}
 		// Copy TREE-level metadata into the JadeTree
 		if (treeMetaList != null) {
-			associateMetadata(tree, treeMetaList, (verbose ? msgLogger : null));
+			associateMetadata(tree, extractMetadataMap(treeMetaList, verbose ? msgLogger : null));
 		}
 		tree.assocObject("id", treeID);
 		return tree;
@@ -319,7 +335,19 @@ public class NexsonReader {
 		return deprecated;
 	}
 	
-	private static void associateMetadata (JadeTree tree, List<Object> metaData, MessageLogger msgLogger) {
+	private static void associateMetadata(JadeTree tree, Map<String, Object> metaMap) {
+		for (Entry<String, Object> property : metaMap.entrySet()) {
+			tree.assocObject(property.getKey(), property.getValue());
+		}
+	}
+	
+	private static void associateMetadata(NexsonSource source, Map<String, Object> metaMap) {
+		for (Entry<String, Object> property : metaMap.entrySet()) {
+			source.setProperty(property.getKey(), property.getValue());
+		}
+	}
+	
+/*	private static void associateMetadata (JadeTree tree, List<Object> metaData, MessageLogger msgLogger) {
 		for (Object meta : metaData) {
 			JSONObject j = (JSONObject)meta;
 			// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
@@ -352,7 +380,7 @@ public class NexsonReader {
 				throw new RuntimeException("missing property name: " + j);
 			}
 		}
-	}
+	} */
 	
 	private static List<Object> getMetaList(JSONObject obj) {
 		//System.out.println("looking up meta for: " + obj);
@@ -369,5 +397,49 @@ public class NexsonReader {
 		} else {
 			return (JSONArray) meta;
 		}
+	}
+	
+	private static Map<String, Object> extractMetadataMap(List<Object> metaData, MessageLogger msgLogger) {
+		Map<String, Object> metaMap = new HashMap<String, Object>();
+		for (Object meta : metaData) {
+			JSONObject j = (JSONObject)meta;
+			// {"@property": "ot:curatorName", "@xsi:type": "nex:LiteralMeta", "$": "Rick Ree"},
+			String propname = (String)j.get("@property");
+			if (propname != null) {
+				// String propkind = (String)j.get("@xsi:type");  = nex:LiteralMeta
+				// looking for either "$" or "@href" (former is more frequent)
+				if ((j.get("$")) != null) {
+					Object value = j.get("$");
+					if (value == null) {
+						throw new RuntimeException("missing value for " + propname);
+					}
+					
+//					tree.assocObject(propname, value);
+					metaMap.put(propname, value);
+
+					if (msgLogger != null) {
+						msgLogger.indentMessageStr(1, "property added", propname, value.toString());
+					}
+				} else if ((j.get("@href")) != null) {
+					Object value = j.get("@href");
+					if (value == null) {
+						throw new RuntimeException("missing value for " + propname);
+					}
+
+//					tree.assocObject(propname, value);
+					metaMap.put(propname, value);
+					
+					if (msgLogger != null) {
+						msgLogger.indentMessageStr(1, "property added", propname, value.toString());
+					}
+				} else {
+					throw new RuntimeException("missing property value for name: " + j);
+				}
+			} else {
+				throw new RuntimeException("missing property name: " + j);
+			}
+		}
+
+		return metaMap;
 	}
 }

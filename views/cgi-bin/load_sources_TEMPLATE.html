@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+<title>OTU: get data in there</title>
+ <link href="../css/bootstrap.min.css" rel="stylesheet" media="screen">
+ <link href="../css/bootstrap-responsive.css" rel="stylesheet">
+ <script src="../js/jquery-1.9.1.js"></script>
+ <script src="../js/bootstrap.min.js"></script>
+ <script src="../js/jquery-ui-1.10.3.custom.min.js"></script>
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <style>
+      body {
+        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+      }
+    </style>
+</head>
+<body>
+<div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="#">OTU</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li class="active"><a href="#">Load and List Sources</a></li>
+ 			  <li><a href="../search_sources.html">Search Sources</a></li>
+              <li><a href="../source_view.html">View Source</a></li>
+              <li><a href="../tree_dyn.html">View Tree</a></li>
+              <li><a href="../conf.html">Configure</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+<div class="container">
+<h1>Add and List sources in the local database</h1>
+<div class="row">
+<div id="source-contain" class="span5">
+<h1>Nexson</h1>
+<h3>Upload From Git</h3>
+<form action="load_sources.py" method="POST" class="form-inline" id="gitform" enctype="multipart/form-data">
+	<input type="hidden" id="hidden_nexson_from_git" name="hidden_nexson_from_git"/>
+	<input type="hidden" id="recenthash", name="recenthash" value="$RECENTHASH$"/>
+	Source Id:
+	<select name="loadselect" id="loadselect" form="gitform">
+	$GITFILELIST$
+	</select>
+	<button name="submit" type="submit" class="btn">Submit</button>
+</form>
+
+<h3>Upload File</h3>
+<form action=load_sources.py method="POST" enctype="multipart/form-data">
+<input type="hidden" id="hidden_nexson_from_file" name="hidden_nexson_from_file"/>
+<input name="file" type="file"><br>
+<button class="btn disabled">Coming soon</button>
+</form>
+<hr/>
+<h1><b>Newick</b></h1>
+<h3>Upload File</h3>
+<form action=load_sources.py method="POST" enctype="multipart/form-data">
+<input type="hidden" id="hidden_newick_from_file" name="hidden_newick_from_file"/>
+Source Id:<input type="text" id="sourceId" name="sourceId"/> <br/>
+File name: <input name="file" type="file"><br>
+<button name="submit" type="submit" class="btn">Submit</button>
+</form>
+</div>
+<div id="source-contain" class="span7">
+<h1>Imported sources</h1>
+<table id="sources" class="table table-striped">
+<thead>
+<tr>
+<th>Source</th>
+<!--<th>Tree</th>-->
+</tr>
+</thead>
+</table>
+</div>
+</div>
+</div>
+<script language ="javascript" type = "text/javascript" >
+var treelinkurl ="../tree_dyn.html?treeId="
+var sourcelinkurl ="../source_view.html?sourceId="
+
+function getSourceTreeList(){
+    var baseurl = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getSourceTreeList";
+    var method = "POST";
+    var xobjPost = new XMLHttpRequest();
+    xobjPost.open(method, baseurl, false);
+    xobjPost.setRequestHeader("Accept", "");
+    xobjPost.setRequestHeader("Content-Type","application/json");
+    xobjPost.send("");
+    var jsonrespstr = xobjPost.responseText;
+    var evjson = jQuery.parseJSON(eval(jsonrespstr));
+    $(evjson.sources).each(function(index, element){
+      $('#sources').append('<tr><td> <a href="'+sourcelinkurl+element[0]+'">'+element[0]+'</a> </td> <td> <a href="'+treelinkurl+element[1]+'" target="_blank">'+element[1]+'</a> </td></tr>');       
+    })
+}
+
+function getSourceList(){
+    var baseurl = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getSourceList";
+    var method = "POST";
+    var xobjPost = new XMLHttpRequest();
+    xobjPost.open(method, baseurl, false);
+    xobjPost.setRequestHeader("Accept", "");
+    xobjPost.setRequestHeader("Content-Type","application/json");
+    xobjPost.send("");
+    var jsonrespstr = xobjPost.responseText;
+//    alert(jsonrespstr);
+    var evjson = jQuery.parseJSON(eval(jsonrespstr));
+    $(evjson.sources).each(function(index, element){
+      $('#sources').append('<tr><td> <a href="'+sourcelinkurl+element+'">'+element+'</a> </td></tr>');       
+    })
+}
+
+//getSourceTreeList();
+getSourceList();
+</script> 
+</body>
+</html>

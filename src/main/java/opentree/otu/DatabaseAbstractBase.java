@@ -7,14 +7,15 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 /**
  * This class is just extended by classes that interact with the db. It provides access to the basic constructors for dealing
- * with different db access methods, and contains a few essential methods that should be available to all tools interacting
- * with the db.
+ * with different db access methods, and contains a few essential or general methods that should be available to all tools
+ * interacting with the db.
  * 
  * @author cody
  *
  */
-public class DatabaseAbstractBase {
+public abstract class DatabaseAbstractBase {
 
+	public static final String LOCAL_LOCATION = "local";
 	protected GraphDatabaseAgent graphDb;
 	
 	/**
@@ -63,5 +64,4 @@ public class DatabaseAbstractBase {
 	public void shutdownDB(){
 		graphDb.shutdownDb();
 	}
-	
 }
