@@ -29,6 +29,7 @@ import org.json.simple.JSONArray;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.kernel.Traversal;
 
 import java.io.Reader;
@@ -88,9 +89,6 @@ public class NexsonWriter {
 
 		  See http://www.nexml.org/manual for NexML documentation.
 		*/
-		String studyID = "";
-		if (metadatanode.hasProperty("sourceID"))
-			studyID = (String)metadatanode.getProperty("sourceID");
 		
 		sb.append("{\"nexml\":{\n");
 		sb.append("\"@about\": \"#study\",\n"); 
@@ -267,6 +265,7 @@ public class NexsonWriter {
 		sb.append("\n]\n");
 		sb.append("}\n");
 		sb.append("}\n");
+		return sb.toString();
 	}
 
 

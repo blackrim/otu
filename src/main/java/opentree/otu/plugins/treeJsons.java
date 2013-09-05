@@ -51,7 +51,6 @@ public class treeJsons extends ServerPlugin{
 //		manager.deleteLocalTreeFromTreeID(studyID, treeID);
 		Node root = browser.getTreeRootNode(treeId, browser.LOCAL_LOCATION);
 		manager.deleteTree(root);
-
 		return "{\"worked\":1}";
 	}
 	
