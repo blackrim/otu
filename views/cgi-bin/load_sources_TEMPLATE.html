@@ -38,10 +38,11 @@
 
 <div class="container">
 <h1>Add and List sources in the local database</h1>
+<div><p style="color:red">$MESSAGE$</p></div>
 <div class="row">
 <div id="source-contain" class="span5">
-<h1>Nexson</h1>
-<h3>Upload From Git</h3>
+<h3>Nexson files</h3>
+<h4>Upload From Git</h4>
 <form action="load_sources.py" method="POST" class="form-inline" id="gitform" enctype="multipart/form-data">
 	<input type="hidden" id="hidden_nexson_from_git" name="hidden_nexson_from_git"/>
 	<input type="hidden" id="recenthash", name="recenthash" value="$RECENTHASH$"/>
@@ -51,16 +52,14 @@
 	</select>
 	<button name="submit" type="submit" class="btn">Submit</button>
 </form>
-
-<h3>Upload File</h3>
+<h4>Upload File</h4>
 <form action=load_sources.py method="POST" enctype="multipart/form-data">
 <input type="hidden" id="hidden_nexson_from_file" name="hidden_nexson_from_file"/>
 <input name="file" type="file"><br>
 <button class="btn disabled">Coming soon</button>
 </form>
-<hr/>
-<h1><b>Newick</b></h1>
-<h3>Upload File</h3>
+<h3>Newick files</h3>
+<h4>Upload File</h4>
 <form action=load_sources.py method="POST" enctype="multipart/form-data">
 <input type="hidden" id="hidden_newick_from_file" name="hidden_newick_from_file"/>
 Source Id:<input type="text" id="sourceId" name="sourceId"/> <br/>

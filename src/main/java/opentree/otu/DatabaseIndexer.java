@@ -125,7 +125,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 		addLongArrayEntriesToIndex(root,
 				treeRootNodesByMappedTaxonOTTId,
 				NodeProperty.DESCENDANT_MAPPED_TAXON_OTT_IDS.name,
-				NodeProperty.OTT_ID.name);
+				NodeProperty.OT_OTT_ID.name);
 	}
 	
 	// ===== generalized private methods used during indexing

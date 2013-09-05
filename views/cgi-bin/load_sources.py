@@ -27,6 +27,8 @@ UPLOAD_DIR = "/tmp"
 # this is the template that will be filled in and printed to the browser
 HTML_TEMPLATE = open("cgi-bin/load_sources_TEMPLATE.html","rU").read()
 
+UNSPECIFIED_ACTION = "unspecified action"
+
 resturlsinglenewick = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/putSourceNewickSingle"
 resturlnexsonfile = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/putSourceNexsonFile"
 
@@ -39,14 +41,16 @@ def save_uploaded_file(form_field, upload_dir):
     for i in form.keys():
 	log.write(i)
     log.close()
+    r = ""
     if form.has_key("hidden_newick_from_file"):
-        save_uploaded_file_newick(form, form_field,upload_dir)
+        r = save_uploaded_file_newick(form, form_field,upload_dir)
     elif form.has_key("hidden_nexson_from_git"):
-        save_git_file_nexson(form, upload_dir)
+        r = save_git_file_nexson(form, upload_dir)
     elif form.has_key("hidden_nexson_from_file"):
-        save_uploaded_file_nexson(form, form_field,upload_dir)
+        r = save_uploaded_file_nexson(form, form_field,upload_dir)
     else:
-        return False
+        r = UNSPECIFIED_ACTION
+    return r
         
 def save_uploaded_file_newick (form, form_field, upload_dir):
     log = open("logging","a")
@@ -104,7 +108,7 @@ def save_git_file_nexson(form, upload_dir):
     log.write('curl -X POST '+resturlnexsonfile+' -H "Content-Type: application/json"'+' -d \''+data+'\'')
     f = urllib2.urlopen(req2)
     log.close()
-    return True
+    return f.read()
 
 def save_uploaded_file_nexson (form, form_field, upload_dir):
     return False
@@ -144,19 +148,31 @@ def get_bitbucket_file_list(recenthash):
 
 # ===== functions for making the web page
 
-def print_html_form (success, recenthash, gitfilelist):
+def print_html_form (result, recenthash, gitfilelist):
     """This prints out the html form. Note that the action is set to
       the name of the script which makes this is a self-posting form.
       In other words, this cgi both displays a form and processes it.
     """
 
     print "content-type: text/html\n"
-    print HTML_TEMPLATE.replace("$GITFILELIST$",gitfilelist).replace("$RECENTHASH$",recenthash)
+    html = HTML_TEMPLATE.replace("$GITFILELIST$",gitfilelist).replace("$RECENTHASH$",recenthash).replace("$MESSAGE$",message)
+    
+    print html
 
 
 # now actually do stuff
 
-success = save_uploaded_file ("file", UPLOAD_DIR)
+result = save_uploaded_file ("file", UPLOAD_DIR)
+message = ""
+if result != UNSPECIFIED_ACTION:
+    result = json.loads(result)
+    if result["worked"] == False:
+        message = result["message"]
+#    else:
+#        message = ""
+#else:
+#    message = "unspecified operation. nothing to be done."
+
 recenthash = get_bitbucket_recent_hash()
 gitfilelist = get_bitbucket_file_list(recenthash)
-print_html_form (success, recenthash, gitfilelist)
+print_html_form (message, recenthash, gitfilelist)

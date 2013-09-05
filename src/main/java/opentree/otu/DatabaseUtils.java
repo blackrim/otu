@@ -99,9 +99,8 @@ public class DatabaseUtils {
 	 */
 	public static Node getSingleNodeIndexHit(Index<Node> index, String property, Object key) {
 		Node result = null;
-		IndexHits<Node> hits = null;
+		IndexHits<Node> hits = index.get(property, key);
 		try {
-			hits = index.get(property, key);
 			if (hits.size() == 1) {
 				result = hits.getSingle();
 				
