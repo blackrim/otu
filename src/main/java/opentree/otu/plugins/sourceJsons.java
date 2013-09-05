@@ -102,8 +102,6 @@ public class sourceJsons extends ServerPlugin {
 			@Description("A nexson string to be parsed")
 			@Parameter(name = "nexsonString", optional = false) String nexsonString) {
 
-//		List<JadeTree> trees = null;
-
 		Map<String, Object> result = new HashMap<String, Object>();
 
 		MessageLogger msgLogger = new MessageLogger("");
@@ -133,7 +131,7 @@ public class sourceJsons extends ServerPlugin {
 
 	@Description("Get source metadata")
 	@PluginTarget(GraphDatabaseService.class)
-	public String getSourceMetaData(@Source GraphDatabaseService graphDb,
+	public Representation getSourceMetaData(@Source GraphDatabaseService graphDb,
 			@Description("source Id")
 			@Parameter(name = "sourceId", optional = false) String sourceId) {
 		
@@ -142,8 +140,10 @@ public class sourceJsons extends ServerPlugin {
 		// TODO add that the source don't exist
 
 		Node sourceMeta = browser.getSourceMetaNode(sourceId, DatabaseBrowser.LOCAL_LOCATION);
-		String metadata = DatabaseBrowser.getMetadataJSONForSource(sourceMeta);
-		return metadata;
+//		String metadata = DatabaseBrowser.getMetadataJSONForSource(sourceMeta);
+//		return metadata;
+		
+		return OpentreeRepresentationConverter.convert(browser.getSourceMetadata(sourceMeta));
 	}
 
 	/**

@@ -72,6 +72,30 @@ public enum NodeProperty {
 	 */
 	DESCENDANT_MAPPED_TAXON_OTT_IDS ("tip_mapped_ottids", long[].class),
 	
+	/**
+	 * A boolean indicating whether this tree has been rooted. Stored as a property of the root node. If the tree root lacks
+	 * this property then it can be inferred that the tree has not been rooted.
+	 */
+	ROOTING_IS_SET ("is_rooted", boolean.class),
+	
+	/**
+	 * A boolean indicating that this node is the root for its tree. Should always (and only) be set to true for the root
+	 * node. All other tree nodes should lack this property entirely.
+	 */
+	IS_ROOT ("is_root", boolean.class),
+	
+	/**
+	 * A boolean indicating whether the ingroup is set for this tree. Stored as a property of the tree root node. If the
+	 * tree root lacks this property, then the ingroup can be inferred not to be set.
+	 */
+	INGROUP_IS_SET ("ingroup_set", boolean.class),
+	
+	/**
+	 * A flag specifying that the clade represented by the node is the ingroup for the tree. Is only set on ingroup nodes.
+	 * Thus, any node without this property can be inferred not to be the ingroup on a tree for which the ingroup is set.
+	 */
+	IS_INGROUP ("ingroup_start", boolean.class),
+	
 	// ===== ot namespace node properties
 	
 	/**
@@ -127,36 +151,12 @@ public enum NodeProperty {
     /**
      * The tag field exported from phylografter. A property of source meta nodes.
      */
-    OT_TAG("ot:tag", String.class),
+    OT_TAG ("ot:tag", String.class),
     
     /**
      * The year the study was published. A property of source meta nodes.
      */
-    OT_YEAR ("ot:studyYear", int.class),
-	
-	/**
-	 * A boolean indicating whether this tree has been rooted. Stored as a property of the root node. If the tree root lacks
-	 * this property then it can be inferred that the tree has not been rooted.
-	 */
-	ROOTING_IS_SET ("is_rooted", boolean.class),
-	
-	/**
-	 * A boolean indicating that this node is the root for its tree. Should always (and only) be set to true for the root
-	 * node. All other tree nodes should lack this property entirely.
-	 */
-	IS_ROOT ("is_root", boolean.class),
-	
-	/**
-	 * A boolean indicating whether the ingroup is set for this tree. Stored as a property of the tree root node. If the
-	 * tree root lacks this property, then the ingroup can be inferred not to be set.
-	 */
-	INGROUP_IS_SET ("ingroup_set", boolean.class),
-	
-	/**
-	 * A flag specifying that the clade represented by the node is the ingroup for the tree. Is only set on ingroup nodes.
-	 * Thus, any node without this property can be inferred not to be the ingroup on a tree for which the ingroup is set.
-	 */
-	IS_INGROUP ("ingroup_start", boolean.class);
+    OT_YEAR ("ot:studyYear", int.class);
 	
 	public final String name; // the property name. Used to identify this property in indexes and on nodes
 	public final Class<?> type; // indicates the datatype for this property
