@@ -113,19 +113,22 @@ function setSourceInfo(id){
     xobjPost.send(senddata);
     var jsonrespstr = xobjPost.responseText;
 //    alert(jsonrespstr);
-    var evjson = eval(jsonrespstr);    
-    ev = JSON.parse(evjson);
+//    var evjson = eval(jsonrespstr);    
+    var ev = JSON.parse(jsonrespstr);
     var keys = Object.keys(ev.metadata);
     $(keys).each(function(index){
-	if(keys[index]=="ot:sourcePublication"){
-	    $('#sourceinfoTBL').append('<tr> <td>'+keys[index]+' </td> <td> <a href="'+ev.metadata[keys[index]]+'">'+ev.metadata[keys[index]]+'</a> </td> </tr>');
-	}else{
-	    $('#sourceinfoTBL').append('<tr> <td>'+keys[index]+' </td> <td> '+ev.metadata[keys[index]]+' </td> </tr>');       
-	}
-    })
+		var property = keys[index];
+		var value = ev.metadata[property];
+		if (typeof value == "string") {
+			if(value.substring(0,7) == "http://") {
+				value = '<a href="' + value + '", target="_blank">' + value + '</a>';
+			}
+		}
+		$('#sourceinfoTBL').append('<tr><td>' + property + '</td><td>' + value + '</td></tr>');
+	});
     var trees = ev.trees;
     var n_trees = trees.length;
-    if(n_trees > 0){
+//    if (n_trees > 0) {
 //	$('#sourceinfoTBL').append('<tr><td>Trees ('+n_trees+')</td><td id="sourcetreelistId"></td></tr>');
 //	$(trees).each(function(index,element){
 //	    $('#sourcetreelistId').append('  <a href=tree_dyn.html?treeId='+element+' target="_blank">'+element+'</a>');
@@ -133,13 +136,13 @@ function setSourceInfo(id){
 //		$('#sourcetreelistId').append(',');
 //	    }
 //	})
-    }
+//    }
     //something about status
     $('#sourceinfoTBL').append('<tr><td><b>Status</b></td><td>Info about mapped names, rooting, ingroup</td></tr>');
     $('#sourceinfoTBL').append('</table>');
     //add the trees
-//    $('#sourceinfoTBL').apppend('
-    $(trees).each(function(index,element){
+//    $('#sourceinfoTBL').append('
+    $(trees).each(function(index, element){
 		var treeheader = document.createElement("h3");
 //		$('#treeInfo').append('<tr><h3>Tree: <a href="tree_dyn.html?treeId='+element+'">'+element+'</a> <button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick="editTreeInfo()">Edit</button> <button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick=\'deleteTree("'+id+'","'+element+'")\'>Delete Tree</button></h3></tr>');
 		treeheader.innerHTML = 'Tree: <a href="tree_dyn.html?treeId='+element+'">'+element+'</a> <button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick="editTreeInfo()">Edit</button> <button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick=\'deleteTree("'+id+'","'+element+'")\'>Delete Tree</button>';
@@ -161,8 +164,8 @@ function addTreeInfo(treeId, element){
     xobjPost.send(senddata);
     var jsonrespstr = xobjPost.responseText;
 //    alert(jsonrespstr)
-    var evjson = eval(jsonrespstr);
-    var ev = JSON.parse(evjson);
+//    var evjson = eval(jsonrespstr);
+    var ev = JSON.parse(jsonrespstr);
     var keys = Object.keys(ev.metadata);
     var treetable = document.createElement("table");
     treetable.className = "table";

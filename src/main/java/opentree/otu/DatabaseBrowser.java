@@ -330,14 +330,27 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * @return
 	 * 		A JSON string containing of the metadata for this tree
 	 */
-	public static String getMetadataForTree(Node root) {
+	public static Map<String, Object> getMetadataForTree(Node root) {
+
+		Map<String, Object> metadata = new HashMap<String, Object>();
+
+		for (NodeProperty property : GeneralConstants.VISIBLE_TREE_PROPERTIES) {
+			Object value = (Object) "";
+			if (root.hasProperty(property.name)) {
+				value = root.getProperty(property.name);
+			}
+			metadata.put(property.name, value);
+		}
 		
-		// TODO: abstract this so it just gets all the node properties and dumps them into a json string
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("metadata", metadata);
+		
+		return result;
 
 		// we could set properties to *always* be included in a separate enum. as it stands, we will only
 		// see properties that actually exist for the node
 		
-		StringBuffer bf = new StringBuffer("{ \"metadata\": {");
+/*		StringBuffer bf = new StringBuffer("{ \"metadata\": {");
 
 		boolean first = true;
 		for (String p : root.getPropertyKeys()) {
@@ -373,8 +386,8 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 			bf.append(String.valueOf(root.getProperty("ingroup_set")));
 		} */
 
-		bf.append("} }");
-		return bf.toString();
+/*		bf.append("} }");
+		return bf.toString(); */
 	}
 	
 	/**
