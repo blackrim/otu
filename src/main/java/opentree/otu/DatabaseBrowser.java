@@ -14,8 +14,11 @@ import java.util.Set;
 import opentree.otu.constants.GraphProperty;
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
+import opentree.otu.constants.SearchableProperty;
 
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.TermQuery;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -26,6 +29,7 @@ import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
+import org.neo4j.kernel.impl.nioneo.store.PropertyType;
 
 public class DatabaseBrowser extends DatabaseAbstractBase {
 
@@ -42,6 +46,46 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 
 	public DatabaseBrowser(GraphDatabaseAgent gdba) {
 		super(gdba);
+	}
+	
+	/**
+	 * Search the indexes, and get a list of source ids that match the search
+	 * @param search
+	 * 		A SearchableProperty to specify the search domain
+	 * @param searchValue
+	 * 		The value to be searched for
+	 * @return
+	 * 		A list of strings containing the node ids for the source meta nodes for sources found during search
+	 */
+	public Iterable<String> doBasicSearch(SearchableProperty search, String searchValue) {
+		
+		HashSet<String> sourceIds = new HashSet<String>();
+
+		// fuzzy query on the fulltext index
+		FuzzyQuery fuzzyQuery = new FuzzyQuery(new Term(search.property.name, QueryParser.escape(searchValue)),
+    			GeneralUtils.getMinIdentity(searchValue));
+    	IndexHits<Node> hits = null;
+        try {
+			hits = getNodeIndex(search.index).query(fuzzyQuery);
+			for (Node hit : hits) {
+				sourceIds.add((String) hit.getProperty(NodeProperty.SOURCE_ID.name));
+			}
+		} finally {
+			hits.close();
+		}
+
+        // also try a term query <-- this doesn't work.
+        try {
+			hits = getNodeIndex(search.index).query(new TermQuery(new Term(search.property.name, searchValue)));
+			for (Node hit : hits) {
+				sourceIds.add((String) hit.getProperty(NodeProperty.SOURCE_ID.name));
+			}
+		} finally {
+			hits.close();
+		}
+        
+        
+		return sourceIds;
 	}
 	
 	/**

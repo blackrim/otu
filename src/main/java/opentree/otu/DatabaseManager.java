@@ -543,10 +543,10 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		}
 
 		// store the properties in the nodes
-		node.setProperty(NodeProperty.ORIGINAL_TAXON_NAMES.name, GeneralUtils.convertToStringArray(originalTaxonNames));
-		node.setProperty(NodeProperty.MAPPED_TAXON_NAMES.name, GeneralUtils.convertToStringArray(mappedTaxonNames));
-		node.setProperty(NodeProperty.MAPPED_TAXON_NAMES_WHITESPACE_FILLED.name, GeneralUtils.convertToStringArray(mappedTaxonNamesNoSpaces));
-		node.setProperty(NodeProperty.MAPPED_TAXON_OTT_IDS.name, GeneralUtils.convertToLongArray(mappedOTTIds));
+		node.setProperty(NodeProperty.DESCENDANT_ORIGINAL_TAXON_NAMES.name, GeneralUtils.convertToStringArray(originalTaxonNames));
+		node.setProperty(NodeProperty.DESCENDANT_MAPPED_TAXON_NAMES.name, GeneralUtils.convertToStringArray(mappedTaxonNames));
+		node.setProperty(NodeProperty.DESCENDANT_MAPPED_TAXON_NAMES_WHITESPACE_FILLED.name, GeneralUtils.convertToStringArray(mappedTaxonNamesNoSpaces));
+		node.setProperty(NodeProperty.DESCENDANT_MAPPED_TAXON_OTT_IDS.name, GeneralUtils.convertToLongArray(mappedOTTIds));
 	}
 
 	/**

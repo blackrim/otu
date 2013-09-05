@@ -12,7 +12,8 @@ public enum NodeIndexDescription {
 	
 	/**
      * Root nodes for both local and remote (i.e. not imported) trees, indexed by the tree ids. The first key is either:
-     * "localTreeId" or "remoteTreeId", and second key is the tree id string, which is the study id for the tree concatenated
+     * "localTreeId" or "XTreeId" where X is the name of some remote (currently we just support one remote: "remote", and
+     * second key is the tree id string, which is the study id for the tree concatenated
      * via an underscore to either the incoming treeId from the original nexson, or an arbitrary local tree identifier string
      * if the incoming tree is missing (or if the tree is not from a nexson). Root nodes for trees that have been imported are
      * indexed under "localTreeId" and trees read from the remote repo are indexed under "remoteTreeId". To get a list of all

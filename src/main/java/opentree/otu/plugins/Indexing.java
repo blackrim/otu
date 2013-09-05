@@ -9,11 +9,17 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
 
+import opentree.otu.DatabaseBrowser;
 import opentree.otu.DatabaseManager;
+import opentree.otu.constants.SearchableProperty;
 
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -24,6 +30,8 @@ import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 import org.neo4j.server.rest.repr.ListRepresentation;
+import org.neo4j.server.rest.repr.MappingRepresentation;
+import org.neo4j.server.rest.repr.OpentreeRepresentationConverter;
 import org.neo4j.server.rest.repr.Representation;
 import org.neo4j.server.rest.repr.ValueRepresentation;
 
@@ -112,7 +120,8 @@ public class Indexing extends ServerPlugin {
 	@Description("Add a single remote nexson into the local db under the specified source id." + "Sources will only be added if they have at least one tree. Returns true if the"
 			+ "source is added, or false if it has no trees. Trees that cannot be read from nexson" + "files that otherwise contain some good trees will be skipped.")
 	@PluginTarget(GraphDatabaseService.class)
-	public Representation indexSingleNexson(@Source GraphDatabaseService graphDb, @Description("remote nexson url") @Parameter(name = "url", optional = false) String url,
+	public Representation indexSingleNexson(@Source GraphDatabaseService graphDb,
+			@Description("remote nexson url") @Parameter(name = "url", optional = false) String url,
 			@Description("source id under which this source will be indexed locally") @Parameter(name = "sourceId", optional = false) String sourceId) throws MalformedURLException, IOException {
 
 		DatabaseManager dm = new DatabaseManager(graphDb);
@@ -124,6 +133,45 @@ public class Indexing extends ServerPlugin {
 			dm.addSource(source, "remote", true);
 			return ValueRepresentation.bool(true);
 		}
+	}
+	
+	/**
+	 * Return a map containing available property names and the names of the SearchableProperty enum elements they
+	 * correspond to.
+	 * 
+	 * @param graphDb
+	 * @return
+	 */
+	@Description("Get a list of properties that can be searched")
+	@PluginTarget(GraphDatabaseService.class)
+	public Representation getSearchableProperties (@Source GraphDatabaseService graphDb) {
+
+		HashMap<String,String> properties = new HashMap<String,String>();
+		for (SearchableProperty sp : SearchableProperty.values()) {
+			properties.put(sp.shortName, sp.name());
+		}
+		
+		return OpentreeRepresentationConverter.getMapRepresentation(properties);
+	}
+
+	/**
+	 * Perform a basic search on the stored indexes
+	 * @param graphDb
+	 * @param propertyName
+	 * @param value
+	 * @return
+	 */
+	@Description("Get a list of properties that can be searched")
+	@PluginTarget(GraphDatabaseService.class)
+	public Representation search(@Source GraphDatabaseService graphDb,
+			@Description("The property to be searched on. A list of searchable properties is available from the getSearchableProperties service.")
+				@Parameter(name = "property", optional = false) String property,
+			@Description("The value to be searched. This must be passed as a string, but will be converted to the datatype corresponding to the "
+					+ "specified searchable value.") @Parameter(name = "value", optional = false) String value) {
+		
+		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
+		SearchableProperty searchProperty = SearchableProperty.valueOf(property);
+		return ListRepresentation.string(browser.doBasicSearch(searchProperty, value));
 	}
 
 	/**

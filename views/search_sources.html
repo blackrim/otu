@@ -12,8 +12,86 @@
         padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
       }
     </style>
-    <script language ="javascript" type = "text/javascript" >
+  </head>
+  <body>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="brand" href="#">OTU</a>
+          <div class="nav-collapse collapse">
+            <ul class="nav">
+              <li><a href="cgi-bin/load_sources.py">Load and List Sources</a></li>
+              <li class="active"><a href="#">Search Sources</a></li>
+              <li><a href="source_view.html">View Source</a></li>
+              <li><a href="tree_dyn.html">View Tree</a></li>
+              <li><a href="conf.html">Configure</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+    <div class="container">
+    <div style="position:absolute; top:8.7em; right:0; width: 25em; padding-right:3em;">
+      <form class="form-inline">
+        <button type="button" class="btn btn-large btn-primary" onclick="initRemoteIndexing(); return false;">Index remote sources for searching</button>
+      </form>
+      <div id="statusCount"></div>
+      <div id="statusMessage"></div>
+    </div>
+      <h2>Search all sources</h2>
+          <form id="searchform" class="form-inline">
+            <div class="btn-group" data-toggle="buttons-radio">
+              <input id="searchtext" type="text" style="height:3.2em; width:20em; margin:0;"></input>
+              <select id="propertyselect" class="select-large" style="height: 3.2em; width:15em"></select>
+            </div>
+              <button type="button" class="btn btn-large btn-success" onclick="search(); return false;">Search</button>
+          </form>
+          <div id="results">
+            <table id="resultsTable"></table>
+          </div>
+    </div>
+  <script language ="javascript" type = "text/javascript" >
 
+function search() {
+    var propertyServiceURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/search";
+
+    var property = $("#propertyselect").val();
+    var value = $("#searchtext").val();
+//    alert(property + " " + value);
+    document.getElementById("resultsTable").innerHTML = "";
+    var xobj = new XMLHttpRequest();
+    xobj.onreadystatechange=function() {
+        if (xobj.readyState==4 && xobj.status==200) {
+        
+            jsonrespstr = xobj.responseText;
+//            alert(jsonrespstr);
+        
+            var resultIds = JSON.parse(jsonrespstr);
+//            var names = Object.keys(pMap);
+
+            $(resultIds).each(function(i) {
+                $("#resultsTable").append('<tr><td>'+resultIds[i]+'</td></tr>');
+//                var item = document.createElement("tr").createElement("td");
+//                item.setAttribute("value", pMap[names[i]]);
+//                item.innerHTML=names[i];
+//                document.getElementById("propertyselect").appendChild(item);
+            });
+        }
+    }
+    xobj.open("POST", propertyServiceURL, true);
+    xobj.setRequestHeader("Accept", "");
+    xobj.setRequestHeader("Content-Type","Application/json");
+    xobj.send(JSON.stringify({"property":property,"value":value}));
+}
+
+// TODO: get/display information about each result
+
+// used during source indexing
 var countProcessed = 0;
 var totalCount = 0;
 
@@ -30,15 +108,14 @@ function setStatus(statusMsg, replace) {
 
 function initRemoteIndexing() {
     setStatus("Indexing in progress! This message will be updated as indexing proceeds.");
-    setStatus("Keep this window open (and do not let the computer go to sleep) until indexing is complete, or close this window to stop indexing.");
+    setStatus("Keep this window open until indexing is complete, or close this window to stop indexing.");
 
     var mostCurrentCommitURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/getMostCurrentNexsonsURL";
     var xobj = new XMLHttpRequest();
-
     xobj.onreadystatechange=function() {
         if (xobj.readyState==4 && xobj.status==200) {
             curNexsonsBaseURL = JSON.parse(xobj.responseText);
-            setStatus("Attempting to read nexsons from: " + curNexsonsBaseURL, true);
+            alert("Attempting to read nexsons from: " + curNexsonsBaseURL);
             indexEachRemoteNexson(curNexsonsBaseURL);
         }
     }
@@ -54,15 +131,13 @@ function indexEachRemoteNexson(curNexsonsBaseURL) {
 
     var xobj = new XMLHttpRequest();
     xobj.onreadystatechange=function() {
-//        alert(xobj.responseText);
         if (xobj.readyState==4 && xobj.status==200) {
-//            alert(JSON.stringify(xobj.responseText));            
+//        alert(xobj.responseText);
             var sources = JSON.parse(xobj.responseText)
             totalCount = sources.length;
             for (var i=0; i < sources.length; i++) {
 //                alert("sending " + sources[i]); 
                 indexSingleSource(sources[i], curNexsonsBaseURL + sources[i], i*100);
-//                break;
             }
         }
     }
@@ -104,42 +179,35 @@ function indexSingleSource(sid, url, delay) {
     }, delay);
 }
 
-    </script> 
-  </head>
-  <body>
-    <div class="navbar navbar-inverse navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="brand" href="#">OTU</a>
-          <div class="nav-collapse collapse">
-            <ul class="nav">
-              <li><a href="cgi-bin/load_sources.py">Load and List Sources</a></li>
-              <li class="active"><a href="#">Search Public Sources</a></li>
-              <li><a href="source_view.html">View Source</a></li>
-              <li><a href="tree_dyn.html">View Tree</a></li>
-              <li><a href="conf.html">Configure</a></li>
-            </ul>
-          </div><!--/.nav-collapse -->
-        </div>
-      </div>
-    </div>
-    <div class="container">
-      <h1>Search remote sources</h1>
-      <div class="row">
-        <div id="source-contain" class="span5">
-          <form name="makeIndexes" method="post" action="">
-            <!--input type="hidden" id="init_remote_indexing_flag" name="init_remote_indexing_flag"/-->
-            <button type="button" class="btn" onclick="initRemoteIndexing(); return false;">Index public sources for searching</button>
-          </form>
-          <div id="statusCount"></div>
-          <div id="statusMessage"></div>
-        </div>
-      </div>
-    </div>
-  </body>
+// called on page load (see below)
+function fillPropertyList(){
+    var propertyServiceURL = "http://localhost:7474/db/data/ext/Indexing/graphdb/getSearchableProperties";
+    var xobj = new XMLHttpRequest();
+    xobj.onreadystatechange=function() {
+        if (xobj.readyState==4 && xobj.status==200) {
+        
+            jsonrespstr = xobj.responseText;
+//            alert(jsonrespstr);
+        
+            var pMap = JSON.parse(jsonrespstr);
+            var names = Object.keys(pMap);
+
+            $(names).each(function(i){
+                var item = document.createElement("option");
+                item.setAttribute("value", pMap[names[i]]);
+                item.innerHTML=names[i];
+                document.getElementById("propertyselect").appendChild(item);
+            });
+        }
+    }
+    xobj.open("POST", propertyServiceURL, true);
+    xobj.setRequestHeader("Accept", "");
+    xobj.setRequestHeader("Content-Type","Application/json");
+    xobj.send("");
+}
+
+fillPropertyList();
+
+  </script> 
+</body>
 </html>

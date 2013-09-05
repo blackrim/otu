@@ -10,9 +10,20 @@ package opentree.otu.constants;
 public enum NodeProperty {
 
 	/**
-	 * The taxon name associated with this node. TODO: NOT CLEAR IF THIS IS MAPPED, ORIGINAL?
+	 * The original taxon name associated with this node.
+	 */
+	ORIGINAL_NAME ("original_name", String.class),	
+	
+	/**
+	 * The taxon name associated with this node. SHOULD BE THE MAPPED NAME, not the original. Should not be set if the
+	 * node has not been mapped (although I have no idea if this is actually the case).
 	 */
 	NAME ("name", String.class),
+	
+	/**
+	 * The ott id associated with the taxon mapped to this node. Should not be set if the node has not been mapped.
+	 */
+	OTT_ID ("uid", String.class),
 	
 	/**
 	 * A unique string used to identify this tree within the db. The convention is to use the study id concatenated
@@ -38,26 +49,26 @@ public enum NodeProperty {
 	 * A primitive string array containing all the original taxon names applied to tip children of a given tree node.
 	 * This is stored as a property of the root of each imported tree.
 	 */
-	ORIGINAL_TAXON_NAMES ("tip_original_names", String[].class),
+	DESCENDANT_ORIGINAL_TAXON_NAMES ("tip_original_names", String[].class),
 	
 	/**
 	 * A primitive string array containing all the currently mapped taxon names applied to tip children of a given tree node.
 	 * This is stored as a property of the root of each imported tree.
 	 */
-	MAPPED_TAXON_NAMES ("tip_mapped_names", String[].class),
+	DESCENDANT_MAPPED_TAXON_NAMES ("tip_mapped_names", String[].class),
 
 	/**
 	 * A primitive string array containing all the currently mapped taxon names applied to tip children of a given tree node,
 	 * with whitespace replaced by the whitespace replacement substring specified in GeneralConstants. This is stored as a
 	 * property of the root of each imported tree.
 	 */
-	MAPPED_TAXON_NAMES_WHITESPACE_FILLED ("tip_mapped_names_no_spaces", String[].class),
+	DESCENDANT_MAPPED_TAXON_NAMES_WHITESPACE_FILLED ("tip_mapped_names_no_spaces", String[].class),
 	
 	/**
 	 * A primitive string array containing all the ott ids for taxa mapped to the tip children of a given tree node.
 	 * This is stored as a property of the root of each imported tree.
 	 */
-	MAPPED_TAXON_OTT_IDS ("tip_mapped_ottids", long[].class),
+	DESCENDANT_MAPPED_TAXON_OTT_IDS ("tip_mapped_ottids", long[].class),
 	
 	// ===== ot namespace node properties
 	
@@ -93,8 +104,17 @@ public enum NodeProperty {
 	 * A flag specifying that the clade represented by the node is the ingroup for the tree. Is only set on ingroup nodes.
 	 * Thus, any node without this property can be inferred not to be the ingroup on a tree for which the ingroup is set.
 	 */
-	IS_INGROUP ("ingroup_start", boolean.class);	
+	IS_INGROUP ("ingroup_start", boolean.class),	
 
+	// TODO: fix this formatting
+	NEWICK_STRING("newick", String.class), //, "The newick string that was originally imported for the file. Used for study sources."),
+	OT_CURATOR_NAME("ot:curatorName", String.class), //, "The name of curator who uploaded the study. Used for study sources."),
+    OT_DATA_DEPOSIT("ot:dataDeposit", String.class), //, "A URI (or other identifier) for the published data. Used for study sources."),
+    OT_PUBLICATION_REFERENCE ("ot:studyPublicationReference", String.class), //, "The citation string. Used for study sources."),
+    OT_STUDY_ID ("ot:studyId", String.class), //, "The phylografter study id. Used for study sources."),
+    OT_STUDY_PUBLICATION("ot:studyPublication", String.class), //, "A URI (or other identifier) for the published study itself. Used for study sources."),
+    OT_YEAR ("ot:studyYear", int.class); //, "The year the study was created. Used for study sources.");  // TODO: currently stored as a long, but should be int
+	
 	public final Class<?> type; // indicates the datatype for this property
 	public final String name;
     

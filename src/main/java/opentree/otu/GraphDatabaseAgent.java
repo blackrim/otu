@@ -9,6 +9,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
@@ -42,8 +43,8 @@ public class GraphDatabaseAgent {
 
     public Index<Node> getNodeIndex(String indexName) {
         Index<Node> index; 
-        Map<String,String> indexPars = MapUtil.stringMap( "type", "exact", "to_lower_case", "true" );
-
+//        Map<String,String> indexPars = MapUtil.stringMap( "type", "exact", "to_lower_case", "true" );
+        Map<String,String> indexPars = MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext");
         if (embedded)
             index = embeddedGraphDb.index().forNodes(indexName, indexPars);
         else
@@ -54,7 +55,8 @@ public class GraphDatabaseAgent {
 
     public Index<Relationship> getRelIndex(String indexName) {
         Index<Relationship> index; 
-        Map<String,String> indexPars = MapUtil.stringMap( "type", "exact", "to_lower_case", "true" );
+//        Map<String,String> indexPars = MapUtil.stringMap( "type", "exact", "to_lower_case", "true" );
+        Map<String,String> indexPars = MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext");
 
         if (embedded)
             index = embeddedGraphDb.index().forRelationships(indexName, indexPars);

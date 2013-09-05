@@ -1,6 +1,8 @@
 package opentree.otu.constants;
 
 /**
+ * Deprecated. See NodeProperty.
+ * 
  * Source properties as defined by the ottol controlled vocabulary. These are stored in metadata nodes; this enum is used
  * whenever those are accessed, e.g. synthesis (SourcePropertyFilterCriterion.class and SourcePropertySelectCriterion.class),
  * export (ArgusRepresentationConverter.class). For more information see:
@@ -8,8 +10,9 @@ package opentree.otu.constants;
  * https://github.com/OpenTreeOfLife/treemachine/wiki/Vocabulary
  *
  */
+@Deprecated
 public enum SourceProperty {
-
+/*
 	// ===== All metadata nodes
 	SOURCE ("source", String.class, "The name of this source. Used for all sources."),
 
@@ -33,5 +36,5 @@ public enum SourceProperty {
         this.propertyName = propertyName;
         this.type = T;
         this.description = description;
-    }
+    } */
 }

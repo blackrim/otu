@@ -24,47 +24,46 @@
       }
     </style>
 </head>
-<div class="navbar navbar-inverse navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
-          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="brand" href="#">OTU</a>
-          <div class="nav-collapse collapse">
-            <ul class="nav">
-              <li><a href="cgi-bin/load_sources.py">Load and List Sources</a></li>
-              <li><a href="search_sources.html">Search Public Sources</a></li>
-              <li><a href="source_view.html">View Source</a></li>
-              <li class="active"><a href="#">View Tree</a></li>
-              <li><a href="conf.html">Configure</a></li>
-            </ul>
-          </div><!--/.nav-collapse -->
-        </div>
+<body>
+  <div class="navbar navbar-inverse navbar-fixed-top">
+    <div class="navbar-inner">
+      <div class="container">
+        <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        </button>
+        <a class="brand" href="#">OTU</a>
+        <div class="nav-collapse collapse">
+          <ul class="nav">
+            <li><a href="cgi-bin/load_sources.py">Load and List Sources</a></li>
+            <li><a href="search_sources.html">Search Sources</a></li>
+            <li><a href="source_view.html">View Source</a></li>
+            <li class="active"><a href="#">View Tree</a></li>
+            <li><a href="conf.html">Configure</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
       </div>
     </div>
-
-<div class="container">
-<body>
-<div class="offset5">
+  </div>
+  <div class="container">
+    <div class="offset5">
     Load a different tree...
 	<form class="form-inline" >
-	    <select id="loadselect" style="width:400px">
-	    </select>
-	    <button type="button" class="btn" onClick='submitDetailsForm()'>Load</button>
+	  <select id="loadselect" style="width:400px">
+	  </select>
+	  <button type="button" class="btn" onClick='submitDetailsForm()'>Load</button>
 	</form>
-    </div>
-<h5 id="treeId"></h5>
-    <h4>Click on a node and it will...</h4>
-    <div class="btn-group" data-toggle="buttons-radio">
-	<button type="button" class="btn btn-large btn-success" name="cac" value=1 id="refocus">Refocus</button>
+  </div>
+  <h5 id="treeId"></h5>
+  <h4>Click on a node and it will...</h4>
+  <div class="btn-group" data-toggle="buttons-radio">
+    <button type="button" class="btn btn-large btn-success" name="cac" value=1 id="refocus">Refocus</button>
 	<button type="button" class="btn btn-large btn-primary" name="cac" value=2>Reroot</button>
 	<button type="button" class="btn btn-large btn-primary" name="cac" value=3>Choose Ingroup</button>
-    </div>
-	<button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree()" id>Delete Tree</button>
-    
+  </div>
+  <button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree()" id>Delete Tree</button>
+</div> 
 <script>
 
 //this needs to ignore the current one we are looking at
@@ -405,6 +404,5 @@ setup(start);
 
 d3.select(self.frameElement).style("height", "800px");
 </script>
-</dev>
 </body>
 </html>

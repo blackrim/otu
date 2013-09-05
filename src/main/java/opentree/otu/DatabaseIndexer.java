@@ -2,6 +2,7 @@ package opentree.otu;
 
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
+
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -105,10 +106,26 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 	 * @param treeRootNode
 	 */
 	private void addTreeToTaxonomicIndexes(Node root) {
-		addStringArrayEntriesToIndex(root, treeRootNodesByOriginalTaxonName, NodeProperty.ORIGINAL_TAXON_NAMES.name, "name");
-		addStringArrayEntriesToIndex(root, treeRootNodesByMappedTaxonName, NodeProperty.MAPPED_TAXON_NAMES.name, "name");
-		addStringArrayEntriesToIndex(root, treeRootNodesByMappedTaxonNameNoSpaces, NodeProperty.MAPPED_TAXON_NAMES_WHITESPACE_FILLED.name, "name");
-		addLongArrayEntriesToIndex(root, treeRootNodesByMappedTaxonOTTId, NodeProperty.MAPPED_TAXON_OTT_IDS.name, "uid");
+		
+		addStringArrayEntriesToIndex(root,
+				treeRootNodesByOriginalTaxonName,
+				NodeProperty.DESCENDANT_ORIGINAL_TAXON_NAMES.name,
+				NodeProperty.ORIGINAL_NAME.name);
+
+		addStringArrayEntriesToIndex(root,
+				treeRootNodesByMappedTaxonName,
+				NodeProperty.DESCENDANT_MAPPED_TAXON_NAMES.name,
+				NodeProperty.NAME.name);
+		
+		addStringArrayEntriesToIndex(root,
+				treeRootNodesByMappedTaxonNameNoSpaces,
+				NodeProperty.DESCENDANT_MAPPED_TAXON_NAMES_WHITESPACE_FILLED.name,
+				NodeProperty.NAME.name);
+		
+		addLongArrayEntriesToIndex(root,
+				treeRootNodesByMappedTaxonOTTId,
+				NodeProperty.DESCENDANT_MAPPED_TAXON_OTT_IDS.name,
+				NodeProperty.OTT_ID.name);
 	}
 	
 	// ===== generalized private methods used during indexing
