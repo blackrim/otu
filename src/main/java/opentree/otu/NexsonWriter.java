@@ -76,7 +76,7 @@ public class NexsonWriter {
 	
 	/* Return Nexson String  given a list of trees and a studyID*/
 	//
-	public static void writeNexson(Node metadatanode, DatabaseBrowser browser) throws java.io.IOException {
+	public static String writeNexson(Node metadatanode, DatabaseBrowser browser) throws java.io.IOException {
 		StringBuffer sb = new StringBuffer();
 		/*
 		  The format of the file, roughly speaking (some noise omitted):
