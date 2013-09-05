@@ -10,7 +10,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
 
+import opentree.otu.constants.GeneralConstants;
 import opentree.otu.constants.GraphProperty;
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
@@ -246,21 +248,30 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * @return
 	 * 		A JSON string containing metadata for this source
 	 */
-	public static String getMetadataJSONForSource(Node sourceMeta) {
+//	public static Map<String, Object> getMetadataJSONForSource(Node sourceMeta) {
+	public static Map<String, Object> getSourceMetadata(Node sourceMeta) {
 		
-		// TODO: abstract this so it just gets all the node properties and dumps them into a json string
+//		StringBuffer bf = new StringBuffer("{ \"metadata\": {");
 		
-		StringBuffer bf = new StringBuffer("{ \"metadata\": {");
+		Map<String, Object> metadata = new HashMap<String, Object>();
 
-		boolean first = true;
-		for (String p : sourceMeta.getPropertyKeys()) {
-			if (first) {
-				first = false;
-			} else {
-				bf.append(","); 
+		for (NodeProperty property : GeneralConstants.VISIBLE_SOURCE_PROPERTIES) {
+			Object value = (Object) "";
+			if (sourceMeta.hasProperty(property.name)) {
+				value = sourceMeta.getProperty(property.name);
 			}
-			bf.append("\"" + p + "\" : \"" + String.valueOf(sourceMeta.getProperty(p)) + "\"");
+			metadata.put(property.name, value);
 		}
+		
+//		boolean first = true;
+//		for (String p : sourceMeta.getPropertyKeys()) {
+//			if (first) {
+//				first = false;
+//			} else {
+//				bf.append(","); 
+//			}
+//			bf.append("\"" + p + "\" : \"" + String.valueOf(sourceMeta.getProperty(p)) + "\"");
+//		}
 
 /*		if (sourceMeta.hasProperty("ot:curatorName")) {
 			bf.append((String) sourceMeta.getProperty("ot:curatorName"));
@@ -283,23 +294,31 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		}
 		 */
 		
+		List<String> trees = new LinkedList<String>(); // actually the tree ids
+		
 		// add the trees
-		bf.append("}, \"trees\" : [");
+//		bf.append("}, \"trees\" : [");
 
-		ArrayList<String> trees = new ArrayList<String>();
+//		ArrayList<String> trees = new ArrayList<String>();
 		for (Relationship rel : sourceMeta.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
 			trees.add((String) rel.getEndNode().getProperty(NodeProperty.TREE_ID.name));
 		}
-		for (int i = 0; i < trees.size(); i++) {
-			bf.append("\"" + trees.get(i));
-			if (i != trees.size() - 1) {
-				bf.append("\",");
-			} else {
-				bf.append("\"");
-			}
-		} 
-		bf.append("] }");
-		return bf.toString();
+//		for (int i = 0; i < trees.size(); i++) {
+//			bf.append("\"" + trees.get(i));
+//			if (i != trees.size() - 1) {
+//				bf.append("\",");
+//			} else {
+//				bf.append("\"");
+//			}
+//		} 
+//		bf.append("] }");
+//		return bf.toString();
+		
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("metadata", metadata);
+		result.put("trees", trees);
+		
+		return result;
 	}
 
 	/**
@@ -311,14 +330,27 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * @return
 	 * 		A JSON string containing of the metadata for this tree
 	 */
-	public static String getMetadataForTree(Node root) {
+	public static Map<String, Object> getMetadataForTree(Node root) {
+
+		Map<String, Object> metadata = new HashMap<String, Object>();
+
+		for (NodeProperty property : GeneralConstants.VISIBLE_TREE_PROPERTIES) {
+			Object value = (Object) "";
+			if (root.hasProperty(property.name)) {
+				value = root.getProperty(property.name);
+			}
+			metadata.put(property.name, value);
+		}
 		
-		// TODO: abstract this so it just gets all the node properties and dumps them into a json string
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("metadata", metadata);
+		
+		return result;
 
 		// we could set properties to *always* be included in a separate enum. as it stands, we will only
 		// see properties that actually exist for the node
 		
-		StringBuffer bf = new StringBuffer("{ \"metadata\": {");
+/*		StringBuffer bf = new StringBuffer("{ \"metadata\": {");
 
 		boolean first = true;
 		for (String p : root.getPropertyKeys()) {
@@ -354,8 +386,8 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 			bf.append(String.valueOf(root.getProperty("ingroup_set")));
 		} */
 
-		bf.append("} }");
-		return bf.toString();
+/*		bf.append("} }");
+		return bf.toString(); */
 	}
 	
 	/**

@@ -1,14 +1,11 @@
 package opentree.otu;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 
 import jade.tree.JadeNode;
 import jade.tree.JadeTree;
@@ -18,7 +15,7 @@ import opentree.otu.constants.GeneralConstants;
 import opentree.otu.constants.GraphProperty;
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
-import opentree.otu.constants.SourceProperty;
+import opentree.otu.exceptions.DuplicateSourceException;
 import opentree.otu.exceptions.NoSuchTreeException;
 
 import org.neo4j.graphdb.Direction;
@@ -27,7 +24,6 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
-import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
@@ -97,8 +93,9 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	 * 
 	 * @return
 	 * 		The source metadata node for the newly added study
+	 * @throws DuplicateSourceException 
 	 */
-	public Node addSource(NexsonSource source, String location) {
+	public Node addSource(NexsonSource source, String location) throws DuplicateSourceException {
 		return addSource(source, location, false);
 	}
 	
@@ -119,8 +116,9 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	 * 
 	 * @return
 	 * 		The source metadata node for the newly added study
+	 * @throws DuplicateSourceException 
 	 */
-	public Node addSource(NexsonSource source, String location, boolean overwrite) {
+	public Node addSource(NexsonSource source, String location, boolean overwrite) throws DuplicateSourceException {
 		
 		// TODO: return meaningful information about the result to the rest query that calls this method
 
@@ -138,7 +136,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 				if (overwrite) {
 					deleteSource(sourceMeta);
 				} else {
-					throw new UnsupportedOperationException("Attempt to add a source with the same source id as an "
+					throw new DuplicateSourceException("Attempt to add a source with the same source id as an "
 							+ "existing local source. This would require merging, but merging is not (yet?) supported.");
 				}
 			}
@@ -170,7 +168,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 				// get the tree id from the nexson if there is one or create an arbitrary one if not
 				String treeIdSuffix = (String) tree.getObject("id");
 				if (treeIdSuffix ==  null) {
-					treeIdSuffix = GeneralConstants.LOCAL_TREEID_PREFIX.value + String.valueOf(i);
+					treeIdSuffix = GeneralConstants.LOCAL_TREEID_PREFIX + /* .value + */ String.valueOf(i);
 				}
 				
 				// create a unique tree id by including the study id, this is the convention from treemachine
@@ -534,9 +532,9 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			// If the node has not been explicitly mapped, then this should be null.
 
 			mappedTaxonNames.add(name);
-			mappedTaxonNamesNoSpaces.add(name.replace("\\s+", (String) GeneralConstants.WHITESPACE_SUBSTITUTE_FOR_SEARCH.value));
+			mappedTaxonNamesNoSpaces.add(name.replace("\\s+", GeneralConstants.WHITESPACE_SUBSTITUTE_FOR_SEARCH /*.value*/));
 
-			Long ottId = (Long) treeNode.getObject(NodeProperty.OT_OTTID.name);
+			Long ottId = (Long) treeNode.getObject(NodeProperty.OT_OTT_ID.name);
 			if (ottId != null) {
 				mappedOTTIds.add(ottId);
 			}

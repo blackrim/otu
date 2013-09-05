@@ -11,6 +11,8 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.server.plugins.*;
+import org.neo4j.server.rest.repr.OpentreeRepresentationConverter;
+import org.neo4j.server.rest.repr.Representation;
 
 public class treeJsons extends ServerPlugin{
 	
@@ -106,7 +108,7 @@ public class treeJsons extends ServerPlugin{
 	
 	@Description( "Get tree metadata" )
 	@PluginTarget( GraphDatabaseService.class )
-	public String getTreeMetaData(@Source GraphDatabaseService graphDb,
+	public Representation getTreeMetaData(@Source GraphDatabaseService graphDb,
 //			@Description( "study ID") //  should we be using "source ID" for consistency?
 //			@Parameter(name = "studyID", optional = false) String studyID,
 			@Description( "The database tree id for the tree")
@@ -114,12 +116,11 @@ public class treeJsons extends ServerPlugin{
 		
 		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
 
-		// TODO: add that the source don't exist
-		// TODO: add check for whether source is imported, include that info in the returned JSON
+		// TODO: add that the source don't exist // not sure what this means...
 
 		Node root = browser.getTreeRootNode(treeId, browser.LOCAL_LOCATION);
-		String metadata = browser.getMetadataForTree(root);
-		return metadata;
+//		String metadata = browser.getMetadataForTree(root);
+		return OpentreeRepresentationConverter.convert(browser.getMetadataForTree(root));
 	}
 	
 	@Description( "Get the id for the source associated with the specified tree id" )

@@ -20,6 +20,7 @@ import org.json.simple.JSONArray;
 import opentree.otu.DatabaseBrowser;
 import opentree.otu.DatabaseManager;
 import opentree.otu.constants.SearchableProperty;
+import opentree.otu.exceptions.DuplicateSourceException;
 
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -116,13 +117,14 @@ public class Indexing extends ServerPlugin {
 	 * @return
 	 * @throws MalformedURLException
 	 * @throws IOException
+	 * @throws DuplicateSourceException 
 	 */
 	@Description("Add a single remote nexson into the local db under the specified source id." + "Sources will only be added if they have at least one tree. Returns true if the"
 			+ "source is added, or false if it has no trees. Trees that cannot be read from nexson" + "files that otherwise contain some good trees will be skipped.")
 	@PluginTarget(GraphDatabaseService.class)
 	public Representation indexSingleNexson(@Source GraphDatabaseService graphDb,
 			@Description("remote nexson url") @Parameter(name = "url", optional = false) String url,
-			@Description("source id under which this source will be indexed locally") @Parameter(name = "sourceId", optional = false) String sourceId) throws MalformedURLException, IOException {
+			@Description("source id under which this source will be indexed locally") @Parameter(name = "sourceId", optional = false) String sourceId) throws MalformedURLException, IOException, DuplicateSourceException {
 
 		DatabaseManager dm = new DatabaseManager(graphDb);
 		NexsonSource source = readRemoteNexson(url, sourceId);
@@ -132,7 +134,7 @@ public class Indexing extends ServerPlugin {
 		} else {
 			dm.addSource(source, "remote", true);
 			return ValueRepresentation.bool(true);
-		}
+		} 
 	}
 	
 	/**
