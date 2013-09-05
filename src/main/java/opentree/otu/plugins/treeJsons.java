@@ -66,7 +66,6 @@ public class treeJsons extends ServerPlugin{
 			@Description( "The Neo4j node id of the node to be used as the root for its tree.")
 			@Parameter(name = "nodeId", optional = false) Long nodeId) {
 		DatabaseManager manager = new DatabaseManager(graphDb);
-		// TODO: add check for whether tree is imported. If not then return error
 		Node rootNode = graphDb.getNodeById(nodeId);
 		Node newroot = manager.rerootTree(rootNode);
 		return newroot.getId();
@@ -82,7 +81,6 @@ public class treeJsons extends ServerPlugin{
 			@Description( "The Neo4j node id of the node to be used as the ingroup for its tree.")
 			@Parameter(name = "nodeId", optional = false) Long nodeId) {
 		DatabaseManager manager = new DatabaseManager(graphDb);
-		// TODO: add check for whether tree is imported. If not then return error
 		Node rootNode = graphDb.getNodeById(nodeId);
 		manager.designateIngroup(rootNode);
 		return rootNode.getId();

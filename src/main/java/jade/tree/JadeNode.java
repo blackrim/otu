@@ -18,12 +18,32 @@ public class JadeNode {
 	private String name;
 	private JadeNode parent;
 	private ArrayList<JadeNode> children;
-	private ArrayList<NodeObject> assoc; // @note might need to make this a HashMap<String, Object> or TreeMap<String,Object>
+//	private ArrayList<NodeObject> assoc; // @note might need to make this a HashMap<String, Object> or TreeMap<String,Object>
+	private HashMap<String, Object> assoc;
 	
 	/*
 	 * constructors
 	 */
 	public JadeNode() {
+		init();
+	}
+	
+	public JadeNode(JadeNode parent) {
+		init();
+		this.parent = parent;
+	}
+	
+	public JadeNode(double BL, String name, JadeNode parent) {
+		init();
+		this.BL = BL;
+		this.name = name;
+		this.parent = parent;
+	}
+
+	/**
+	 * called by constructors
+	 */
+	private void init() {
 		this.BL = 0.0;
 		this.distance_to_tip = 0.0;
 		this.distance_from_tip = 0.0;
@@ -31,33 +51,11 @@ public class JadeNode {
 		this.name = "";
 		this.parent = null;
 		this.children = new ArrayList<JadeNode> ();
-		this.assoc = new ArrayList<NodeObject>();
+//		this.assoc = new ArrayList<NodeObject>();
+		this.assoc = new HashMap<String, Object>();
 	}
 	
-	public JadeNode(JadeNode parent) {
-		this.BL = 0.0;
-		this.distance_to_tip = 0.0;
-		this.distance_from_tip = 0.0;
-		//this.number = 0;
-		this.name = "";
-		this.parent = parent;
-		this.children = new ArrayList<JadeNode> ();
-		this.assoc = new ArrayList<NodeObject>();
-	}
-	
-	public JadeNode(double BL, String name, JadeNode parent) {
-		this.BL = BL;
-		this.distance_to_tip = 0.0;
-		this.distance_from_tip = 0.0;
-		//this.number = number;
-		this.name = name;
-		this.parent = parent;
-		this.children = new ArrayList<JadeNode> ();
-		this.assoc = new ArrayList<NodeObject>();
-	}
-
-
-    /* ---------------------------- begin node iterators --------------------------------*/
+    // ===== node iterators
 
     public enum NodeOrder {PREORDER, POSTORDER};
 
@@ -208,7 +206,7 @@ public class JadeNode {
 			ret.append(" \"name\": \"\"");
 		}
 		if (this.getObject("nodeid") != null) {
-			ret.append("\n, \"nodeid\": \"" + this.getObject("nodeid") + "\"");
+			ret.append("\n, \"nodeid\": \"" + this.getObject("nodeid") + "\""); // note: what is the difference between this version and the capitalized one below?
 		}
 		for (int i = 0; i < this.getChildCount(); i++) {
 			if (i == 0) {
@@ -244,8 +242,8 @@ public class JadeNode {
 			}
 			ret.append(", \"size\": "+sz);
 		}
-		if(this.getObject("nodeID") != null){
-			ret.append(", \"id\":"+this.getObject("nodeID"));
+		if(this.getObject("nodeId") != null){
+			ret.append(", \"id\":"+this.getObject("nodeId")); // note: what is the difference between the capitalized version and the uncapitalized one above?
 		}
 		Object ig = this.getObject("ingroup");
 		if(ig != null){
@@ -326,13 +324,13 @@ public class JadeNode {
 	
 	public void setDistanceToTip(double inh) {this.distance_to_tip = inh;}
 	
-	/**
+	/*
 	 * Adds or a replace a mapping of key->obj for this node
 	 * @note this in an example of an O(N) routine that would be constant time
 	 * 		or O(log(N)) if we change the assoc datatype.
 	 * @param key
 	 * @param obj Object to be stored
-	 */
+	 *
 	public void assocObject(String key, Object obj) {
 		// @todo This is written as if there could be multiple elements in assoc that
 		//		have the same key. I don't think this is true. (we should probably
@@ -350,13 +348,13 @@ public class JadeNode {
 		}
 	}
 	
-	/**
+	/*
 	 * @return Object associated with this node and key through a previous call
 	 *		to assocObject, or null
 	 * @note this in an example of an O(N) routine that would be constant time
 	 * 		or O(log(N)) if we change the assoc datatype.
 	 * @param key
-	 */
+	 *
 	public Object getObject(String key) {
 		// @todo This is written as if there could be multiple elements in assoc that
 		//		have the same key. I don't think this is true. (we should probably
@@ -368,7 +366,43 @@ public class JadeNode {
 			}
 		}
 		return a;
+	} */
+	
+	/**
+	 * Adds a mapping of key->obj for this tree. Unlike the JavaNode version,
+	 *	this method does NOT guard against multiple keys being added. Note
+	 *	that only the last object associated with a key will be accessible via
+	 *	getObject
+	 * @param key
+	 * @param obj Object to be stored
+	 */
+	public void assocObject(String key, Object obj) {
+		assoc.put(key, obj);
 	}
 
-
+	/**
+	 * Returns the object associated with the last call of assocObject with this key
+	 * @param key
+	 */
+	public Object getObject(String key) {
+		return assoc.get(key);
+	}
+	
+	/**
+	 * Just checks if there is an object associated (by the assocObject method) with this key
+	 * @param key
+	 * @return
+	 */
+	public boolean hasAssocObject(String key) {
+		return assoc.containsKey(key);
+	}
+	
+	/**
+	 * Return the HashMap of metadata associated with the tree
+	 * @todo need to check
+	 * @todo we should probably have a boolean flag to indicate whether or not the tree should be treated as rooted
+	 */
+	public HashMap<String,Object> getAssoc() {
+		return assoc;
+	}
 }

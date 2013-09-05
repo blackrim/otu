@@ -66,9 +66,8 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		// fuzzy query on the fulltext index
 		FuzzyQuery fuzzyQuery = new FuzzyQuery(new Term(search.property.name, QueryParser.escape(searchValue)),
     			GeneralUtils.getMinIdentity(searchValue));
-    	IndexHits<Node> hits = null;
+		IndexHits<Node> hits = getNodeIndex(search.index).query(fuzzyQuery);
         try {
-			hits = getNodeIndex(search.index).query(fuzzyQuery);
 			for (Node hit : hits) {
 				sourceIds.add((String) hit.getProperty(NodeProperty.SOURCE_ID.name));
 			}
@@ -76,16 +75,19 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 			hits.close();
 		}
 
-        // also try a term query <-- this doesn't work.
-        try {
-			hits = getNodeIndex(search.index).query(new TermQuery(new Term(search.property.name, searchValue)));
-			for (Node hit : hits) {
-				sourceIds.add((String) hit.getProperty(NodeProperty.SOURCE_ID.name));
-			}
-		} finally {
-			hits.close();
-		}
-        
+        // kludge: special case for exact taxon names searches with spaces.
+        // having this here avoids having to create lots of unnecessary abstraction
+        if (search.equals(SearchableProperty.DESCENDANT_MAPPED_TAXON_NAMES)) {
+			hits = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_MAPPED_TAXON_NAME_WHITESPACE_FILLED)
+					.get(search.property.name, searchValue);
+            try {
+    			for (Node hit : hits) {
+    				sourceIds.add((String) hit.getProperty(NodeProperty.SOURCE_ID.name));
+    			}
+    		} finally {
+    			hits.close();
+    		}
+        }        
         
 		return sourceIds;
 	}
@@ -414,14 +416,14 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 				curNode = new JadeNode();
 			}
 			traveledNodes.put(curGraphNode, curNode);
-			if (curGraphNode.hasProperty("name")) {
-				curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
+			if (curGraphNode.hasProperty(NodeProperty.NAME.name)) {
+				curNode.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty(NodeProperty.NAME.name))));
 				// curNode.setName(GeneralUtils.cleanName(curNode.getName()));
 			}
-			if (curGraphNode.hasProperty("ingroup")) {
-				curNode.assocObject("ingroup", "true");
+			if (curGraphNode.hasProperty(NodeProperty.IS_WITHIN_INGROUP.name)) {
+				curNode.assocObject("ingroup", true);
 			}
-			curNode.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
+			curNode.assocObject("nodeId", String.valueOf(curGraphNode.getId()));
 			JadeNode parentJadeNode = null;
 			Relationship incomingRel = null;
 			if (curGraphNode.hasRelationship(Direction.OUTGOING, RelType.CHILDOF) && curGraphNode != inRoot) {
@@ -462,10 +464,10 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 			if (curRoot.hasRelationship(Direction.OUTGOING, RelType.CHILDOF)) {
 				Node curGraphNode = curRoot.getSingleRelationship(RelType.CHILDOF, Direction.OUTGOING).getEndNode();
 				JadeNode temproot = new JadeNode();
-				if (curGraphNode.hasProperty("name")) {
-					temproot.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty("name"))));
+				if (curGraphNode.hasProperty(NodeProperty.NAME.name)) {
+					temproot.setName(GeneralUtils.cleanName(String.valueOf(curGraphNode.getProperty(NodeProperty.NAME.name))));
 				}
-				temproot.assocObject("nodeID", String.valueOf(curGraphNode.getId()));
+				temproot.assocObject("nodeId", String.valueOf(curGraphNode.getId()));
 				temproot.addChild(newroot);
 				curRoot = curGraphNode;
 				newroot = temproot;

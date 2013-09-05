@@ -223,8 +223,12 @@ public class NexsonReader {
 			// Set the root node
 			if (ingroup != null && id.compareTo(ingroup) == 0) {
 				msgLogger.indentMessage(1, "Setting ingroup root node.");
+
+				/* changed: don't throw away the outgroup
 				root = jn;
-				root.assocObject("ingroup_start", "true");
+				root.assocObject("ingroup_start", "true"); */
+
+				jn.assocObject("ingroup_start", true);
 			}
 
 			// Some nodes have associated OTUs, others don't

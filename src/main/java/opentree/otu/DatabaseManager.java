@@ -34,6 +34,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	private DatabaseBrowser browser;
 	
 	private HashSet<String> knownRemotes;
+	private Node lastObservedIngroupStartNode = null;
 	
 	protected Index<Node> sourceMetaNodesBySourceId = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_SOURCE_ID);
 	protected Index<Node> treeRootNodesByTreeId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
@@ -233,6 +234,11 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		Node root = null;
 		if (location.equals(LOCAL_LOCATION)) {
 			root = preorderAddTreeToDB(tree.getRoot(), null);
+			// designate the ingroup if we found one, and then reset the variable!
+			if (lastObservedIngroupStartNode != null) {
+				designateIngroup(lastObservedIngroupStartNode);
+				lastObservedIngroupStartNode = null;
+			}
 		} else {
 			root = graphDb.createNode();
 		}
@@ -243,9 +249,9 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		root.setProperty(NodeProperty.SOURCE_ID.name, sourceId);
 		
 		// designate the root as the ingroup this is specified in the tree properties (e.g. from a nexson)
-		if (tree.getRoot().getObject(NodeProperty.IS_INGROUP.name) != null) {
-			designateIngroup(root);
-		}
+//		if (tree.getRoot().getObject(NodeProperty.IS_INGROUP.name) != null) {
+//			designateIngroup(root);
+//		}
 
 		// add node properties
 		root.setProperty(NodeProperty.TREE_ID.name, treeId);
@@ -421,18 +427,20 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			root.setProperty(NodeProperty.INGROUP_IS_SET.name, true);
 			if (root != innode) {
 				for (Node node : CHILDOF_TRAVERSAL.breadthFirst().traverse(root).nodes()) {
-					if (node.hasProperty(NodeProperty.IS_INGROUP.name))
-						node.removeProperty(NodeProperty.IS_INGROUP.name);
+					if (node.hasProperty(NodeProperty.IS_WITHIN_INGROUP.name))
+						node.removeProperty(NodeProperty.IS_WITHIN_INGROUP.name);
 				}
 			}
-			innode.setProperty(NodeProperty.IS_INGROUP.name, true);
+			innode.setProperty(NodeProperty.IS_WITHIN_INGROUP.name, true);
 			for (Node node : CHILDOF_TRAVERSAL.breadthFirst().traverse(innode).nodes()) {
-				node.setProperty(NodeProperty.IS_INGROUP.name, true);
+				node.setProperty(NodeProperty.IS_WITHIN_INGROUP.name, true);
 			}
+			root.setProperty(NodeProperty.INGROUP_IS_SET.name, true);
+			root.setProperty(NodeProperty.INGROUP_START_NODE_ID.name, innode.getId());
 			tx.success();
 		} finally {
 			tx.finish();
-		}
+		}		
 	}
 	
 	// ========== private methods
@@ -478,11 +486,23 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	private Node preorderAddTreeToDB(JadeNode curJadeNode, Node parentGraphNode) {
 
 		Node curGraphNode = graphDb.createNode();
+
+		// remember the ingroup if we hit one
+		if (curJadeNode.hasAssocObject(NodeProperty.IS_INGROUP_ROOT.name) == true) {
+//			withinIngroup = true;
+			curGraphNode.setProperty(NodeProperty.INGROUP_START_NODE_ID.name, true);
+			lastObservedIngroupStartNode = curGraphNode;
+		}
+		
+		// set the ingroup flag if we're within the ingroup
+//		if (withinIngroup) {
+//			curGraphNode.setProperty(NodeProperty.IS_WITHIN_INGROUP.name, true);
+//		}
 		
 		// add properties
 		if (curJadeNode.getName() != null) {
 			curGraphNode.setProperty(NodeProperty.NAME.name, curJadeNode.getName());
-			// TODO: also set properties from the JadeNode.getAssoc() map?
+			setNodePropertiesFromMap(curGraphNode, curJadeNode.getAssoc()); // why not?
 		}
 
 		// TODO: add bl

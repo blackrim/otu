@@ -53,7 +53,7 @@ public enum NodeIndexDescription {
      * Root nodes for trees indexed by the specified ot namespace property. Property is the ot property name (e.g. "ot:curatorName")
      * and key is the value for that property (e.g. "Romina Gazis").
      */
-    TREE_ROOT_NODES_BY_OT_PROPERTY ("treeRootNodesByOTProperty"),
+    TREE_ROOT_NODES_BY_OTHER_PROPERTY ("treeRootNodesByOTProperty"),
     
     // ===== source indexes
 
@@ -61,7 +61,7 @@ public enum NodeIndexDescription {
      * Study metadata nodes indexed by the specified ot namespace properties. Property is the ot property name (e.g. "ot:curatorName")
      * and key is the value for that property (e.g. "Bryan Drew").
      */
-	SOURCE_METADATA_NODES_BY_OT_PROPERTY ("sourceMetaNodesByOTProperty"),
+	SOURCE_METADATA_NODES_BY_OTHER_PROPERTY ("sourceMetaNodesByOTProperty"),
 
     /**
      * Source metadata nodes for both local and remote (i.e. not imported) sources, indexed by their originating source id.
