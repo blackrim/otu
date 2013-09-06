@@ -100,42 +100,47 @@ function addResult(sourceId) {
 			var objRow = document.createElement("tr");
 			$(objRow).append('<td>'+sourceId+'</td>');
 
-			// form to switch to view of local studies
-			var viewForm = document.createElement("form");
-			$(viewForm).attr("style","display: inline");
-			var viewSubmit = document.createElement("button");
-			$(viewSubmit).attr("name","submit").attr("type","submit").addClass("btn").append("View"); //</button>');
-			$(viewForm).append(viewSubmit);
-
+//			var viewForm;
+			var formCell = document.createElement("td");
 			// only make the view form usable if the study is imported
 			if (response.has_local_copy == true) {
+				// form to switch to view of local studies
+				var viewForm = document.createElement("form");
+				$(viewForm).attr("style","display: inline");
+				var viewSubmit = document.createElement("button");
+				$(viewSubmit).attr("name","submit").attr("type","submit").addClass("btn btn-primary").append("View"); //</button>');
+				$(viewForm).append(viewSubmit);
+
 				$(viewForm).append('<input type="hidden" name="sourceId" id="sourceId" value="'+sourceId+'" />');
 				$(viewForm).attr("action", "source_view.html").attr("method", "GET");
+				$(formCell).append(viewForm);
 			} else {
-				$(viewSubmit).addClass("disabled");
-				viewSubmit.disabled = true;
-			}
-			$(objRow).append($(document.createElement("td")).append(viewForm));
+//				$(viewSubmit).addClass("disabled");
+//				viewSubmit.disabled = true;
 
-			// form to load remote studies
-			var loadForm = document.createElement("form");
-			$(loadForm).attr("style","display: inline")
-			var loadSubmit = document.createElement("button");
-			$(loadSubmit).attr("name","submit").attr("type","submit").attr("enctype","multipart/form-data").addClass("btn").append("Load"); //</button>');
-			$(loadForm).append(loadSubmit);
+				// form to load remote studies
+				var loadForm = document.createElement("form");
+				$(loadForm).attr("style","display: inline")
+				var loadSubmit = document.createElement("button");
+				$(loadSubmit).attr("name","submit").attr("type","submit").attr("enctype","multipart/form-data").addClass("btn").append("Load"); //</button>');
+				$(loadForm).append(loadSubmit);
 
-			// only make the load form usable if the study is not already imported
-			if (response.has_local_copy == false) {
+				// only make the load form usable if the study is not already imported
+//				if (response.has_local_copy == false) {
 				$(loadForm).append('<input type="hidden" name="hidden_nexson_from_git" id="hidden_nexson_from_git" value="true" />')
 				.append('<input type="hidden" name="nexsonid" id="nexsonid" value="' + sourceId + '" />')
 				.append('<input type="hidden" name="recenthash" id="recenthash" value="' + recenthash + '" />');
 				$(loadForm).attr("action", "cgi-bin/load_sources.py").attr("method", "POST");
-			} else {
-				$(loadSubmit).addClass("disabled");
-				loadSubmit.disabled = true;
+//				} else {
+//					$(loadSubmit).addClass("disabled");
+//					loadSubmit.disabled = true;
+//				}
+				$(formCell).append(loadForm);
 			}
-			
-			$(objRow).append($(document.createElement("td")).append(loadForm));
+//			$(objRow).append($(document.createElement("td")).append(viewForm));
+//			$(objRow).append($(document.createElement("td")).append(loadForm));
+			$(objRow).append(formCell);
+
 			$(objRow).append('<td style="font-size:0.8em">' + response.metadata['ot:studyPublicationReference'].substring(0,100) + '...</td>');
 //			$(objRow).append("<td>" + (response.has_local_copy ? "local" : "(notlocal)") + "</td>");
 //			$(objRow).append("<td>" + (response.remotes_known.length > 0 ? "remote" : "(notremote)") + "</td>");
