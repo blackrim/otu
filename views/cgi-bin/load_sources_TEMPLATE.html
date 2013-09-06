@@ -48,17 +48,17 @@
 <h3 class="header">Nexson files</h3>
 <h4>Upload From Git</h4>
 <form action="load_sources.py" method="POST" class="form-inline" id="gitform" enctype="multipart/form-data">
-	<input type="hidden" id="hidden_nexson_from_git" name="hidden_nexson_from_git"/>
+	<input type="hidden" id="hidden_nexson_from_git" name="hidden_nexson_from_git" value="true"/>
 	<input type="hidden" id="recenthash", name="recenthash" value="$RECENTHASH$"/>
 	Source Id:
-	<select name="loadselect" id="loadselect" form="gitform">
+	<select name="nexsonid" id="nexsonid" form="gitform">
 	$GITFILELIST$
 	</select>
 	<button name="submit" type="submit" class="btn">Submit</button>
 </form>
 <h4>Upload File</h4>
 <form action=load_sources.py method="POST" enctype="multipart/form-data">
-<input type="hidden" id="hidden_nexson_from_file" name="hidden_nexson_from_file"/>
+<input type="hidden" id="hidden_nexson_from_file" name="hidden_nexson_from_file" value="true"/>
 <input name="file" type="file"><br>
 <button class="btn disabled">Coming soon</button>
 </form>
@@ -66,7 +66,7 @@
 <h3 class="header">Newick files</h3>
 <h4>Upload File</h4>
 <form action=load_sources.py method="POST" enctype="multipart/form-data">
-<input type="hidden" id="hidden_newick_from_file" name="hidden_newick_from_file"/>
+<input type="hidden" id="hidden_newick_from_file" name="hidden_newick_from_file" value="true"/>
 Source Id:<input type="text" id="sourceId" name="sourceId"/> <br/>
 File name: <input name="file" type="file"><br>
 <button name="submit" type="submit" class="btn">Submit</button>

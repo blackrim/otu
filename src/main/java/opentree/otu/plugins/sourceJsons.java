@@ -3,6 +3,7 @@ package opentree.otu.plugins;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import jade.MessageLogger;
@@ -137,13 +138,21 @@ public class sourceJsons extends ServerPlugin {
 		
 		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
 
-		// TODO add that the source don't exist
-
+		// look for local first since it's faster
 		Node sourceMeta = browser.getSourceMetaNode(sourceId, DatabaseBrowser.LOCAL_LOCATION);
+
+		// if we didn't find a local source, check remotes
+		if (sourceMeta == null) {
+			List<Node> sourceMetasRemote = browser.getRemoteSourceMetaNodesForSourceId(sourceId);
+			if (sourceMetasRemote.size() > 0) {
+				sourceMeta = sourceMetasRemote.get(0);
+			}
+		}
+		
 //		String metadata = DatabaseBrowser.getMetadataJSONForSource(sourceMeta);
 //		return metadata;
 		
-		return OpentreeRepresentationConverter.convert(browser.getSourceMetadata(sourceMeta));
+		return OpentreeRepresentationConverter.convert(sourceMeta == null ? null : browser.getSourceMetadata(sourceMeta));
 	}
 
 	/**

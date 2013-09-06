@@ -1,7 +1,5 @@
 package opentree.otu.constants;
 
-import org.neo4j.graphdb.Node;
-
 /**
  * Node properties as defined within the graph itself. These are stored in graph nodes. Different types
  * of nodes may have different properties. For more information see:
@@ -21,11 +19,6 @@ public enum NodeProperty {
 	 * node has not been mapped (although I have no idea if this is actually the case).
 	 */
 	NAME ("name", String.class),
-	
-	/*
-	 * The ott id associated with the taxon mapped to this node. Should not be set if the node has not been mapped.
-	 *
-	OTT_ID ("uid", String.class), */
 	
 	/**
 	 * A unique string used to identify this tree within the db. The convention is to use the study id concatenated
@@ -73,6 +66,11 @@ public enum NodeProperty {
 	DESCENDANT_MAPPED_TAXON_OTT_IDS ("tip_mapped_ottids", long[].class),
 	
 	/**
+	 * The OTT id of the focal clade for this source. A phylografter property that we may never use.
+	 */
+	FOCAL_CLADE("focal_clade_ott_id", String.class),
+	
+	/**
 	 * A boolean indicating whether this tree has been rooted. Stored as a property of the root node. If the tree root lacks
 	 * this property then it can be inferred that the tree has not been rooted.
 	 */
@@ -88,13 +86,26 @@ public enum NodeProperty {
 	 * A boolean indicating whether the ingroup is set for this tree. Stored as a property of the tree root node. If the
 	 * tree root lacks this property, then the ingroup can be inferred not to be set.
 	 */
-	INGROUP_IS_SET ("ingroup_set", boolean.class),
+	INGROUP_IS_SET ("ingroup_is_set", boolean.class),
 	
 	/**
-	 * A flag specifying that the clade represented by the node is the ingroup for the tree. Is only set on ingroup nodes.
-	 * Thus, any node without this property can be inferred not to be the ingroup on a tree for which the ingroup is set.
+	 * A flag specifying that the clade represented by the node is the ingroup for the tree. Is only set on the root node
+	 * of the ingroup clade. A phylografter property imported by NexsonReader.
 	 */
-	IS_INGROUP ("ingroup_start", boolean.class),
+	IS_INGROUP_ROOT ("ingroup_start", boolean.class),
+
+	/**
+	 * The nodeid of the root node for the designated ingroup for this tree. Should not be set unless the ingroup has been
+	 * designated.
+	 */
+	INGROUP_START_NODE_ID ("ingroup_node_id", boolean.class),
+	
+	/**
+	 * A flag specifying that this node is part of the ingroup for this tree. This property is nominally a boolean but should
+	 * only be set on nodes that are actually part of the ingroup, implying that nodes without this property in trees that
+	 * have their ingroup set are thus part of the outgroup.
+	 */
+	IS_WITHIN_INGROUP("within_ingroup", boolean.class),
 	
 	// ===== ot namespace node properties
 	
@@ -114,14 +125,12 @@ public enum NodeProperty {
 	OT_DATA_DEPOSIT("ot:dataDeposit", String.class),
 
 	/**
-	 * The OTT id of the focal clade for this source. A property of source meta nodes.
+	 * Some unknown identifier node that is the designated ingroup for this tree. A property of tree root nodes.
+	 * 
+	 * TODO: Not clear if this is a supported ot property, it is not listed in Peter's spreadsheet. Should be the id of the
+	 * element in the file, should it not? Otherwise it has no integrity. Need to figure this out...
 	 */
-	OT_FOCAL_CLADE("", String.class),
-	
-	/**
-	 * The node that is the designated ingroup for this tree. A property of tree root nodes.
-	 */
-	OT_INGROUP_CLADE("", Node.class),
+	OT_INGROUP_CLADE("ot:inGroupClade", String.class),
 	
 	/**
 	 * The original label assigned to this node.

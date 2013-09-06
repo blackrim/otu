@@ -11,7 +11,7 @@ import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 import jade.tree.NexsonSource;
 import opentree.otu.GeneralUtils;
-import opentree.otu.constants.GeneralConstants;
+import opentree.otu.constants.OTUConstants;
 import opentree.otu.constants.GraphProperty;
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
@@ -34,6 +34,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	private DatabaseBrowser browser;
 	
 	private HashSet<String> knownRemotes;
+	private Node lastObservedIngroupStartNode = null;
 	
 	protected Index<Node> sourceMetaNodesBySourceId = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_SOURCE_ID);
 	protected Index<Node> treeRootNodesByTreeId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
@@ -168,7 +169,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 				// get the tree id from the nexson if there is one or create an arbitrary one if not
 				String treeIdSuffix = (String) tree.getObject("id");
 				if (treeIdSuffix ==  null) {
-					treeIdSuffix = GeneralConstants.LOCAL_TREEID_PREFIX + /* .value + */ String.valueOf(i);
+					treeIdSuffix = OTUConstants.LOCAL_TREEID_PREFIX + /* .value + */ String.valueOf(i);
 				}
 				
 				// create a unique tree id by including the study id, this is the convention from treemachine
@@ -181,7 +182,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			}
 			
 			if (location == LOCAL_LOCATION) { // if this is a local study then attach it to any existing remotes
-				for (Node sourceMetaHit : browser.getAllKnownSourceMetaNodesForSourceId(sourceId)) {
+				for (Node sourceMetaHit : browser.getRemoteSourceMetaNodesForSourceId(sourceId)) {
 					if (sourceMetaHit.getProperty(NodeProperty.LOCATION.name).equals(LOCAL_LOCATION) == false) {
 						sourceMeta.createRelationshipTo(sourceMetaHit, RelType.LOCALCOPYOF);
 					}
@@ -233,6 +234,11 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		Node root = null;
 		if (location.equals(LOCAL_LOCATION)) {
 			root = preorderAddTreeToDB(tree.getRoot(), null);
+			// designate the ingroup if we found one, and then reset the variable!
+			if (lastObservedIngroupStartNode != null) {
+				designateIngroup(lastObservedIngroupStartNode);
+				lastObservedIngroupStartNode = null;
+			}
 		} else {
 			root = graphDb.createNode();
 		}
@@ -243,9 +249,9 @@ public class DatabaseManager extends DatabaseAbstractBase {
 		root.setProperty(NodeProperty.SOURCE_ID.name, sourceId);
 		
 		// designate the root as the ingroup this is specified in the tree properties (e.g. from a nexson)
-		if (tree.getRoot().getObject(NodeProperty.IS_INGROUP.name) != null) {
-			designateIngroup(root);
-		}
+//		if (tree.getRoot().getObject(NodeProperty.IS_INGROUP.name) != null) {
+//			designateIngroup(root);
+//		}
 
 		// add node properties
 		root.setProperty(NodeProperty.TREE_ID.name, treeId);
@@ -421,18 +427,20 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			root.setProperty(NodeProperty.INGROUP_IS_SET.name, true);
 			if (root != innode) {
 				for (Node node : CHILDOF_TRAVERSAL.breadthFirst().traverse(root).nodes()) {
-					if (node.hasProperty(NodeProperty.IS_INGROUP.name))
-						node.removeProperty(NodeProperty.IS_INGROUP.name);
+					if (node.hasProperty(NodeProperty.IS_WITHIN_INGROUP.name))
+						node.removeProperty(NodeProperty.IS_WITHIN_INGROUP.name);
 				}
 			}
-			innode.setProperty(NodeProperty.IS_INGROUP.name, true);
+			innode.setProperty(NodeProperty.IS_WITHIN_INGROUP.name, true);
 			for (Node node : CHILDOF_TRAVERSAL.breadthFirst().traverse(innode).nodes()) {
-				node.setProperty(NodeProperty.IS_INGROUP.name, true);
+				node.setProperty(NodeProperty.IS_WITHIN_INGROUP.name, true);
 			}
+			root.setProperty(NodeProperty.INGROUP_IS_SET.name, true);
+			root.setProperty(NodeProperty.INGROUP_START_NODE_ID.name, innode.getId());
 			tx.success();
 		} finally {
 			tx.finish();
-		}
+		}		
 	}
 	
 	// ========== private methods
@@ -478,11 +486,23 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	private Node preorderAddTreeToDB(JadeNode curJadeNode, Node parentGraphNode) {
 
 		Node curGraphNode = graphDb.createNode();
+
+		// remember the ingroup if we hit one
+		if (curJadeNode.hasAssocObject(NodeProperty.IS_INGROUP_ROOT.name) == true) {
+//			withinIngroup = true;
+			curGraphNode.setProperty(NodeProperty.INGROUP_START_NODE_ID.name, true);
+			lastObservedIngroupStartNode = curGraphNode;
+		}
+		
+		// set the ingroup flag if we're within the ingroup
+//		if (withinIngroup) {
+//			curGraphNode.setProperty(NodeProperty.IS_WITHIN_INGROUP.name, true);
+//		}
 		
 		// add properties
 		if (curJadeNode.getName() != null) {
 			curGraphNode.setProperty(NodeProperty.NAME.name, curJadeNode.getName());
-			// TODO: also set properties from the JadeNode.getAssoc() map?
+			setNodePropertiesFromMap(curGraphNode, curJadeNode.getAssoc()); // why not?
 		}
 
 		// TODO: add bl
@@ -532,7 +552,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			// If the node has not been explicitly mapped, then this should be null.
 
 			mappedTaxonNames.add(name);
-			mappedTaxonNamesNoSpaces.add(name.replace("\\s+", GeneralConstants.WHITESPACE_SUBSTITUTE_FOR_SEARCH /*.value*/));
+			mappedTaxonNamesNoSpaces.add(name.replace("\\s+", OTUConstants.WHITESPACE_SUBSTITUTE_FOR_SEARCH /*.value*/));
 
 			Long ottId = (Long) treeNode.getObject(NodeProperty.OT_OTT_ID.name);
 			if (ottId != null) {
