@@ -34,7 +34,8 @@ import java.util.Map.Entry;
 
 public class NexsonReader {
 
-	// TODO: do not add nulls to the set of trees. instead throw exceptions when trees cannot be read.
+	// TODO: do not add nulls to the set of trees. instead accept an argument that specifies
+	// whether to throw an exception or continue silently when trees cannot be read.
 	
 	// TODO: convert this to use enums for properties
 	
@@ -223,8 +224,12 @@ public class NexsonReader {
 			// Set the root node
 			if (ingroup != null && id.compareTo(ingroup) == 0) {
 				msgLogger.indentMessage(1, "Setting ingroup root node.");
+
+				/* changed: don't throw away the outgroup
 				root = jn;
-				root.assocObject("ingroup_start", "true");
+				root.assocObject("ingroup_start", "true"); */
+
+				jn.assocObject("ingroup_start", true);
 			}
 
 			// Some nodes have associated OTUs, others don't

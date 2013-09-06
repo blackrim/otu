@@ -1,7 +1,9 @@
 package opentree.otu;
 
+import opentree.otu.constants.OTUConstants;
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
+import opentree.otu.constants.SearchableProperty;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -13,7 +15,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 	// tree root indexes
 	public final Index<Node> treeRootNodesByTreeId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
 	public final Index<Node> treeRootNodesBySourceId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_SOURCE_ID);
-	public final Index<Node> treeRootNodesByOTProperty = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_OT_PROPERTY);
+	public final Index<Node> treeRootNodesByOtherProperty = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_OTHER_PROPERTY);
 	
 	public final Index<Node> treeRootNodesByOriginalTaxonName = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_ORIGINAL_TAXON_NAME);
 	public final Index<Node> treeRootNodesByMappedTaxonName = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_MAPPED_TAXON_NAME);
@@ -22,7 +24,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 
 	// source meta indexes
 	public final Index<Node> sourceMetaNodesBySourceId = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_SOURCE_ID);
-	public final Index<Node> sourceMetaNodesByOTProperty = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_OT_PROPERTY);
+	public final Index<Node> sourceMetaNodesByOtherProperty = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_OTHER_PROPERTY);
 	
 	// ===== constructors
 	
@@ -48,7 +50,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 		sourceMetaNodesBySourceId.add(sourceMetaNode,
 				(String) sourceMetaNode.getProperty(NodeProperty.LOCATION.name)+"SourceId",
 				sourceMetaNode.getProperty(NodeProperty.SOURCE_ID.name));
-		indexNodeByOTProperties(sourceMetaNode, sourceMetaNodesByOTProperty);
+		indexNodeBySearchableProperties(sourceMetaNode, OTUConstants.SOURCE_PROPERTIES_FOR_SIMPLE_INDEXING);
 	}
 
 	/**
@@ -56,7 +58,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 	 */
 	public void removeSourceMetaNodeFromIndexes(Node sourceMetaNode) {
 		sourceMetaNodesBySourceId.remove(sourceMetaNode);
-		sourceMetaNodesByOTProperty.remove(sourceMetaNode);
+		sourceMetaNodesByOtherProperty.remove(sourceMetaNode);
 	}
 		
 	// ===== indexing tree root nodes
@@ -78,8 +80,8 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 				treeRootNode.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING)
 					.getEndNode().getProperty(NodeProperty.SOURCE_ID.name));
 		
-		// add to ot property indexes
-		indexNodeByOTProperties(treeRootNode, treeRootNodesByOTProperty);
+		// add to property indexes
+		indexNodeBySearchableProperties(treeRootNode, OTUConstants.TREE_PROPERTIES_FOR_SIMPLE_INDEXING);
 
 		// add to taxonomy indexes
 		addTreeToTaxonomicIndexes(treeRootNode);
@@ -93,7 +95,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 	public void removeTreeRootNodeFromIndexes(Node treeRootNode) {
 		treeRootNodesByTreeId.remove(treeRootNode);
 		treeRootNodesBySourceId.remove(treeRootNode);
-		treeRootNodesByOTProperty.remove(treeRootNode);
+		treeRootNodesByOtherProperty.remove(treeRootNode);
 		treeRootNodesByMappedTaxonName.remove(treeRootNode);
 		treeRootNodesByMappedTaxonNameNoSpaces.remove(treeRootNode);
 		treeRootNodesByMappedTaxonOTTId.remove(treeRootNode);
@@ -131,19 +133,22 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 	// ===== generalized private methods used during indexing
 
 	/**
-	 * Index a node into the supplied index under all its ot:* namespace properties.
+	 * Index a node into the supplied index under all the specified properties.
 	 * @param node
 	 * @param index
 	 */
-	private void indexNodeByOTProperties(Node node, Index<Node> index) {
+//	private void indexNodeBySearchableProperties(Node node, Index<Node> index) {
+	private void indexNodeBySearchableProperties(Node node, SearchableProperty[] searchablePoperties) {
 		
 		// TODO: modify this to use an enum/accept an array (that can be populated from an enum) that specifies all the properties to be set.
 		
-		for (String propertyName : node.getPropertyKeys()) {
-			if (propertyName.length() > 2) {
-				if (propertyName.substring(0, 3).equals("ot:")) {
-					index.add(node, propertyName, node.getProperty(propertyName));
-				}
+		for (SearchableProperty search : searchablePoperties) {
+			Index<Node> index = getNodeIndex(search.index);
+			if (node.hasProperty(search.property.name)) {
+//			if (propertyName.length() > 2) {
+//				if (propertyName.substring(0, 3).equals("ot:")) {
+					index.add(node, search.property.name, node.getProperty(search.property.name));
+//				}
 			}
 		}
 	}

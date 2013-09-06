@@ -34,12 +34,11 @@ resturlnexsonfile = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/putSo
 
 # ===== functions for saving uploaded files
 
-def save_uploaded_file(form_field, upload_dir):
-    form = cgi.FieldStorage()
+def save_uploaded_file(form, form_field, upload_dir):
     log = open("logging","w")
-    log.write("HERE")
+    log.write("HERE\n")
     for i in form.keys():
-	log.write(i)
+	    log.write(i + ": " + form[i].value + "\n")
     log.close()
     r = ""
     if form.has_key("hidden_newick_from_file"):
@@ -91,7 +90,8 @@ def save_uploaded_file_newick (form, form_field, upload_dir):
 def save_git_file_nexson(form, upload_dir):
     log = open("logging","a")
     recenthash = form["recenthash"].value
-    sourceId = form["loadselect"].value
+    sourceId = form["nexsonid"].value
+    log.write("\n" + "recenthash " + recenthash + ", nexsonid " + sourceId + "\n")
     geturl = "https://bitbucket.org/api/1.0/repositories/blackrim/avatol_nexsons/raw/"+recenthash+"/"+str(sourceId)
     print geturl
     req = urllib2.Request(geturl)
@@ -162,7 +162,7 @@ def print_html_form (result, recenthash, gitfilelist):
 
 # now actually do stuff
 
-result = save_uploaded_file ("file", UPLOAD_DIR)
+result = save_uploaded_file (cgi.FieldStorage(), "file", UPLOAD_DIR)
 message = ""
 if result != UNSPECIFIED_ACTION:
     result = json.loads(result)

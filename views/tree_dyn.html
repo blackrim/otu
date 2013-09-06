@@ -85,7 +85,6 @@ function getSourceTreeList(sourceid,id){
     })
 }
 
-
 function deleteTree(sid, tid){
     var baseurl = "http://localhost:7474/db/data/ext/treeJsons/graphdb/deleteTreeFromTreeId";
     var method = "POST";
@@ -152,7 +151,7 @@ function loadData(argsobj) {
   var jsonrespstr = xobjPost.responseText;
 //  alert(jsonrespstr);
   var evjson = eval(jsonrespstr);
-    
+//  alert(evjson);
   d3.json("", function(error, flare) {
     root = JSON.parse(evjson);
     root.x0 = height / 2;
@@ -334,32 +333,35 @@ function update(source) {
 
 function reroot(nodeid){
   var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/rerootTree";
-  var jsonquerystr = "{\"nodeId\":"+nodeid+"}";
+//  var jsonquerystr = "{\"nodeId\":"+nodeid+"}";
   var method = "POST";
   var xobjPost = new XMLHttpRequest();
   xobjPost.open(method, url, false);
   xobjPost.setRequestHeader("Accept", "");    
   xobjPost.setRequestHeader("Content-Type","application/json");
-  xobjPost.send(jsonquerystr);
+  xobjPost.send(JSON.stringify({"nodeId":nodeid}));
   var jsonrespstr = xobjPost.responseText;
 //  alert(jsonrespstr);
   var evjson = eval(jsonrespstr);
   setup(evjson);
 }
 
-function ingroup(nodeid){
-  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/ingroupSelect";
-  var jsonquerystr = "{\"nodeId\":"+nodeid+"}";
-  var method = "POST";
-  var xobjPost = new XMLHttpRequest();
-  xobjPost.open(method, url, false);
-  xobjPost.setRequestHeader("Accept", "");    
-  xobjPost.setRequestHeader("Content-Type","application/json");
-  xobjPost.send(jsonquerystr);
-  var jsonrespstr = xobjPost.responseText;
-//  alert(jsonrespstr);
-  var evjson = eval(jsonrespstr);
-  setup(evjson);
+function designateIngroup(nodeid){
+	var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/ingroupSelect";
+	//var jsonquerystr = "{\"nodeId\":"+nodeid+"}";
+	var xobj = new XMLHttpRequest();
+	xobj.open("POST", url, true);
+	xobj.onreadystatechange=function() {
+//		alert(xobj.responseText);
+		if (xobj.readyState==4 && xobj.status==200) {
+			var jsonrespstr = xobj.responseText;
+			var evjson = eval(jsonrespstr);
+			setup(evjson);
+		}
+	};
+	xobj.setRequestHeader("Accept", "");
+	xobj.setRequestHeader("Content-Type","Application/json");
+	xobj.send(JSON.stringify({"nodeId":nodeid}));
 }
 
 // Toggle children on click.
@@ -368,12 +370,12 @@ function click(d){
   var ev = d3.event;
   if (ac == 1){//refocus
     setup(d.id);	
-  }else if(ac ==2 ){//reroot
+  }else if(ac == 2 ){//reroot
     resetRadio();
     reroot(d.id);
   }else if(ac == 3){//ingroup
     resetRadio();
-    ingroup(d.id);
+    designateIngroup(d.id);
   }else if(ac == 4){//export
     resetRadio();
     alert("behold! you want to extract");

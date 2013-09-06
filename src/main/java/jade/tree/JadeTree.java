@@ -164,8 +164,6 @@ public class JadeTree {
 	 *	this method does NOT guard against multiple keys being added. Note
 	 *	that only the last object associated with a key will be accessible via
 	 *	getObject
-	 * @note this in an example of an O(N) routine that would be constant time
-	 * 		or O(log(N)) if we change the assoc datatype.
 	 * @param key
 	 * @param obj Object to be stored
 	 */
