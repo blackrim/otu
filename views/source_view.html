@@ -172,7 +172,7 @@ function addTreeInfo(treeId, element){
     xobjPost.send(senddata);
     var jsonrespstr = xobjPost.responseText;
 //    var evjson = eval(jsonrespstr);
-    alert(jsonrespstr)
+//    alert(jsonrespstr)
 	var ev = JSON.parse(jsonrespstr);
     var keys = Object.keys(ev.metadata);
     var treetable = document.createElement("table");

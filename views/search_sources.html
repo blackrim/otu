@@ -100,30 +100,39 @@ function addResult(sourceId) {
 			var objRow = document.createElement("tr");
 			$(objRow).append('<td>'+sourceId+'</td>');
 
-			//
-			//
-			// TODO: add view form
-			//
-			//
+			// form to switch to view of local studies
+			var viewForm = document.createElement("form");
+			$(viewForm).attr("style","display: inline");
+			var viewSubmit = document.createElement("button");
+			$(viewSubmit).attr("name","submit").attr("type","submit").addClass("btn").append("View"); //</button>');
+			$(viewForm).append(viewSubmit);
 
+			// only make the view form usable if the study is imported
+			if (response.has_local_copy == true) {
+				$(viewForm).append('<input type="hidden" name="sourceId" id="sourceId" value="'+sourceId+'" />');
+				$(viewForm).attr("action", "source_view.html").attr("method", "GET");
+			} else {
+				$(viewSubmit).addClass("disabled");
+				viewSubmit.disabled = true;
+			}
+			$(objRow).append($(document.createElement("td")).append(viewForm));
 
 			// form to load remote studies
 			var loadForm = document.createElement("form");
 			$(loadForm).attr("style","display: inline")
 			var loadSubmit = document.createElement("button");
-			$(loadSubmit).attr("name", "submit").attr("type", "submit").attr("enctype","multipart/form-data").addClass("btn").append("Load"); //</button>');
+			$(loadSubmit).attr("name","submit").attr("type","submit").attr("enctype","multipart/form-data").addClass("btn").append("Load"); //</button>');
 			$(loadForm).append(loadSubmit);
 
-			// only make the form usable if the study is not already imported
+			// only make the load form usable if the study is not already imported
 			if (response.has_local_copy == false) {
-				var gitNexsonFlag = document.createElement("input");
-				$(gitNexsonFlag).attr("type","hidden").attr("id","hidden_nexson_from_git").attr("name","hidden_nexson_from_git").attr("value","true");
-				$(loadForm).append(gitNexsonFlag);
-				$(loadForm).append('<input type="hidden" name="nexsonid" id="nexsonid" value="' + sourceId + '" />')
+				$(loadForm).append('<input type="hidden" name="hidden_nexson_from_git" id="hidden_nexson_from_git" value="true" />')
+				.append('<input type="hidden" name="nexsonid" id="nexsonid" value="' + sourceId + '" />')
 				.append('<input type="hidden" name="recenthash" id="recenthash" value="' + recenthash + '" />');
 				$(loadForm).attr("action", "cgi-bin/load_sources.py").attr("method", "POST");
 			} else {
 				$(loadSubmit).addClass("disabled");
+				loadSubmit.disabled = true;
 			}
 			
 			$(objRow).append($(document.createElement("td")).append(loadForm));
