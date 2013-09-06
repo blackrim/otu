@@ -69,7 +69,13 @@ public class Indexing extends ServerPlugin {
 		// get just the most recent commit
 		String mostRecentCommitHash = (String) ((JSONObject) ((JSONArray) commitsJSON.get("values")).get(0)).get("hash");
 
-		return ValueRepresentation.string(nexsonsBaseURL + mostRecentCommitHash + "/");
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("base_url", nexsonsBaseURL);
+		result.put("recenthash", mostRecentCommitHash);
+		result.put("url", nexsonsBaseURL + mostRecentCommitHash + "/");
+		return OpentreeRepresentationConverter.convert(result);
+
+//		return ValueRepresentation.string(nexsonsBaseURL + mostRecentCommitHash + "/");
 
 	}
 

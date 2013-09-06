@@ -1,6 +1,6 @@
 package opentree.otu;
 
-import opentree.otu.constants.GeneralConstants;
+import opentree.otu.constants.OTUConstants;
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
 import opentree.otu.constants.SearchableProperty;
@@ -50,7 +50,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 		sourceMetaNodesBySourceId.add(sourceMetaNode,
 				(String) sourceMetaNode.getProperty(NodeProperty.LOCATION.name)+"SourceId",
 				sourceMetaNode.getProperty(NodeProperty.SOURCE_ID.name));
-		indexNodeBySearchableProperties(sourceMetaNode, GeneralConstants.SOURCE_PROPERTIES_FOR_SIMPLE_INDEXING);
+		indexNodeBySearchableProperties(sourceMetaNode, OTUConstants.SOURCE_PROPERTIES_FOR_SIMPLE_INDEXING);
 	}
 
 	/**
@@ -81,7 +81,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 					.getEndNode().getProperty(NodeProperty.SOURCE_ID.name));
 		
 		// add to property indexes
-		indexNodeBySearchableProperties(treeRootNode, GeneralConstants.TREE_PROPERTIES_FOR_SIMPLE_INDEXING);
+		indexNodeBySearchableProperties(treeRootNode, OTUConstants.TREE_PROPERTIES_FOR_SIMPLE_INDEXING);
 
 		// add to taxonomy indexes
 		addTreeToTaxonomicIndexes(treeRootNode);

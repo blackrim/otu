@@ -1,8 +1,6 @@
 package opentree.otu.constants;
 
-import opentree.otu.NodeIndexDescription;
-
-public enum GeneralConstants {
+public enum OTUConstants {
 
 	;
 	
@@ -50,6 +48,6 @@ public enum GeneralConstants {
 		SearchableProperty.TAG_SOURCE
 	};
 	
-	// We just use the enum to hold constant variables, no need to set general form.
-	GeneralConstants() {}
+	// We just use the enum to hold arbitrary constant variables as above, so no need to set a generalized structure.
+	OTUConstants() {}
 }

@@ -34,7 +34,8 @@ import java.util.Map.Entry;
 
 public class NexsonReader {
 
-	// TODO: do not add nulls to the set of trees. instead throw exceptions when trees cannot be read.
+	// TODO: do not add nulls to the set of trees. instead accept an argument that specifies
+	// whether to throw an exception or continue silently when trees cannot be read.
 	
 	// TODO: convert this to use enums for properties
 	

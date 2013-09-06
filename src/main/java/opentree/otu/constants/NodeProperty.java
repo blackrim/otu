@@ -1,7 +1,5 @@
 package opentree.otu.constants;
 
-import org.neo4j.graphdb.Node;
-
 /**
  * Node properties as defined within the graph itself. These are stored in graph nodes. Different types
  * of nodes may have different properties. For more information see:

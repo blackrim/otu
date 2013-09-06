@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Map;
 
-import opentree.otu.constants.GeneralConstants;
+import opentree.otu.constants.OTUConstants;
 import opentree.otu.constants.GraphProperty;
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
@@ -98,7 +98,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * @param sourceId
 	 * @return
 	 */
-	public Iterable<Node> getAllKnownSourceMetaNodesForSourceId(String sourceId) {
+	public List<Node> getRemoteSourceMetaNodesForSourceId(String sourceId) {
 		
 		List<Node> remoteSourceMetasFound = new LinkedList<Node>();
 		
@@ -243,83 +243,53 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	
 	/**
 	 * Return a JSON string containing the metadata for the corresponding source. Will fail if the provided node
-	 * is not a source metadata node.
+	 * is not a source metadata node. A general purpose method that gathers information about local and remote sources.
 	 * 
 	 * @param sourceMeta
 	 * 		The metadata node for the source
 	 * @return
 	 * 		A JSON string containing metadata for this source
 	 */
-//	public static Map<String, Object> getMetadataJSONForSource(Node sourceMeta) {
-	public static Map<String, Object> getSourceMetadata(Node sourceMeta) {
+	public Map<String, Object> getSourceMetadata(Node sourceMeta) {
 		
-//		StringBuffer bf = new StringBuffer("{ \"metadata\": {");
-		
+		// get properties indicated for public consumption
 		Map<String, Object> metadata = new HashMap<String, Object>();
-
-		for (NodeProperty property : GeneralConstants.VISIBLE_SOURCE_PROPERTIES) {
+		for (NodeProperty property : OTUConstants.VISIBLE_SOURCE_PROPERTIES) {
 			Object value = (Object) "";
 			if (sourceMeta.hasProperty(property.name)) {
 				value = sourceMeta.getProperty(property.name);
 			}
 			metadata.put(property.name, value);
 		}
-		
-//		boolean first = true;
-//		for (String p : sourceMeta.getPropertyKeys()) {
-//			if (first) {
-//				first = false;
-//			} else {
-//				bf.append(","); 
-//			}
-//			bf.append("\"" + p + "\" : \"" + String.valueOf(sourceMeta.getProperty(p)) + "\"");
-//		}
 
-/*		if (sourceMeta.hasProperty("ot:curatorName")) {
-			bf.append((String) sourceMeta.getProperty("ot:curatorName"));
-		}
-		bf.append("\", \"ot:dataDeposit\": \"");
-		if (sourceMeta.hasProperty("ot:dataDeposit")) {
-			bf.append((String) sourceMeta.getProperty("ot:dataDeposit"));
-		}
-		bf.append("\", \"ot:studyPublication\": \"");
-		if (sourceMeta.hasProperty("ot:studyPublication")) {
-			bf.append((String) sourceMeta.getProperty("ot:studyPublication"));
-		}
-		bf.append("\", \"ot:studyPublicationReference\": \"");
-		if (sourceMeta.hasProperty("ot:studyPublicationReference")) {
-			bf.append(GeneralUtils.escapeStringForJSON((String) sourceMeta.getProperty("ot:studyPublicationReference")));
-		}
-		bf.append("\", \"ot:studyYear\": \"");
-		if (sourceMeta.hasProperty("ot:studyYear")) {
-			bf.append(String.valueOf(sourceMeta.getProperty("ot:studyYear")));
-		}
-		 */
-		
-		List<String> trees = new LinkedList<String>(); // actually the tree ids
-		
-		// add the trees
-//		bf.append("}, \"trees\" : [");
-
-//		ArrayList<String> trees = new ArrayList<String>();
+		// get the trees
+		List<String> trees = new LinkedList<String>(); // will actually store the tree ids
 		for (Relationship rel : sourceMeta.getRelationships(RelType.METADATAFOR, Direction.OUTGOING)) {
 			trees.add((String) rel.getEndNode().getProperty(NodeProperty.TREE_ID.name));
 		}
-//		for (int i = 0; i < trees.size(); i++) {
-//			bf.append("\"" + trees.get(i));
-//			if (i != trees.size() - 1) {
-//				bf.append("\",");
-//			} else {
-//				bf.append("\"");
-//			}
-//		} 
-//		bf.append("] }");
-//		return bf.toString();
-		
+
+		// check if local
+		boolean hasLocalCopy = false;
+		List<String> remotes = new LinkedList<String>();
+		if (sourceMeta.getProperty(NodeProperty.LOCATION.name).equals(LOCAL_LOCATION)) {
+			hasLocalCopy = true;
+		} else {
+			hasLocalCopy = false;
+		}
+
+		// check for remotes
+		for (Node remoteMeta : getRemoteSourceMetaNodesForSourceId((String) sourceMeta.getProperty(NodeProperty.SOURCE_ID.name))) {
+			remotes.add((String) remoteMeta.getProperty(NodeProperty.LOCATION.name));
+		}
+
+		// put it together and what have you got
 		Map<String, Object> result = new HashMap<String, Object>();
 		result.put("metadata", metadata);
 		result.put("trees", trees);
-		
+		result.put("has_local_copy", hasLocalCopy);
+		result.put("remotes_known", remotes);
+
+		// bibbity bobbity boo
 		return result;
 	}
 
@@ -336,7 +306,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 
 		Map<String, Object> metadata = new HashMap<String, Object>();
 
-		for (NodeProperty property : GeneralConstants.VISIBLE_TREE_PROPERTIES) {
+		for (NodeProperty property : OTUConstants.VISIBLE_TREE_PROPERTIES) {
 			Object value = (Object) "";
 			if (root.hasProperty(property.name)) {
 				value = root.getProperty(property.name);
