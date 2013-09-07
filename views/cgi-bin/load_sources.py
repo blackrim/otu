@@ -28,6 +28,7 @@ UPLOAD_DIR = "/tmp"
 HTML_TEMPLATE = open("cgi-bin/load_sources_TEMPLATE.html","rU").read()
 
 UNSPECIFIED_ACTION = "unspecified action"
+NO_ACTION = "no action"
 
 resturlsinglenewick = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/putSourceNewickSingle"
 resturlnexsonfile = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/putSourceNexsonFile"
@@ -35,10 +36,12 @@ resturlnexsonfile = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/putSo
 # ===== functions for saving uploaded files
 
 def save_uploaded_file(form, form_field, upload_dir):
+    if (len(form.keys()) < 1):
+        return {"worked":False,"message":NO_ACTION}
     log = open("logging","w")
     log.write("HERE\n")
     for i in form.keys():
-	    log.write(i + ": " + form[i].value + "\n")
+        log.write(i + ": " + form[i].value + "\n")
     log.close()
     r = ""
     if form.has_key("hidden_newick_from_file"):
@@ -48,7 +51,7 @@ def save_uploaded_file(form, form_field, upload_dir):
     elif form.has_key("hidden_nexson_from_file"):
         r = save_uploaded_file_nexson(form, form_field,upload_dir)
     else:
-        r = UNSPECIFIED_ACTION
+        r = {"worked": False, "message":UNSPECIFIED_ACTION}
     return r
         
 def save_uploaded_file_newick (form, form_field, upload_dir):
@@ -85,7 +88,7 @@ def save_uploaded_file_newick (form, form_field, upload_dir):
         },data = data)
     f = urllib2.urlopen(req)
     log.close()
-    return True
+    return {"worked":True, "sourceId":sourceid}
 
 def save_git_file_nexson(form, upload_dir):
     log = open("logging","a")
@@ -108,10 +111,12 @@ def save_git_file_nexson(form, upload_dir):
     log.write('curl -X POST '+resturlnexsonfile+' -H "Content-Type: application/json"'+' -d \''+data+'\'')
     f = urllib2.urlopen(req2)
     log.close()
-    return f.read()
+    result = json.loads(f.read())
+    result["sourceId"] = sourceId
+    return result
 
 def save_uploaded_file_nexson (form, form_field, upload_dir):
-    return False
+    return {"worked":False,"message":"Manual nexson upload not implemented"}
 
 def make_json_with_newick(sourcename,newick):
     data = json.dumps({"sourceId": sourcename, "newickString": newick})
@@ -164,14 +169,14 @@ def print_html_form (result, recenthash, gitfilelist):
 
 result = save_uploaded_file (cgi.FieldStorage(), "file", UPLOAD_DIR)
 message = ""
-if result != UNSPECIFIED_ACTION:
-    result = json.loads(result)
-    if result["worked"] == False:
-        message = result["message"]
-#    else:
-#        message = ""
-#else:
-#    message = "unspecified operation. nothing to be done."
+#if result != UNSPECIFIED_ACTION:
+if result["worked"]:
+    message = '<p class="highlight">Added source '+result["sourceId"]+' to the database. <a href="../source_view.html?sourceId='+result["sourceId"]+'">Click here to edit this source</a>.</p>'
+elif result["message"] != NO_ACTION:
+    message = '<p class="warning">'+result["message"]+'</p>'
+else:
+    # there was no form submitted so don't print a warning
+    pass
 
 recenthash = get_bitbucket_recent_hash()
 gitfilelist = get_bitbucket_file_list(recenthash)

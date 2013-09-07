@@ -99,7 +99,7 @@ public class treeJsons extends ServerPlugin{
 
 		// TODO: add check for whether tree is imported. If not then return error instead of just empty tree
 		Node rootNode = graphDb.getNodeById(nodeId);
-		JadeTree t = DatabaseBrowser.getTreeFromNode(rootNode, 100);
+		JadeTree t = DatabaseBrowser.getTreeFromNode(rootNode, 300);
 
 		return t.getRoot().getJSON(false);
 	}

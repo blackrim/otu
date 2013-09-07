@@ -3,8 +3,10 @@ package opentree.otu.plugins;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import jade.MessageLogger;
 import jade.tree.*;
@@ -21,12 +23,37 @@ import org.neo4j.server.rest.repr.Representation;
 
 public class sourceJsons extends ServerPlugin {
 
-	@Description("Return JSON containing information about local sources and trees")
+	@Description("Return JSON containing information tree ids for all local sources")
 	@PluginTarget(GraphDatabaseService.class)
-	public String getSourceTreeList(@Source GraphDatabaseService graphDb) {
-		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
+	public Representation getTreeIdsForAllLocalSources(@Source GraphDatabaseService graphDb,
+		@Description("Tree ids to exclude from the results") @Parameter(name="excludedTreeIds", optional=true) String[] excludedTreeIdsArr){
+/*		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
 		String sourcetreelist = browser.getJSONOfSourceIdsAndTreeIdsForImportedTrees();
-		return sourcetreelist;
+		return sourcetreelist; */
+		Set<String> excludedTreeIds = new HashSet<String>();
+		if (excludedTreeIdsArr != null) {
+			for (Object tid : excludedTreeIdsArr) {
+				excludedTreeIds.add((String) tid);
+			}
+		}
+		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
+		return OpentreeRepresentationConverter.convert(browser.getTreeIdsForSource(browser.LOCAL_LOCATION, "*", excludedTreeIds));
+	}
+	
+	@Description("Return JSON containing information tree ids for the specified source")
+	@PluginTarget(GraphDatabaseService.class)
+	public Representation getTreeIdsForLocalSource (
+			@Source GraphDatabaseService graphDb,
+			@Description("The source id") @Parameter(name="sourceId", optional=false) String sourceId,
+			@Description("Tree ids to exclude from the results") @Parameter(name="excludedTreeIds", optional=true) String[] excludedTreeIdsArr){
+		Set<String> excludedTreeIds = new HashSet<String>();
+		if (excludedTreeIdsArr != null) {
+			for (Object tid : excludedTreeIdsArr) {
+				excludedTreeIds.add((String) tid);
+			}
+		}
+		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
+		return OpentreeRepresentationConverter.convert(browser.getTreeIdsForSource(browser.LOCAL_LOCATION, sourceId, excludedTreeIds));
 	}
 
 	@Description("Return JSON containing information about local trees")
