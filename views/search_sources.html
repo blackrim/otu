@@ -106,7 +106,7 @@ function addResult(sourceId) {
 				var viewForm = document.createElement("form");
 				$(viewForm).attr("style","display: inline")
 					.attr("action", "source_view.html").attr("method", "GET")
-					.append($(document.createElement("button")).attr("name","submit").attr("type","submit").addClass("btn btn-primary").css("width","4em").append("View"))
+					.append($(document.createElement("button")).attr("name","submit").attr("type","submit").addClass("btn btn-primary").css("width","5em").append("View"))
 					.append('<input type="hidden" name="sourceId" id="sourceId" value="'+sourceId+'" />');
 				$(formCell).append(viewForm);
 			} else {
@@ -114,14 +114,14 @@ function addResult(sourceId) {
 				var loadForm = document.createElement("form");
 				$(loadForm).attr("style","display: inline")
 					.attr("action", "cgi-bin/load_sources.py").attr("method", "POST")
-					.append($(document.createElement("button")).attr("name","submit").attr("type","submit").attr("enctype","multipart/form-data").addClass("btn").css("width","4em").append("Load"))
+					.append($(document.createElement("button")).attr("name","submit").attr("type","submit").attr("enctype","multipart/form-data").addClass("btn").css("width","5em").append("Import"))
 					.append('<input type="hidden" name="hidden_nexson_from_git" id="hidden_nexson_from_git" value="true" />')
 					.append('<input type="hidden" name="nexsonid" id="nexsonid" value="' + sourceId + '" />')
 					.append('<input type="hidden" name="recenthash" id="recenthash" value="' + recenthash + '" />');
 				$(formCell).append(loadForm);
 			}
 			$(objRow).append(formCell);
-			$(objRow).append('<td style="font-size:0.8em">' + response.metadata['ot:studyPublicationReference'].substring(0,100) + '...</td>');
+			$(objRow).append('<td style="font-size:0.8em">' + response.metadata['ot:studyPublicationReference'].substring(0,120) + '...</td>');
 
 			$("#resultsTable").append(objRow);
 		}
