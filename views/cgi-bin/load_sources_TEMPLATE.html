@@ -14,6 +14,19 @@
 		  border-style: solid;
 		  border-color: lightblue;
 		  border-width: 2px 0 0 0;
+	  } .highlight, .warning {
+		  padding: 0.4em 0.4em 0.4em  0.6em;
+		  color: white;
+		  font-size: 1.2em;
+	  } .highlight a, .warning a {
+		  font-weight: bold;
+		  color: white;
+		  text-decoration: underline;
+	  } .highlight {
+		  background-color: #37f;
+	  } .warning {
+		  background-color: #f44;
+		  color: white;
 	  }
     </style>
 </head>
@@ -42,7 +55,7 @@
 
 <div class="container">
 <h1>Add and List sources in the local database</h1>
-<div><p style="color:red">$MESSAGE$</p></div>
+<div>$MESSAGE$</div>
 <div class="row">
 <div id="source-contain" class="span5">
 <h3 class="header">Nexson files</h3>

@@ -2,123 +2,101 @@
 <meta charset="utf-8">
 <head>
 <title>OTU: look at that tree</title>
- <link rel="stylesheet" href="css/jquery-ui-1.10.3.custom.min.css" />
- <script src="js/jquery-1.9.1.js"></script>
- <script src="js/jquery-ui-1.10.3.custom.min.js"></script>
- <script src="js/d3.v3.min.js" charset="utf-8"></script>
-  <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
- <link href="css/bootstrap-responsive.css" rel="stylesheet">
- <script src="js/bootstrap.min.js"></script>
- <script>
-  $(function() {
-    $( "#radio" ).buttonset();
-  });
- </script>
- <style>
-  #format { margin-top: 2em; }
-  </style>
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <style>
-      body {
-        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
-      }
+    <link rel="stylesheet" href="css/jquery-ui-1.10.3.custom.min.css" />
+    <script src="js/jquery-1.9.1.js"></script>
+    <script src="js/jquery-ui-1.10.3.custom.min.js"></script>
+    <script src="js/d3.v3.min.js" charset="utf-8"></script>
+    <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link href="css/bootstrap-responsive.css" rel="stylesheet">
+    <script src="js/bootstrap.min.js"></script>
+    <!--script>
+// this seems to be unnecessary?
+ $(function() {
+     $("#radio").buttonset();
+ });
+    </script-->
+    <!--style>
+    #format { margin-top: 2em; }
+    </style-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+ 
+body {
+    padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+
+} #loadFormContainer {
+    position: absolute;
+    top: 6.7em;
+    right:3em;
+    width: 22em;
+    padding-right:0em;
+
+} #nodeEditor {
+    background-color: white;
+	position: absolute;
+	border: 0.1em solid lightgrey;
+	padding: 0.2em 0.5em 0.3em 0.5em;
+	width: 20em;
+
+}
     </style>
-</head>
-<body>
-  <div class="navbar navbar-inverse navbar-fixed-top">
-    <div class="navbar-inner">
-      <div class="container">
-        <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        </button>
-        <a class="brand" href="#">OTU</a>
-        <div class="nav-collapse collapse">
-          <ul class="nav">
-            <li><a href="cgi-bin/load_sources.py">Load and List Sources</a></li>
-            <li><a href="search_sources.html">Search Sources</a></li>
-            <li><a href="source_view.html">View Source</a></li>
-            <li class="active"><a href="#">View Tree</a></li>
-            <li><a href="conf.html">Configure</a></li>
-          </ul>
-        </div><!--/.nav-collapse -->
-      </div>
+    </head>
+    <body>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container">
+                <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                </button>
+                <a class="brand" href="#">OTU</a>
+                <div class="nav-collapse collapse">
+                    <ul class="nav">
+                        <li><a href="cgi-bin/load_sources.py">Load and List Sources</a></li>
+                        <li><a href="search_sources.html">Search Sources</a></li>
+                        <li><a href="source_view.html">View Source</a></li>
+                        <li class="active"><a href="#">View Tree</a></li>
+                        <li><a href="conf.html">Configure</a></li>
+                    </ul>
+                </div><!--/.nav-collapse -->
+            </div>
+        </div>
     </div>
-  </div>
-  <div class="container">
-    <div class="offset5">
-    Load a different tree...
-	<form class="form-inline" >
-	  <select id="loadselect" style="width:400px">
-	  </select>
-	  <button type="button" class="btn" onClick='submitDetailsForm()'>Load</button>
-	</form>
-  </div>
-  <h5 id="treeId"></h5>
-  <h4>Click on a node and it will...</h4>
-  <div class="btn-group" data-toggle="buttons-radio">
-    <button type="button" class="btn btn-large btn-success" name="cac" value=1 id="refocus">Refocus</button>
-	<button type="button" class="btn btn-large btn-primary" name="cac" value=2>Reroot</button>
-	<button type="button" class="btn btn-large btn-primary" name="cac" value=3>Choose Ingroup</button>
-  </div>
-  <button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree()" id>Delete Tree</button>
-</div> 
-<script>
+    <div class="container">
+        <div id="loadFormContainer">
+            <div>
+                Load a different tree from this source
+	            <form class="form-inline" action="tree_dyn.html" method="GET">
+	                <select id="loadSelectThisSource" name="treeId" style="width:16em;"></select>
+	                <button type="submit" class="btn" id="thisSourceButton">Load</submit>
+	            </form>
+            </div>
+            <div>
+                Load a different tree from any source
+                <form class="form-inline" action="tree_dyn.html" method="GET">
+                    <select id="loadSelectAll" style="width:16em;" name="treeId"></select>
+                    <button type="submit" class="btn" id="allSourceButton">Load</button>
+                </form>
+            </div>
+        </div>
+        <h4 id="treeId"></h4>
+        <div class="btn-group" data-toggle="buttons-radio">
+            <button type="button" class="btn btn-large btn-success" name="cac" value=1 id="refocus">Refocus</button>
+	        <button type="button" class="btn btn-large btn-primary" name="cac" value=2>Reroot</button>
+	        <button type="button" class="btn btn-large btn-primary" name="cac" value=3>Choose Ingroup</button>
+        </div>
+        <button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree()" id>Delete Tree</button>
+    </div>
+    <script>
 
-//this needs to ignore the current one we are looking at
-function getSourceTreeList(sourceid,id){
-    var baseurl = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getSourceTreeList";
-    var method = "POST";
-    var xobjPost = new XMLHttpRequest();
-    xobjPost.open(method, baseurl, false);
-    xobjPost.setRequestHeader("Accept", "");
-    xobjPost.setRequestHeader("Content-Type","application/json");
-    xobjPost.send("");
-    var jsonrespstr = xobjPost.responseText;
-//    alert(jsonrespstr);
-    var evjson = jQuery.parseJSON(eval(jsonrespstr));
-    $(evjson.sources).each(function(index, element){
-	if(element[0] != sourceid && element[1] != id){
-	 $('#loadselect').append('<option value='+element[1]+'> sourceId:'+element[0]+' treeId:'+element[1]+'</option>');
-	 }
-    })
-}
-
-function deleteTree(sid, tid){
-    var baseurl = "http://localhost:7474/db/data/ext/treeJsons/graphdb/deleteTreeFromTreeId";
-    var method = "POST";
-    var senddata = "{\"sourceId\":\""+sid+"\",\"treeId\":\""+tid+"\"}";
-    var xobjPost = new XMLHttpRequest();
-    xobjPost.open(method, baseurl, false);
-    xobjPost.setRequestHeader("Accept", "");
-    xobjPost.setRequestHeader("Content-Type","application/json");
-    xobjPost.send(senddata);
-    var jsonrespstr = xobjPost.responseText;
-//    alert(jsonrespstr);
-    var evjson = eval(jsonrespstr);
-    window.location.href="source_view.html?sourceId="+sid;
-}
-
-function setTreeTitle(sid, tt){
-    $("#treeId").replaceWith('<h3 id=treeId>treeId: '+tt+' sourceId <a href="source_view.html?sourceId='+sid+'">'+sid+'</a></h3>');
-    $("#deleteTreeBtn").replaceWith('<button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree(\''+sid+'\',\''+tt+'\')" id>Delete Tree</button>');
-}
-
-function submitDetailsForm(){
-    var st = $("#loadselect").val();
-    var stid = getRootIdFromTreeId(st);
-    var sourceid = getSourceIdForTreeId(st);
-    setTreeTitle(sourceid,st);
-    setup(stid);
-    setup(stid);
-}
+// geometry
 
 var margin = {top: 20, right: 120, bottom: 20, left: 120},
     width = 4000 - margin.right - margin.left,
-    height = 5000 - margin.top - margin.bottom;
+    height = 12000 - margin.top - margin.bottom;
 
-var nheight = 100;
+var nheight = 30;
 
 var i = 0,
     duration = 750,
@@ -130,281 +108,422 @@ var tree = d3.layout.cluster()
 var diagonal = d3.svg.diagonal()
     .projection(function(d) { return [d.y, d.x]; });
 
-var svg = d3.select("body").append("svg")
+var svg = d3.select("body").append("svg").attr("id","treeSVG")
     .attr("width", width + margin.right + margin.left)
     .attr("height", height + margin.top + margin.bottom)
-  .append("g")
+    .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    
+// ===== onload methods and globals (which are set by onload methods)
 
-$('button[id="refocus"]').button('toggle');
-function loadData(argsobj) {
-  var url = argsobj.url;
-  var jsonquerystr = argsobj.jsonquerystring;
-  var method = argsobj.method;
+var treeId;
+var sourceId;
+var xo; // the left side of the tree svg
+var yo; // the top of the tree svg
+var bbox; // the bounding box element for the tree svg
 
-  var xobjPost = new XMLHttpRequest();
-  xobjPost.open(method, url, false);
-  xobjPost.setRequestHeader("Accept", "");
+// on page load
+$(document).ready(function() {
 
-  xobjPost.setRequestHeader("Content-Type","application/json");
-  xobjPost.send(jsonquerystr);
-  var jsonrespstr = xobjPost.responseText;
-//  alert(jsonrespstr);
-  var evjson = eval(jsonrespstr);
-//  alert(evjson);
-  d3.json("", function(error, flare) {
-    root = JSON.parse(evjson);
-    root.x0 = height / 2;
-    root.y0 = 0;
+    treeId = getQueryVariable('treeId');
+    sourceId = false;
 
-    update(root);
-  });
-//}
+    if (treeId) {
+        sourceId = getSourceIdForTreeId(treeId);
+        setupPage(sourceId, treeId);
+        var rootNodeId;
+        if (treeId) {
+            rootNodeId = getRootIdFromTreeId(treeId);
+        }
+
+        // do it twice to get the height right <- this doesn't appear to work...
+        setupTree(rootNodeId);
+        setupTree(rootNodeId);
+
+        d3.select(self.frameElement).style("height", "800px");
+    }
+    
+    // fill the tree selector dropdowns even if there is no tree loaded 
+    getSourceTreeList(sourceId, treeId);
+    getAllLocalTreeList(treeId);
+    
+});
+
+// when the tree svg loads, get its position for future reference
+$(document.getElementById("treeSVG")).ready(setCoords)
+function setCoords() {
+    bbox = document.getElementById("treeSVG").getBoundingClientRect();
+    xo = bbox.left + margin.left;
+    yo = bbox.top + margin.top;
 }
+
+// ===== general setup
+
+// fill containers based on variables
+function setupPage(sourceId, treeId) {
+
+    // fill dropdowns
+    getSourceTreeList(sourceId, treeId);
+    getAllLocalTreeList(treeId);
+    
+    // set title
+    document.getElementById("treeId").innerHTML = 'Editing tree ' + treeId
+        + ' from source <a href="source_view.html?sourceId=' + sourceId + '">' + sourceId + '</a>';
+    
+    // setup delete button
+    $("#deleteTreeBtn").click(function() {
+        deleteTree(sourceId, treeId);
+    });
+    
+    resetRadio();
+}
+
 function resetRadio() {
-  $('button[id="refocus"]').button('toggle');
+    $('button[id="refocus"]').button('toggle');
 }
 
-
-function setup(node){
-  var nodeid = "{\"nodeId\":"+node+"}";
-  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getTreeJson";
-  var argsobj = {"url":url,"method":"POST","jsonquerystring":nodeid};
-  loadData(argsobj);
+// gets a list of all trees *within the current study*
+function getSourceTreeList(sourceId, treeId) {
+    var treeIdsService = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getTreeIdsForLocalSource";
+    var xhr = getXhr(treeIdsService, function() {
+        var response = JSON.parse(xhr.responseText);
+        document.getElementById("loadSelectThisSource").innerHTML = "";
+        $(response.trees).each(function(i, tid) {
+            $('#loadSelectThisSource')
+                .append('<option value=' + tid + '> treeId:' + tid + '</option>');
+        });
+        if (response.trees.length < 1) {
+            $('#loadSelectThisSource')
+                .append('<option>No other trees for this source</option>')
+                .attr("disabled","disabled")
+                .css("color","#999");
+            $("#thisSourceButton")
+                .attr("disabled","disabled")
+                .addClass("disabled");
+        } else {
+            $('#loadSelectThisSource')
+                .removeAttr("disabled")
+                .css("color","");
+            $("#thisSourceButton")
+                .removeAttr("disabled","disabled")
+                .removeClass("disabled");
+        }
+    });
+    xhr.send(JSON.stringify({"sourceId":sourceId ? sourceId : "nothing","excludedTreeIds":[treeId ? treeId : "nothing"]}));
 }
 
-/*
- * Used to get the nodeid from a start ottol id
- */
-function getRootIdFromTreeId(oid){
-  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getRootNodeIdForTreeId";
-  var jsonquerystr = "{\"treeId\":\""+oid+"\"}";
-  var method = "POST";
-  var xobjPost = new XMLHttpRequest();
-  xobjPost.open(method, url, false);
-  xobjPost.setRequestHeader("Accept", "");
-  xobjPost.setRequestHeader("Content-Type","application/json");
-  xobjPost.send(jsonquerystr);
-  var jsonrespstr = xobjPost.responseText;
-//  alert(jsonrespstr);
-  var evjson = eval(jsonrespstr);
-  return evjson;
+// gets a list of all local trees for all studies
+function getAllLocalTreeList(treeId) {
+    var treeIdsService = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getTreeIdsForAllLocalSources";
+    var xhr = getXhr(treeIdsService, function() {
+        var response = JSON.parse(xhr.responseText);
+//            alert(JSON.stringify(response));
+        document.getElementById("loadSelectAll").innerHTML = "";
+        $(response.trees).each(function(i, tid) {
+            $('#loadSelectAll')
+                .append('<option value=' + tid + '> treeId:' + tid + '</option>');
+        });
+        if (response.trees.length < 1) {
+            $('#loadSelectAll')
+                .append('<option>No other local trees</option>')
+                .attr("disabled","disabled").css("color","#999");
+            $("#allSourceButton")
+                .attr("disabled","disabled")
+                .addClass("disabled");
+        } else {
+            $('#loadSelectAll')
+                .removeAttr("disabled")
+                .css("color","");
+            $("#allSourceButton")
+                .removeAttr("disabled","disabled")
+                .removeClass("disabled");
+        }
+    });
+    xhr.send(treeId ? JSON.stringify({"excludedTreeIds":[treeId]}) : "");
 }
 
-/*
- * Used to get the nodeid from a start ottol id
- */
-function getSourceIdForTreeId(oid){
-  if(oid == ""){
-    return "";
-  }
-  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getSourceIdForTreeId";
-  var jsonquerystr = "{\"treeId\":\""+oid+"\"}";
-  var method = "POST";
-  var xobjPost = new XMLHttpRequest();
-  xobjPost.open(method, url, false);
-  xobjPost.setRequestHeader("Accept", "");
-  xobjPost.setRequestHeader("Content-Type","application/json");
-  xobjPost.send(jsonquerystr);
-  var jsonrespstr = xobjPost.responseText;
-//  alert(jsonrespstr);
-  var evjson = eval(jsonrespstr);
-  return evjson;
+// ===== tree view and editing
+
+function setupTree(nodeId) {
+    var treeJSONService = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getTreeJson";
+    var xhr = getXhr(treeJSONService, function() {
+        var jsonrespstr = xhr.responseText;
+    //  alert(jsonrespstr);
+        var evjson = eval(jsonrespstr);
+    //  alert(evjson);
+        d3.json("", function(error, flare) {
+            root = JSON.parse(evjson);
+            root.x0 = height / 2;
+            root.y0 = 0;
+            update(root);
+        });
+    });
+    xhr.send(JSON.stringify({"nodeId":nodeId}));
+
 }
 
-/*
- * used for grabbing the ottol id from the url string
- */
-function getQueryVariable(variable){
-  var query = window.location.search.substring(1);
-  var vars = query.split("&");
-  for (var i=0;i<vars.length;i++) {
-    var pair = vars[i].split("=");
-    if(pair[0] == variable){return pair[1];}
-  }
-  return(false);
-}
-
-/*
- * this is called from loadData and updates the fig
- */
+// Create the tree from the JSON
 function update(source) {
   
-  // Compute the new tree layout.
-  var nodes = tree.nodes(root).reverse(),
-      links = tree.links(nodes);
+    // Compute the new tree layout.
+    var nodes = tree.nodes(root).reverse(),
+        links = tree.links(nodes);
  
-  var tips = 0;
-  nodes.forEach(function(d) { if(!d.children){tips+=1;} });
+    var tips = 0;
+    nodes.forEach(function(d) { if(!d.children){tips+=1;} });
     
-  nheight = tips * 20;
-  //alert(nheight);
-  tree.size([nheight, 1760]);
+    nheight = tips * 20;
+    //alert(nheight);
+    tree.size([nheight, 1760]);
 
-  // Normalize for fixed-depth.
+    // Normalize for fixed-depth.
 //  nodes.forEach(function(d) { d.y = d.depth * 180; });
-  nodes.forEach(function(d) { d.y = d.depth * 50; });
+    nodes.forEach(function(d) { d.y = d.depth * 50; });
 
-  // Update the nodes…
-  var node = svg.selectAll("g.node")
+    // Update the nodes…
+    var node = svg.selectAll("g.node")
       .data(nodes, function(d) { return d.id || (d.id = ++i); });
 
-  // Enter any new nodes at the parent's previous position.
-  var nodeEnter = node.enter().append("g")
-      .attr("class", "node")
-      .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
-      .on("click", click);
+    // Enter any new nodes at the parent's previous position.
+    var nodeEnter = node.enter().append("g")
+        .attr("class", "node")
+        .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
 
-  nodeEnter.append("circle")
-      .attr("r", 1e-6)
-      .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
+        // click handler for nodes
+        .on("click", function(d) {
 
-  nodeEnter.append("text")
-      .attr("x", function(d) { return d.children || d._children ? -10 : 10; })
-      .attr("dy", ".35em")
-      .attr("text-anchor", function(d) { return d.children || d._children ? "end" : "start"; })
-      .text(function(d) { return d.size ? d.name+" ("+d.size+")": d.name;})
-      .style("font-size","10px") 
-      .style("font-family","Arial")
-      .style("fill-opacity", 1e-6);
+            // open the node editor for tips        
+            $('#nodeEditor').remove();
+            if (d.name) {
+                updateNodeEditor(d);
+                return;
+            }
+            
+            // otherwise check the active button to determine the action
+            var ac = $('button[name="cac"].active').val();
+            var ev = d3.event;
+    
+            if (ac == 1){ // refocus
+                setupTree(d.id);	
+            } else if (ac == 2 ){ // reroot
+                resetRadio();
+                reroot (d.id);
+            } else if (ac == 3){ // ingroup
+                resetRadio();
+                designateIngroup(d.id);
+            } else if (ac == 4){ // export
+                resetRadio();
+                alert("behold! you wish to extract!!");
+            } /* else if (ev.shiftKey) {
+                // can also use ev.ctrlKey, etc. try alert(Object.keys(ev)) to see more
+        	    alert("shiftclick");
+            } */
+        
+        })
+        
+        // example of right click, same behavior here as normal click
+        .on("contextmenu", function(d, index) {
+//          alert("rightclick");
+            d3.event.preventDefault();
+            if (d.name) {
+                // stop showing browser menu
+                updateNodeEditor(d);
+            }
+        });
 
-  // Transition nodes to their new position.
-  var nodeUpdate = node.transition()
-      .duration(duration)
-      .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+    nodeEnter.append("circle")
+        .attr("r", 1e-6)
+        .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
 
-  nodeUpdate.select("circle")
-      //.attr("r", 4.5)
-      .attr("r", function(d) { return d.ingroup ? 5 : 3;})
-      .style("stroke",function(d) { return d.ingroup ? "green" : "grey";})
-      .style("fill",function(d) { return d.notcomplete ? "lightgreen" : "#fff";});
-      //.style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
+    nodeEnter.append("text")
+        .attr("x", function(d) { return d.children || d._children ? -10 : 10; })
+        .attr("dy", ".35em")
+        .attr("text-anchor", function(d) { return d.children || d._children ? "end" : "start"; })
+        .text(function(d) { return d.size ? d.name+" ("+d.size+")": d.name;})
+        .style("font-size","10px") 
+        .style("font-family","Arial")
+        .style("fill-opacity", 1e-6);
 
-  nodeUpdate.select("text")
-      .style("fill-opacity", 1);
+    // Transition nodes to their new position.
+    var nodeUpdate = node.transition()
+        .duration(duration)
+        .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
 
-  // Transition exiting nodes to the parent's new position.
-  var nodeExit = node.exit().transition()
-      .duration(duration)
-      .attr("transform", function(d) { return "translate(" + source.y + "," + source.x + ")"; })
-      .remove();
+    nodeUpdate.select("circle")
+        //.attr("r", 4.5)
+        .attr("r", function(d) { return d.ingroup ? 4 : 3;})
+        .style("stroke",function(d) { return d.ingroup ? "#35f" : "grey";})
+        .style("stroke-width", function(d) { return d.ingroup ? 2 : 1 ;})
+        .style("fill",function(d) { return d.notcomplete ? "lightgreen" : "#fff";});
+        //.style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
 
-  nodeExit.select("circle")
-      .attr("r", 1e-6);
+    nodeUpdate.select("text")
+        .style("fill-opacity", 1);
 
-  nodeExit.select("text")
-      .style("fill-opacity", 1e-6);
+    // Transition exiting nodes to the parent's new position.
+    var nodeExit = node.exit().transition()
+        .duration(duration)
+        .attr("transform", function(d) { return "translate(" + source.y + "," + source.x + ")"; })
+        .remove();
 
-  // Update the links…
-  var link = svg.selectAll("path.link")
-      .data(links, function(d) { return d.target.id; });
+    nodeExit.select("circle")
+        .attr("r", 1e-6);
 
-  // Enter any new links at the parent's previous position.
-  link.enter().insert("path", "g")
-      .attr("class", "link")
-      .style("fill","none")
-      .style("stroke","#ccc")
-      .style("stroke-width",1.5)
-      .attr("d", function(d) {
-        var o = {x: source.x0, y: source.y0};
-        return diagonal({source: o, target: o});
-      });
+    nodeExit.select("text")
+        .style("fill-opacity", 1e-6);
 
-  // Transition links to their new position.
-  link.transition()
-      .duration(duration)
-      .attr("d", diagonal);
+    // Update the links…
+    var link = svg.selectAll("path.link")
+        .data(links, function(d) { return d.target.id; });
 
-  // Transition exiting nodes to the parent's new position.
-  link.exit().transition()
-      .duration(duration)
-      .attr("d", function(d) {
-        var o = {x: source.x, y: source.y};
-        return diagonal({source: o, target: o});
-      })
-      .remove();
+    // Enter any new links at the parent's previous position.
+    link.enter().insert("path", "g")
+        .attr("class", "link")
+        .style("fill","none")
+        .style("stroke","#ccc")
+        .style("stroke-width",1.5)
+        .attr("d", function(d) {
+            var o = {x: source.x0, y: source.y0};
+            return diagonal({source: o, target: o});
+        });
 
-  // Stash the old positions for transition.
-  nodes.forEach(function(d) {
-    d.x0 = d.x;
-    d.y0 = d.y;
-  });
+    // Transition links to their new position.
+    link.transition()
+        .duration(duration)
+        .attr("d", diagonal);
+
+    // Transition exiting nodes to the parent's new position.
+    link.exit().transition()
+        .duration(duration)
+        .attr("d", function(d) {
+            var o = {x: source.x, y: source.y};
+            return diagonal({source: o, target: o});
+        })
+        .remove();
+
+    // Stash the old positions for transition.
+    nodes.forEach(function(d) {
+        d.x0 = d.x;
+        d.y0 = d.y;
+    });
 }
 
-function reroot(nodeid){
-  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/rerootTree";
-//  var jsonquerystr = "{\"nodeId\":"+nodeid+"}";
-  var method = "POST";
-  var xobjPost = new XMLHttpRequest();
-  xobjPost.open(method, url, false);
-  xobjPost.setRequestHeader("Accept", "");    
-  xobjPost.setRequestHeader("Content-Type","application/json");
-  xobjPost.send(JSON.stringify({"nodeId":nodeid}));
-  var jsonrespstr = xobjPost.responseText;
+// ===== node editor
+
+function updateNodeEditor(node) {
+    $('#nodeEditor').remove();
+    var nodeEditor = document.createElement("div");
+    $(nodeEditor).attr("id", "nodeEditor")
+        .css("top",xo + node.x + 40)
+        .css("left",yo + node.y - 30)
+    $(Object.keys(node)).each(function(i, key) {
+        $(nodeEditor).append(key + " " + node[key] + "<br/>");
+    });
+    $("body").append(nodeEditor);
+}
+
+// close the node editor (if open) if the user clicks anywhere else
+$(document).click(function(event) {
+    var target = $(event.target);
+    if (target.attr('id')) {
+        // if we didn't click in the node editor
+        if (!target.attr('id').match(/^nodeEditor/) && target.parents('#nodeEditor').length == 0) {
+            $('#nodeEditor').remove();
+        }
+    }
+});
+
+// ===== server calls for general info
+
+// Get the node id of the root node for a tree
+function getRootIdFromTreeId(treeId) {
+    var rootNodeService = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getRootNodeIdForTreeId";
+    xhr = getXhr(rootNodeService);
+    xhr.send(JSON.stringify({"treeId":treeId}));
+    var jsonrespstr = xhr.responseText;
+//    alert(jsonrespstr);
+    var evjson = eval(jsonrespstr);
+    return evjson;
+}
+
+// Get the source id for a tree id
+function getSourceIdForTreeId(treeId){
+    if(!treeId || treeId == ""){
+        return ""; // should be undefined?
+    }
+    var sourceIdService = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getSourceIdForTreeId";
+    var xhr = getXhr(sourceIdService);
+    xhr.send(JSON.stringify({"treeId":treeId}));
+    var jsonrespstr = xhr.responseText;
 //  alert(jsonrespstr);
-  var evjson = eval(jsonrespstr);
-  setup(evjson);
+    var evjson = eval(jsonrespstr);
+    return evjson;
 }
 
-function designateIngroup(nodeid){
-	var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/ingroupSelect";
-	//var jsonquerystr = "{\"nodeId\":"+nodeid+"}";
-	var xobj = new XMLHttpRequest();
-	xobj.open("POST", url, true);
-	xobj.onreadystatechange=function() {
-//		alert(xobj.responseText);
-		if (xobj.readyState==4 && xobj.status==200) {
-			var jsonrespstr = xobj.responseText;
-			var evjson = eval(jsonrespstr);
-			setup(evjson);
-		}
-	};
-	xobj.setRequestHeader("Accept", "");
-	xobj.setRequestHeader("Content-Type","Application/json");
-	xobj.send(JSON.stringify({"nodeId":nodeid}));
+// ===== server calls for making changes to the graph (tree editing)
+
+function deleteTree(sourceId, treeId){
+    var deleteTreeService = "http://localhost:7474/db/data/ext/treeJsons/graphdb/deleteTreeFromTreeId";
+    xhr = getXhr(deleteTreeService, function() {
+        var jsonrespstr = xhr.responseText;
+//      alert(jsonrespstr);
+        var evjson = eval(jsonrespstr);
+        window.location.href="source_view.html?sourceId=" + sourceId;
+    });
+    xhr.send(JSON.stringify({"sourceId": sourceId, "treeId": treeId}));
 }
 
-// Toggle children on click.
-function click(d){
-    var ac = $('button[name="cac"].active').val();
-  var ev = d3.event;
-  if (ac == 1){//refocus
-    setup(d.id);	
-  }else if(ac == 2 ){//reroot
-    resetRadio();
-    reroot(d.id);
-  }else if(ac == 3){//ingroup
-    resetRadio();
-    designateIngroup(d.id);
-  }else if(ac == 4){//export
-    resetRadio();
-    alert("behold! you want to extract");
-  }
-//	if (ev.shiftKey==1){
-//		reroot(d.id);
-//	}else{
-//		setup(d.id);
-//	}
+function designateIngroup(nodeId){
+	var ingroupService = "http://localhost:7474/db/data/ext/treeJsons/graphdb/ingroupSelect";
+    xhr = getXhr(ingroupService, function() {
+//		alert(xhr.responseText);
+        var jsonrespstr = xhr.responseText;
+        var evjson = eval(jsonrespstr);
+        setupTree(evjson);
+	});
+	xhr.send(JSON.stringify({"nodeId": nodeId}));
 }
 
-/*
- * This is what happens when the page is first loaded
- */
-var id = getQueryVariable('treeId');
-var sourceid = getSourceIdForTreeId(id);
-setTreeTitle(sourceid,id);
-getSourceTreeList(sourceid,id);
-var start;
-if(id != false){
-  start = getRootIdFromTreeId(id);
-}else{
-  start = getRootIdFromTreeId("mt___local_id_0");
+function reroot(nodeId){
+    var rerootService = "http://localhost:7474/db/data/ext/treeJsons/graphdb/rerootTree";
+    xhr = getXhr(rerootService, function() {
+        var jsonrespstr = xhr.responseText;
+    //  alert(jsonrespstr);
+        var evjson = eval(jsonrespstr);
+        setupTree(evjson);
+    });
+    xhr.send(JSON.stringify({"nodeId": nodeId}));
 }
-//do it twice to get the height right
-setup(start);
-setup(start);
 
-d3.select(self.frameElement).style("height", "800px");
+// ===== util methods
+
+// return an xhr with default settings
+function getXhr(url, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", url, callback ? true : false);
+    xhr.setRequestHeader("Accept", "");
+    xhr.setRequestHeader("Content-Type","Application/json");
+    if (callback) {
+        xhr.onreadystatechange=function() {
+            if (xhr.readyState==4 && xhr.status==200) {
+               callback();
+            }
+        };
+    }
+    return xhr;
+}
+
+// extract a variables from the GET arguments list
+function getQueryVariable(variable){
+    var query = window.location.search.substring(1);
+    var vars = query.split("&");
+    for (var i=0;i<vars.length;i++) {
+        var pair = vars[i].split("=");
+        if(pair[0] == variable){return pair[1];}
+    }
+    return(false);
+}
+
 </script>
 </body>
 </html>

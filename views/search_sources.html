@@ -100,76 +100,30 @@ function addResult(sourceId) {
 			var objRow = document.createElement("tr");
 			$(objRow).append('<td>'+sourceId+'</td>');
 
-//			var viewForm;
 			var formCell = document.createElement("td");
-			// only make the view form usable if the study is imported
 			if (response.has_local_copy == true) {
-				// form to switch to view of local studies
+				// if the study is loaded then provide a button to view it
 				var viewForm = document.createElement("form");
-				$(viewForm).attr("style","display: inline");
-				var viewSubmit = document.createElement("button");
-				$(viewSubmit).attr("name","submit").attr("type","submit").addClass("btn btn-primary").append("View"); //</button>');
-				$(viewForm).append(viewSubmit);
-
-				$(viewForm).append('<input type="hidden" name="sourceId" id="sourceId" value="'+sourceId+'" />');
-				$(viewForm).attr("action", "source_view.html").attr("method", "GET");
+				$(viewForm).attr("style","display: inline")
+					.attr("action", "source_view.html").attr("method", "GET")
+					.append($(document.createElement("button")).attr("name","submit").attr("type","submit").addClass("btn btn-primary").css("width","5em").append("View"))
+					.append('<input type="hidden" name="sourceId" id="sourceId" value="'+sourceId+'" />');
 				$(formCell).append(viewForm);
 			} else {
-//				$(viewSubmit).addClass("disabled");
-//				viewSubmit.disabled = true;
-
-				// form to load remote studies
+				// otherwise provide a button to load it
 				var loadForm = document.createElement("form");
 				$(loadForm).attr("style","display: inline")
-				var loadSubmit = document.createElement("button");
-				$(loadSubmit).attr("name","submit").attr("type","submit").attr("enctype","multipart/form-data").addClass("btn").append("Load"); //</button>');
-				$(loadForm).append(loadSubmit);
-
-				// only make the load form usable if the study is not already imported
-//				if (response.has_local_copy == false) {
-				$(loadForm).append('<input type="hidden" name="hidden_nexson_from_git" id="hidden_nexson_from_git" value="true" />')
-				.append('<input type="hidden" name="nexsonid" id="nexsonid" value="' + sourceId + '" />')
-				.append('<input type="hidden" name="recenthash" id="recenthash" value="' + recenthash + '" />');
-				$(loadForm).attr("action", "cgi-bin/load_sources.py").attr("method", "POST");
-//				} else {
-//					$(loadSubmit).addClass("disabled");
-//					loadSubmit.disabled = true;
-//				}
+					.attr("action", "cgi-bin/load_sources.py").attr("method", "POST")
+					.append($(document.createElement("button")).attr("name","submit").attr("type","submit").attr("enctype","multipart/form-data").addClass("btn").css("width","5em").append("Import"))
+					.append('<input type="hidden" name="hidden_nexson_from_git" id="hidden_nexson_from_git" value="true" />')
+					.append('<input type="hidden" name="nexsonid" id="nexsonid" value="' + sourceId + '" />')
+					.append('<input type="hidden" name="recenthash" id="recenthash" value="' + recenthash + '" />');
 				$(formCell).append(loadForm);
 			}
-//			$(objRow).append($(document.createElement("td")).append(viewForm));
-//			$(objRow).append($(document.createElement("td")).append(loadForm));
 			$(objRow).append(formCell);
-
-			$(objRow).append('<td style="font-size:0.8em">' + response.metadata['ot:studyPublicationReference'].substring(0,100) + '...</td>');
-//			$(objRow).append("<td>" + (response.has_local_copy ? "local" : "(notlocal)") + "</td>");
-//			$(objRow).append("<td>" + (response.remotes_known.length > 0 ? "remote" : "(notremote)") + "</td>");
-
-
+			$(objRow).append('<td style="font-size:0.8em">' + response.metadata['ot:studyPublicationReference'].substring(0,120) + '...</td>');
 
 			$("#resultsTable").append(objRow);
-			
-//			var keys = Object.keys(ev.metadata);
-//			$(keys).each(function(index){
-//				var property = keys[index];
-//				var value = ev.metadata[property];
-//				if (typeof value == "string") {
-//					if(value.substring(0,7) == "http://") {
-//						value = '<a href="' + value + '", target="_blank">' + value + '</a>';
-//					}
-//				}
-//				$('#sourceinfoTBL').append('<tr><td>' + property + '</td><td>' + value + '</td></tr>');
-//			});
-//			var trees = ev.trees;
-//			var n_trees = trees.length;
-
-			//add the trees
-//			$(trees).each(function(index, element){
-//				var treeheader = document.createElement("h3");
-//				treeheader.innerHTML = 'Tree: <a href="tree_dyn.html?treeId='+element+'">'+element+'</a> <button type="button" class="btn btn-large btn-success" name="cac" value=0 onClick="editTreeInfo()">Edit</button> <button type="button" class="btn btn-large btn-danger" name="cac" value=3 onClick=\'deleteTree("'+id+'","'+element+'")\'>Delete Tree</button>';
-//				document.getElementById("treeinfo").appendChild(treeheader);
-//				addTreeInfo(element);
-//			});
 		}
 	};
     
@@ -316,6 +270,9 @@ function fillPropertyList(){
     xobj.setRequestHeader("Content-Type","Application/json");
     xobj.send("");
 }
+
+
+// ===== call page load functions
 
 fillPropertyList();
 
