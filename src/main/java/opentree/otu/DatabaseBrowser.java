@@ -36,6 +36,7 @@ import org.neo4j.kernel.impl.nioneo.store.PropertyType;
 public class DatabaseBrowser extends DatabaseAbstractBase {
 
 	public final Index<Node> treeRootNodesByTreeId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
+	public final Index<Node> treeRootNodesBySourceId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_SOURCE_ID);
 	public final Index<Node> sourceMetaNodesBySourceId = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_SOURCE_ID);
 	
 	public DatabaseBrowser(EmbeddedGraphDatabase embeddedGraph) {
@@ -163,25 +164,63 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * Return a JSON string of source ids and corresponding tree ids for all locally-imported sources.
 	 * @return
 	 */
+	@Deprecated
 	public String getJSONOfSourceIdsAndTreeIdsForImportedTrees() {
-
+		
 		StringBuffer retstr = new StringBuffer("{ \"studies\" : [");
 		IndexHits<Node> hits = treeRootNodesByTreeId.query(LOCAL_LOCATION + "TreeId", "*");
-		while (hits.hasNext()) {
-			retstr.append("[ \"");
-			Node x = hits.next();
-			retstr.append((String) x.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING)
-					.getStartNode().getProperty(NodeProperty.SOURCE_ID.name));
-			retstr.append("\", \"");
-			retstr.append((String) x.getProperty(NodeProperty.TREE_ID.name));
-			retstr.append("\"]");
-			if (hits.hasNext()) {
-				retstr.append(",");
+		try {
+			while (hits.hasNext()) {
+				retstr.append("[ \"");
+				Node x = hits.next();
+				retstr.append((String) x.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING)
+						.getStartNode().getProperty(NodeProperty.SOURCE_ID.name));
+				retstr.append("\", \"");
+				retstr.append((String) x.getProperty(NodeProperty.TREE_ID.name));
+				retstr.append("\"]");
+				if (hits.hasNext()) {
+					retstr.append(",");
+				}
 			}
+		} finally {
+			hits.close();
 		}
-		hits.close();
 		retstr.append("] }");
 		return retstr.toString();
+
+	}
+	
+	/**
+	 * Return a list containing all the tree ids for the specified source id.
+	 * @return
+	 */
+	public Map<String, Object> getTreeIdsForSourceId(String location, String sourceId) {
+		return getTreeIdsForSource(location, sourceId, new HashSet<String>());
+	}
+	
+	/**
+	 * Return a list containing all the tree ids for the specified source id except any tree ids that are in the excludedTreeIds variable.
+	 * @return
+	 */
+	public Map<String, Object> getTreeIdsForSource(String location, String sourceId, Set<String> excludedTreeIds) {
+	
+		List<String> treeIds = new LinkedList<String>();
+		
+		IndexHits<Node> hits = treeRootNodesBySourceId.query(location + "SourceId" + ":" + sourceId);
+		try {
+			while (hits.hasNext()) {
+				String tid = (String) hits.next().getProperty(NodeProperty.TREE_ID.name);
+				if (!excludedTreeIds.contains(tid)) {
+					treeIds.add(tid);
+				}
+			}
+		} finally {
+			hits.close();
+		}
+		
+		Map<String, Object> results = new HashMap<String, Object>();
+		results.put("trees", treeIds);
+		return results;
 	}
 	
 	/**

@@ -21,6 +21,12 @@
  <style>
       body {
         padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+      } #loadFormContainer {
+          position: absolute;
+          top: 6.7em;
+          right:3em;
+          width: 22em;
+          padding-right:0em;
       }
     </style>
 </head>
@@ -47,43 +53,31 @@
     </div>
   </div>
   <div class="container">
-    <div class="offset5">
-    Load a different tree...
-	<form class="form-inline" >
-	  <select id="loadselect" style="width:400px">
-	  </select>
-	  <button type="button" class="btn" onClick='submitDetailsForm()'>Load</button>
-	</form>
+    <div id="loadFormContainer">
+      <div>
+        Load a different tree from this source
+	    <form class="form-inline" >
+	      <select id="loadSelectThisSource" style="width:16em;"></select>
+	      <button type="button" class="btn" id="thisSourceButton" onClick='loadSelectedTreeThisSource(); return false;'>Load</button>
+	    </form>
+      </div>
+      <div>
+          Load a different tree from any source
+        <form class="form-inline" >
+          <select id="loadSelectAll" style="width:16em;"></select>
+          <button type="button" class="btn" id="allSourceButton" onClick='loadSelectedTreeAll(); return false;'>Load</button>
+        </form>
+      </div>
+    </div>
+    <h4 id="treeId"></h4>
+    <div class="btn-group" data-toggle="buttons-radio">
+      <button type="button" class="btn btn-large btn-success" name="cac" value=1 id="refocus">Refocus</button>
+	  <button type="button" class="btn btn-large btn-primary" name="cac" value=2>Reroot</button>
+	  <button type="button" class="btn btn-large btn-primary" name="cac" value=3>Choose Ingroup</button>
+    </div>
+    <button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree()" id>Delete Tree</button>
   </div>
-  <h5 id="treeId"></h5>
-  <h4>Click on a node and it will...</h4>
-  <div class="btn-group" data-toggle="buttons-radio">
-    <button type="button" class="btn btn-large btn-success" name="cac" value=1 id="refocus">Refocus</button>
-	<button type="button" class="btn btn-large btn-primary" name="cac" value=2>Reroot</button>
-	<button type="button" class="btn btn-large btn-primary" name="cac" value=3>Choose Ingroup</button>
-  </div>
-  <button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree()" id>Delete Tree</button>
-</div> 
-<script>
-
-//this needs to ignore the current one we are looking at
-function getSourceTreeList(sourceid,id){
-    var baseurl = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getSourceTreeList";
-    var method = "POST";
-    var xobjPost = new XMLHttpRequest();
-    xobjPost.open(method, baseurl, false);
-    xobjPost.setRequestHeader("Accept", "");
-    xobjPost.setRequestHeader("Content-Type","application/json");
-    xobjPost.send("");
-    var jsonrespstr = xobjPost.responseText;
-//    alert(jsonrespstr);
-    var evjson = jQuery.parseJSON(eval(jsonrespstr));
-    $(evjson.sources).each(function(index, element){
-	if(element[0] != sourceid && element[1] != id){
-	 $('#loadselect').append('<option value='+element[1]+'> sourceId:'+element[0]+' treeId:'+element[1]+'</option>');
-	 }
-    })
-}
+  <script>
 
 function deleteTree(sid, tid){
     var baseurl = "http://localhost:7474/db/data/ext/treeJsons/graphdb/deleteTreeFromTreeId";
@@ -101,24 +95,33 @@ function deleteTree(sid, tid){
 }
 
 function setTreeTitle(sid, tt){
-    $("#treeId").replaceWith('<h3 id=treeId>treeId: '+tt+' sourceId <a href="source_view.html?sourceId='+sid+'">'+sid+'</a></h3>');
+    document.getElementById("treeId").innerHTML = 'Editing tree '+tt+' from source <a href="source_view.html?sourceId=' + sid + '">' + sid + '</a>';
     $("#deleteTreeBtn").replaceWith('<button type="button" class="btn btn-large btn-danger" id="deleteTreeBtn" onClick="deleteTree(\''+sid+'\',\''+tt+'\')" id>Delete Tree</button>');
 }
 
-function submitDetailsForm(){
-    var st = $("#loadselect").val();
-    var stid = getRootIdFromTreeId(st);
-    var sourceid = getSourceIdForTreeId(st);
-    setTreeTitle(sourceid,st);
-    setup(stid);
-    setup(stid);
+function loadSelectedTreeThisSource() {
+    submitDetailsForm($("#loadSelectThisSource").val());    
+}
+
+function loadSelectedTreeAll() {
+    submitDetailsForm($("#loadSelectAll").val());    
+}
+
+function submitDetailsForm(treeId){
+    var rootId = getRootIdFromTreeId(treeId);
+    var sourceid = getSourceIdForTreeId(treeId);
+    setTreeTitle(sourceid,treeId);
+    getSourceTreeList(sourceid, treeId);
+    getAllLocalTreeList(treeId);
+    setup(rootId);
+    setup(rootId);
 }
 
 var margin = {top: 20, right: 120, bottom: 20, left: 120},
     width = 4000 - margin.right - margin.left,
-    height = 5000 - margin.top - margin.bottom;
+    height = 12000 - margin.top - margin.bottom;
 
-var nheight = 100;
+var nheight = 30;
 
 var i = 0,
     duration = 750,
@@ -176,19 +179,18 @@ function setup(node){
 /*
  * Used to get the nodeid from a start ottol id
  */
-function getRootIdFromTreeId(oid){
-  var url = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getRootNodeIdForTreeId";
-  var jsonquerystr = "{\"treeId\":\""+oid+"\"}";
-  var method = "POST";
-  var xobjPost = new XMLHttpRequest();
-  xobjPost.open(method, url, false);
-  xobjPost.setRequestHeader("Accept", "");
-  xobjPost.setRequestHeader("Content-Type","application/json");
-  xobjPost.send(jsonquerystr);
-  var jsonrespstr = xobjPost.responseText;
-//  alert(jsonrespstr);
-  var evjson = eval(jsonrespstr);
-  return evjson;
+function getRootIdFromTreeId(oid) {
+    var rootNodeService = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getRootNodeIdForTreeId";
+//  var jsonquerystr = "{\"treeId\":\""+oid+"\"}";
+    var xobj = new XMLHttpRequest();
+    xobj.open("POST", rootNodeService, false);
+    xobj.setRequestHeader("Accept", "");
+    xobj.setRequestHeader("Content-Type","application/json");
+    xobj.send(JSON.stringify({"treeId":oid}));
+    var jsonrespstr = xobj.responseText;
+//    alert(jsonrespstr);
+    var evjson = eval(jsonrespstr);
+    return evjson;
 }
 
 /*
@@ -273,12 +275,13 @@ function update(source) {
       .duration(duration)
       .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
 
-  nodeUpdate.select("circle")
-      //.attr("r", 4.5)
-      .attr("r", function(d) { return d.ingroup ? 5 : 3;})
-      .style("stroke",function(d) { return d.ingroup ? "green" : "grey";})
-      .style("fill",function(d) { return d.notcomplete ? "lightgreen" : "#fff";});
-      //.style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
+    nodeUpdate.select("circle")
+        //.attr("r", 4.5)
+        .attr("r", function(d) { return d.ingroup ? 4 : 3;})
+        .style("stroke",function(d) { return d.ingroup ? "#35f" : "grey";})
+        .style("stroke-width", function(d) { return d.ingroup ? 2 : 1 ;})
+        .style("fill",function(d) { return d.notcomplete ? "lightgreen" : "#fff";});
+        //.style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
 
   nodeUpdate.select("text")
       .style("fill-opacity", 1);
@@ -387,24 +390,89 @@ function click(d){
 //	}
 }
 
-/*
- * This is what happens when the page is first loaded
- */
-var id = getQueryVariable('treeId');
-var sourceid = getSourceIdForTreeId(id);
-setTreeTitle(sourceid,id);
-getSourceTreeList(sourceid,id);
-var start;
-if(id != false){
-  start = getRootIdFromTreeId(id);
-}else{
-  start = getRootIdFromTreeId("mt___local_id_0");
-}
-//do it twice to get the height right
-setup(start);
-setup(start);
+// ===== called on page load (see below)
 
-d3.select(self.frameElement).style("height", "800px");
+// gets a list of all trees *within the current study*
+function getSourceTreeList(sourceId, treeId) {
+    var treeIdsService = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getTreeIdsForLocalSource";
+    var xobj = new XMLHttpRequest();
+    xobj.onreadystatechange=function() {
+//        alert(xobj.responseText);
+        if (xobj.readyState==4 && xobj.status==200) {
+//            alert(jsonrespstr);
+//            var jsonrespstr = xobj.responseText;
+            var response = JSON.parse(xobj.responseText);
+            document.getElementById("loadSelectThisSource").innerHTML = "";
+            $(response.trees).each(function(i, tid) {
+                $('#loadSelectThisSource').append('<option value=' + tid + '> treeId:' + tid + '</option>');
+            });
+            if (response.trees.length < 1) {
+                $('#loadSelectThisSource').append('<option>No other trees for this source</option>').attr("disabled","disabled").css("color","#999");
+                $("#thisSourceButton").attr("disabled","disabled").addClass("disabled");
+            } else {
+                $('#loadSelectThisSource').removeAttr("disabled").css("color","");
+                $("#thisSourceButton").removeAttr("disabled","disabled").removeClass("disabled");
+            }
+        }
+    }
+
+    xobj.open("POST", treeIdsService, true);
+    xobj.setRequestHeader("Accept", "");
+    xobj.setRequestHeader("Content-Type","Application/json");
+    xobj.send(JSON.stringify({"sourceId":sourceId ? sourceId : "nothing","excludedTreeIds":[treeId ? treeId : "nothing"]}));
+}
+
+// gets a list of all local trees for all studies
+function getAllLocalTreeList(treeId) {
+    var treeIdsService = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getTreeIdsForAllLocalSources";
+    var xobj = new XMLHttpRequest();
+    xobj.onreadystatechange=function() {
+//        alert(xobj.responseText);
+        if (xobj.readyState==4 && xobj.status==200) {
+//            alert(jsonrespstr);
+            var response = JSON.parse(xobj.responseText);
+//            alert(JSON.stringify(response));
+            document.getElementById("loadSelectAll").innerHTML = "";
+            $(response.trees).each(function(i, tid) {
+                $('#loadSelectAll').append('<option value=' + tid + '> treeId:' + tid + '</option>');
+            });
+            if (response.trees.length < 1) {
+                $('#loadSelectAll').append('<option>No other local trees</option>').attr("disabled","disabled").css("color","#999");
+                $("#allSourceButton").attr("disabled","disabled").addClass("disabled");
+            } else {
+                $('#loadSelectAll').removeAttr("disabled").css("color","");
+                $("#allSourceButton").removeAttr("disabled","disabled").removeClass("disabled");
+            }
+        }
+    }
+
+    xobj.open("POST", treeIdsService, true);
+    xobj.setRequestHeader("Accept", "");
+    xobj.setRequestHeader("Content-Type","Application/json");
+    xobj.send(treeId ? JSON.stringify({"excludedTreeIds":[treeId]}) : "");
+}
+
+// ===== do things when the page is first loaded
+var treeId = getQueryVariable('treeId');
+getSourceTreeList(sourceid, treeId);
+getAllLocalTreeList(treeId);
+
+if (treeId != false) {
+    var sourceid = getSourceIdForTreeId(treeId);
+    setTreeTitle(sourceid, treeId);
+    var start;
+    if(treeId != false){
+      start = getRootIdFromTreeId(treeId);
+    }else{
+      start = getRootIdFromTreeId("mt___local_id_0");
+    }
+
+    // do it twice to get the height right <- this doesn't appear to work...
+    setup(start);
+    setup(start);
+
+    d3.select(self.frameElement).style("height", "800px");
+}
 </script>
 </body>
 </html>
