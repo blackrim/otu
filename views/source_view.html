@@ -9,12 +9,38 @@
         <script src="js/bootstrap.min.js"></script>
         <script src="js/otutils.js"></script>
         <style>
-#format {
-    margin-top: 2em;
-} body {
+body {
     padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
 } .treeHeader * {
     margin-right: 0.22em;
+} #editSourceBtn, .editTreeBtn {
+    width: 10em;
+} #loadFormContainer {
+    position: absolute;
+    top: 6.7em;
+    right:3em;
+    width: 22em;
+    padding-right:0em;
+} .submitTreeEditsBtn, #submitSourceEditsBtn {
+    position: absolute;
+    top: 0;
+    right: 0;
+} #format {
+    margin-top: 2em;
+} .editForm {
+    position: relative;    
+} .formTable tr td .form-control {
+    font-size: 1em;
+    width: 100%;
+    margin: 0;
+} form tr td input {
+    padding: 0.8em 0.4em 0.8em 0.4em;
+    height: 1.7em !important;
+} form tr td textarea {
+    height: 6em;
+} form .hidden {
+    display: none !important;
+    position: absolute !important;
 }
         </style>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -42,25 +68,28 @@
             </div>
         </div>
         <div class="container">
-            <div class="offset5">
+            <div id="loadFormContainer">
                 Load a different source...
 	            <form class="form-inline" >
-	                <select id="loadselect" style="width: 450px"></select>
-	                <button type="button" class="btn" onClick='loadDifferentSource()'>Load</button>
+	                <select id="loadselect" style="width: 16em"></select>
+	                <button id="loadselectBtn" type="button" class="btn" onClick='loadDifferentSource()'>Load</button>
 	            </form>
             </div>
             <h3 id="sourceTitle" class="text-info"></h3>
 	        <div class="btn-group">
-	            <button type="button" class="btn btn-large btn-success" name="cac" value=0 id="editSourceBtn" onClick="editSourceInfo(); return false">Edit</button>
-	            <button type="button" class="btn btn-large btn-success" name="cac" value=1 id="exportBtn" onClick="exportSource()">Export</button>
+	            <button type="button" class="btn btn-large btn-success" name="cac" value=0 id="editSourceBtn">Edit Metadata</button>
+	            <button type="button" class="btn btn-large btn-success" name="cac" value=1 id="exportBtn">Export</button>
 	        </div>
-	        <button type="button" class="btn btn-large btn-primary" name="cac" value=2 id="pushSourceBtn" onClick="pushSource()">Push</button>
-	        <button type="button" class="btn btn-large btn-danger" name="cac" value=3 id="deleteSourceLocalBtn" onClick="deleteSourceLocal()">Delete Source from DB</button>
-	        <button type="button" class="btn btn-large btn-danger" name="cac" value=3 id="deleteSourceGitBtn" onClick="deleteSourceGit()">Delete Source from GIT</button>
+	        <button type="button" class="btn btn-large btn-primary" name="cac" value=2 id="pushSourceBtn">Push Changes</button>
+	        <button type="button" class="btn btn-large btn-danger" name="cac" value=3 id="deleteSourceLocalBtn">Delete Local Copy</button>
+	        <button type="button" class="btn btn-large btn-danger" name="cac" value=3 id="deleteSourceGitBtn">Delete from Git</button>
             <br/>
             <br/>
-            <h2>Source Info</h2>
-            <table class="table table-striped" id="sourceInfoTable"></table>
+            <form id="sourceEditForm" style="position: relative;">
+                <h3>Source Info</h3>
+                <button name="submitSourceEditsBtn" id="submitSourceEditsBtn" type="button" class="btn btn-large btn-success hidden">Submit Changes</button>
+                <table class="table table-striped formTable" id="sourceInfoTable"></table>
+            </form>
             <div id="treeInfo"></div>
         </div>
     </div>
@@ -76,7 +105,7 @@ function populateSourceListDropdown() {
             $('#loadselect').append('<option value=' + sourceId + '> sourceId:' + sourceId + '</option>');
         });
     });
-    xhr.send(JSON.stringify({"excludedSourceIds":[currentViewedSourceId]}));
+    xhr.send(JSON.stringify({"excludedSourceIds":[ activeSourceId ]}));
 }
 
 // called on page load to fill in the page content using content from neo4j services
@@ -86,21 +115,44 @@ function displaySourceInfo(){
     // set the callback, which will print the result of the request
     var xhr = getXhr(sourceMetadataService, function() { 
         var response = JSON.parse(xhr.responseText);
-//        alert(JSON.stringify(ev));
+
+        // exit early if there is no result
+        if (!response.metadata) {
+            $("#sourceTitle").html("Nothing found for source " + activeSourceId);
+            $("button").each(function(i, element) {
+                if ($(element).attr("id") != "loadselectBtn") {
+                    $(element).addClass("disabled").click(undefined);
+                }
+            });
+            //.removeClass("disabled");
+            return false;
+        };
+        
+        // set event handlers here so the buttons remain inactive if there is no result
+        $("#editSourceBtn").click(function() { toggleSourceEditForm() });
+	    $("#exportBtn").click(function() { exportSource() });
+	    $("#pushSourceBtn").click(function() { pushSource() });
+	    $("#deleteSourceLocalBtn").click(function() { deleteSourceLocal() });
+	    $("#deleteSourceGitBtn").click(function() { deleteSourceGit() });
+	    $("#submitSourceEditsBtn").click(function() { submitSourceEditForm() });
+        
         var keys = Object.keys(response.metadata);
         
         // print the source properties to the table
         $(keys).each(function(i, property){
             var value = response.metadata[property];
+            var link;
             if (typeof value == "string") {
                 if(value.substring(0,7) == "http://") {
-                    value = '<a href="' + value + '", target="_blank">' + value + '</a>';
+                    link = '<a href="' + value + '", target="_blank">' + value + '</a>';
                 }
             }
-            $('#sourceInfoTable').append('<tr><td>' + property + '</td><td>' + value + '</td></tr>');
+
+            // append a row for each property
+            $("#sourceInfoTable").append(getFormTableRow(property, value, link));
         });
         
-        // should say something about the status of this source
+        // TODO: should say something about the status of this source
         $('#sourceInfoTable').append('<tr><td><b>Status</b></td><td>Info about mapped names, rooting, ingroup</td></tr>');
         $('#sourceInfoTable').append('</table>');
         
@@ -111,50 +163,91 @@ function displaySourceInfo(){
     });
 
     // send the request
-    xhr.send(JSON.stringify({"sourceId":currentViewedSourceId}));
+    xhr.send(JSON.stringify({ "sourceId": activeSourceId }));
 }
 
 // called for each tree during printout of the metadata
 function displayTreeInfo(treeId) {
     var treeInfoService = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getTreeMetaData";
-
     var xhr = getXhr(treeInfoService, function() {
 
+        // create the form and add initial elements
+        var formId = "treeEditForm" + treeId;
         var response = JSON.parse(xhr.responseText);
+        var treeForm = $(document.createElement("form"))
+            .addClass("editForm")
+            .attr("id",formId)
+            .append($(document.createElement("input"))
+                .attr("type","hidden")
+                .attr("name","treeId")
+                .val(treeId))
+            .append($(document.createElement("button"))
+                .addClass("btn btn-large btn-success hidden submitTreeEditsBtn")
+                .attr("type","button")
+                .append("Submit Changes")
+                .click(function() { submitTreeEditForm(treeId, formId) }));
 
         // write the header for this tree
         var treeHeader = $(document.createElement("h3"))
             .addClass("treeHeader")
             .append($(document.createElement("a"))
-                .attr("href","tree_dyn.html?treeId="+treeId)
+                .attr("href","tree_dyn.html?treeId=" + treeId)
                 .append(treeId))
             .append($(document.createElement("button"))
                 .attr("type","button")
-                .addClass("btn btn-large btn-success")
-                .click(function() {editTreeInfo(); return false})
-                .append("Edit"))
+                .addClass("btn btn-large btn-success doNotHide editTreeBtn")
+                .click(function() { toggleTreeEditForm($("#"+formId)) })
+                .append("Edit Metadata"))
             .append($(document.createElement("button"))
                 .attr("type","button")
-                .addClass("btn btn-large btn-danger")
-                .click(function() {deleteTree(treeId); return false;})
+                .addClass("btn btn-large btn-danger doNotHide")
+                .click(function() { deleteTree(treeId) })
                 .append("Delete Tree"));
-        $("#treeInfo").append(treeHeader);
+        $(treeForm).append(treeHeader);
             
         // create the metadata table
         var keys = Object.keys(response.metadata);
         var treeTable = $(document.createElement("table"))
-            .addClass("table table-striped")
-            .attr("id","treeTable"+treeId);
+            .addClass("table table-striped formTable")
+            .attr("id", "treeTable" + treeId);
 
-        // write tree properties to the table
-        $(keys).each(function(i) {
-            treeTable.append('<tr><td>' + keys[i] + '</td><td>' + response.metadata[keys[i]] + '</td></tr>');
+        // write all properties to the table
+        $(keys).each(function(i, property) {
+            var value = response.metadata[property];
+            $(treeTable).append(getFormTableRow(property, value));
         });
 
         // add the tree metadata to the page
-        $("#treeInfo").append(treeTable);
+        $(treeForm).append(treeTable);
+        $("#treeInfo").append(treeForm);
     });
+    
     xhr.send(JSON.stringify({"treeId": treeId}));
+}
+
+// called by the form building functions
+function getFormTableRow(property, value, displayValue) {
+
+    // make hidden form elements to toggle for editing
+    var formControl;
+    if (value.length < 80 || value.length == undefined) {
+        formControl = $("<input>").attr("value",value).attr("type","text");
+    } else {
+        formControl = $("<textarea>").append(value);
+    }
+    $(formControl).addClass("form-control hidden").attr("name", property);
+    
+    // create a row for this property
+    var row = $("<tr>")
+        .append($("<td>")
+            .attr("width","250px")
+            .append(property))
+        .append($("<td>")
+            .addClass("fieldCell")
+            .append($("<span>").addClass("displayValue").append(displayValue ? displayValue : value))
+            .append(formControl));
+
+    return row;
 }
 
 // ===== functions bound to page buttons and forms
@@ -165,10 +258,91 @@ function loadDifferentSource() {
     window.location.href="source_view.html?sourceId=" + sourceId + ""
 }
 
-function editSourceInfo() {
-    alert("this will edit the source metadata");
-    // replace the tree metadata view with a form, turn all the fields to input boxes
-    // submit the form to post to a property-updating service
+function toggleSourceEditForm() {
+
+    toggleEditForm("#sourceEditForm");
+
+    if ($("#editSourceBtn").hasClass("btn-success")) {
+        $("#editSourceBtn").removeClass("btn-success").addClass(" btn-warning").html("Cancel Edits");
+    } else {
+        $("#editSourceBtn").addClass(" btn-success").removeClass("btn-warning").html("Edit Metadata");
+    } 
+}
+
+function toggleTreeEditForm(treeEditForm) {
+
+    toggleEditForm(treeEditForm);
+
+    if ($(treeEditForm).find(".editTreeBtn").hasClass("btn-success")) {
+        $(treeEditForm).find(".editTreeBtn").removeClass("btn-success").addClass(" btn-warning").html("Cancel Edits");
+    } else {
+        $(treeEditForm).find(".editTreeBtn").addClass(" btn-success").removeClass("btn-warning").html("Edit Metadata");
+    } 
+}
+
+function toggleEditForm(formElement) {
+//    alert(formElement);
+    $(formElement).find(".fieldCell .displayValue").each(function(i, display) {
+        $(display).hasClass("hidden") ? $(display).removeClass(" hidden") : $(display).addClass(" hidden");
+    });
+    $(formElement).find(".fieldCell .form-control").each(function(i, input) { 
+        $(input).hasClass("hidden") ? $(input).removeClass(" hidden") : $(input).addClass(" hidden");
+    });
+    $(formElement).find("button").each(function(i, button) {
+        if ($(button).hasClass("hidden")) {
+            $(button).removeClass(" hidden")
+        } else if (! $(button).hasClass("doNotHide")) {
+            $(button).addClass(" hidden");
+        }
+    });
+}
+
+// submit the values from the source editing form to be stored as properties in the graph
+function submitSourceEditForm() {
+
+    var sourceMetaNodeIdService = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getNodeIdForSourceId";
+    var xhr = getXhr(sourceMetaNodeIdService, function() {
+
+        var sourceMetaNodeId = JSON.parse(xhr.responseText);
+        submitPropertyEdits(sourceMetaNodeId, $("#sourceEditForm"));
+        
+    });
+    
+    // initiate the request for the source meta node id
+    xhr.send(JSON.stringify({"sourceId": activeSourceId}));
+}
+
+function submitTreeEditForm(treeId, formId) {
+    var sourceMetaNodeIdService = "http://localhost:7474/db/data/ext/treeJsons/graphdb/getRootNodeIdForTreeId";
+    var xhr = getXhr(sourceMetaNodeIdService, function() {
+
+        var treeRootNodeId = JSON.parse(xhr.responseText);
+        submitPropertyEdits(treeRootNodeId, $("#"+formId));
+        
+    });
+    
+    // initiate the request for the source meta node id
+    xhr.send(JSON.stringify({"treeId": treeId}));
+}
+
+function submitPropertyEdits(nodeId, propertyForm) {
+    
+    var submitPropertyEditsService = "http://localhost:7474/db/data/ext/sourceJsons/node/" + nodeId + "/setBasicProperties";
+    var xhr = getXhr(submitPropertyEditsService, function() {
+        location.reload();
+    });
+
+    var keys = [];
+    var values = [];
+    var types = [];
+    $(propertyForm).find(".fieldCell .form-control").each(function(i, input) {
+        keys.push(input.name);
+        values.push(input.value);
+        types.push(typeof input.value);
+    });
+    
+    // send the property edit request using the source meta node id
+    xhr.send(JSON.stringify({"keys": keys, "values": values, "types": types}));
 }
 
 function editTreeInfo(treeId) {
@@ -191,7 +365,7 @@ function deleteSourceLocal() {
         var response = JSON.parse(xhr.responseText);
         window.location.href = "cgi-bin/load_sources.py";
     });
-    xhr.send(JSON.stringify({"sourceId": currentViewedSourceId}));
+    xhr.send(JSON.stringify({"sourceId": activeSourceId}));
 }
 
 function deleteSourceGit() {
@@ -209,17 +383,18 @@ function deleteTree(treeId) {
 
 // ===== on page load
 
-var currentViewedSourceId; // page global
+var activeSourceId; // page global
 $(document).ready(function() {
 
     // get the source id from the GET variables
-    currentViewedSourceId = getQueryVariable('sourceId');
+    activeSourceId = getQueryVariable('sourceId');
 
-    if (currentViewedSourceId) {
-        $("#sourceTitle").append("Viewing source with id " + currentViewedSourceId);
-        populateSourceListDropdown();
-        displaySourceInfo();
+    if (! activeSourceId) {
+        activeSourceId = "undefined"
     }
+    $("#sourceTitle").append("Viewing source with id " + activeSourceId);
+    populateSourceListDropdown();
+    displaySourceInfo();
 });
 
     </script>

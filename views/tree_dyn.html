@@ -114,49 +114,7 @@ var svg = d3.select("body").append("svg").attr("id","treeSVG")
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-    
-// ===== onload methods and globals (which are set by onload methods)
 
-var treeId;
-var sourceId;
-var xo; // the left side of the tree svg
-var yo; // the top of the tree svg
-var bbox; // the bounding box element for the tree svg
-
-// on page load
-$(document).ready(function() {
-
-    treeId = getQueryVariable('treeId');
-    sourceId = false;
-
-    if (treeId) {
-        sourceId = getSourceIdForTreeId(treeId);
-        setupPage(sourceId, treeId);
-        var rootNodeId;
-        if (treeId) {
-            rootNodeId = getRootIdFromTreeId(treeId);
-        }
-
-        // do it twice to get the height right <- this doesn't appear to work...
-        setupTree(rootNodeId);
-        setupTree(rootNodeId);
-
-        d3.select(self.frameElement).style("height", "800px");
-    }
-    
-    // fill the tree selector dropdowns even if there is no tree loaded 
-    getSourceTreeList(sourceId, treeId);
-    getAllLocalTreeList(treeId);
-    
-});
-
-// when the tree svg loads, get its position for future reference
-$(document.getElementById("treeSVG")).ready(setCoords)
-function setCoords() {
-    bbox = document.getElementById("treeSVG").getBoundingClientRect();
-    xo = bbox.left + margin.left;
-    yo = bbox.top + margin.top;
-}
 
 // ===== general setup
 
@@ -168,8 +126,14 @@ function setupPage(sourceId, treeId) {
     getAllLocalTreeList(treeId);
     
     // set title
-    document.getElementById("treeId").innerHTML = 'Editing tree ' + treeId
-        + ' from source <a href="source_view.html?sourceId=' + sourceId + '">' + sourceId + '</a>';
+    var title
+    if (sourceId) {
+        title = 'Editing tree ' + treeId + ' from source '
+            + '<a href="source_view.html?sourceId=' + sourceId + '">' + sourceId + '</a>';
+    } else {
+        title = "No tree selected"
+    }
+    document.getElementById("treeId").innerHTML = title;
     
     // setup delete button
     $("#deleteTreeBtn").click(function() {
@@ -494,6 +458,55 @@ function reroot(nodeId){
         setupTree(evjson);
     });
     xhr.send(JSON.stringify({"nodeId": nodeId}));
+}
+
+// ===== onload and global
+
+var treeId;
+var sourceId;
+var xo; // the left side of the tree svg
+var yo; // the top of the tree svg
+var bbox; // the bounding box element for the tree svg
+
+// on page load
+$(document).ready(function() {
+
+    treeId = getQueryVariable('treeId');
+    sourceId = false;
+
+    if (!treeId) {
+        treeId = "undefined"
+        $("button").each(function(i, element) {
+            $(element).addClass("disabled").click(undefined);
+        });
+    } else {
+        sourceId = getSourceIdForTreeId(treeId);
+    }
+    
+    setupPage(sourceId, treeId);
+    var rootNodeId;
+    if (treeId != "undefined") {
+        rootNodeId = getRootIdFromTreeId(treeId);
+
+        // do it twice to get the height right <- this doesn't appear to work...
+        setupTree(rootNodeId);
+        setupTree(rootNodeId);
+
+        d3.select(self.frameElement).style("height", "800px");
+    }
+    
+    // fill the tree selector dropdowns even if there is no tree loaded 
+    getSourceTreeList(sourceId, treeId);
+    getAllLocalTreeList(treeId);
+    
+});
+
+// when the tree svg loads, get its position for future reference
+$(document.getElementById("treeSVG")).ready(setCoords)
+function setCoords() {
+    bbox = document.getElementById("treeSVG").getBoundingClientRect();
+    xo = bbox.left + margin.left;
+    yo = bbox.top + margin.top;
 }
 
 </script>

@@ -11,6 +11,7 @@ import jade.tree.JadeNode;
 import jade.tree.JadeTree;
 import jade.tree.NexsonSource;
 import opentree.otu.GeneralUtils;
+import opentree.otu.constants.BasicType;
 import opentree.otu.constants.OTUConstants;
 import opentree.otu.constants.GraphProperty;
 import opentree.otu.constants.NodeProperty;
@@ -339,6 +340,40 @@ public class DatabaseManager extends DatabaseAbstractBase {
 	}
 	
 	// ===== other methods
+	
+	/**
+	 * Set properties on a node according to the passed in maps
+	 * @param keys
+	 * @param values
+	 * @param types
+	 */
+	public void setProperties(Node node, String[] keys, String[] values, String[] types) {
+		
+		Transaction tx = graphDb.beginTx();
+		try {
+
+			int i = 0;
+			BasicType t;
+			
+			for (String key : keys) {
+				try {
+					t = BasicType.valueOf(types[i].toUpperCase().trim());
+				} catch (IllegalArgumentException ex) {
+					tx.failure();
+					throw new IllegalArgumentException("The type " + types[i] + " is not valid property type.");
+				}
+
+				node.setProperty(key, t.type.cast(values[i++]));
+
+			}
+			tx.success();
+		} catch (ArrayIndexOutOfBoundsException ex) {
+			tx.failure();
+			throw new IllegalArgumentException("All the input arrays must be the same length.");
+		} finally {
+			tx.finish();
+		}
+	}
 	
 	/**
 	 * Reroot the tree containing the `newroot` node on that node. Returns the root node of the rerooted tree.

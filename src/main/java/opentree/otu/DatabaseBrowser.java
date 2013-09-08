@@ -285,8 +285,8 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	
 	/**
 	 * Retrieve a source metadata node from the graph.
-	 * @param treeId
-	 * 		The id of the tree to get
+	 * @param sourceId
+	 * 		The id of the source to get
 	 * @param location
 	 * 		The location of the study containing the tree to get. For local trees, use DatabaseBrowser.LOCAL_LOCATION
 	 * @return
@@ -346,7 +346,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		
 		// get properties indicated for public consumption
 		Map<String, Object> metadata = new HashMap<String, Object>();
-		for (NodeProperty property : OTUConstants.VISIBLE_SOURCE_PROPERTIES) {
+		for (NodeProperty property : OTUConstants.EDITABLE_SOURCE_PROPERTIES) {
 			Object value = (Object) "";
 			if (sourceMeta.hasProperty(property.name)) {
 				value = sourceMeta.getProperty(property.name);
@@ -398,7 +398,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 
 		Map<String, Object> metadata = new HashMap<String, Object>();
 
-		for (NodeProperty property : OTUConstants.VISIBLE_TREE_PROPERTIES) {
+		for (NodeProperty property : OTUConstants.EDITABLE_TREE_PROPERTIES) {
 			Object value = (Object) "";
 			if (root.hasProperty(property.name)) {
 				value = root.getProperty(property.name);

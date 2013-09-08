@@ -9,25 +9,18 @@ public enum OTUConstants {
 	public static final String WHITESPACE_SUBSTITUTE_FOR_SEARCH = "%s%"; //, String.class);
 	public static final String LOCAL_TREEID_PREFIX = "__local_id_"; //, String.class);
 
-	public static final NodeProperty[] VISIBLE_TREE_PROPERTIES = {
-		NodeProperty.TREE_ID,
+	public static final NodeProperty[] EDITABLE_TREE_PROPERTIES = {
+//		NodeProperty.TREE_ID,
 		NodeProperty.OT_TAG,
 		NodeProperty.OT_INGROUP_CLADE, // ? not sure if we want this
-//		NodeProperty.FOCAL_CLADE, // ? not sure if we want this // either way it is not set
 		NodeProperty.OT_BRANCH_LENGTH_MODE,
-//		NodeProperty.SOURCE_ID,
-		NodeProperty.ROOTING_IS_SET,
-		NodeProperty.INGROUP_IS_SET
-//		NodeProperty.INGROUP_START_NODE_ID
+//		NodeProperty.ROOTING_IS_SET,
+//		NodeProperty.INGROUP_IS_SET
 	};
 	
-	public static final NodeProperty[] VISIBLE_SOURCE_PROPERTIES = {
-		NodeProperty.SOURCE_ID,
-		NodeProperty.LOCATION,
+	public static final NodeProperty[] EDITABLE_SOURCE_PROPERTIES = {
 		NodeProperty.OT_CURATOR_NAME,
 		NodeProperty.OT_DATA_DEPOSIT,
-//		NodeProperty.FOCAL_CLADE, // ? is this a study property or a tree property? // either way it is not set
-//		NodeProperty.OT_INGROUP_CLADE, // ? is this a study property or a tree property?
 		NodeProperty.OT_PUBLICATION_REFERENCE,
 		NodeProperty.OT_STUDY_ID,
 		NodeProperty.OT_STUDY_PUBLICATION,
