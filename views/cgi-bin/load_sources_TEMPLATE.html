@@ -6,6 +6,8 @@
  <script src="../js/jquery-1.9.1.js"></script>
  <script src="../js/bootstrap.min.js"></script>
  <script src="../js/jquery-ui-1.10.3.custom.min.js"></script>
+ <script src="../js/otutils.js"></script>
+
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <style>
       body {
@@ -99,10 +101,9 @@ File name: <input name="file" type="file"><br>
 </div>
 </div>
 <script language ="javascript" type = "text/javascript" >
-var treelinkurl ="../tree_dyn.html?treeId="
-var sourcelinkurl ="../source_view.html?sourceId="
-
+/*
 function getSourceTreeList(){
+    var treelinkurl ="../tree_dyn.html?treeId="
     var baseurl = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getSourceTreeList";
     var method = "POST";
     var xobjPost = new XMLHttpRequest();
@@ -115,22 +116,20 @@ function getSourceTreeList(){
     $(evjson.sources).each(function(index, element){
       $('#sources').append('<tr><td> <a href="'+sourcelinkurl+element[0]+'">'+element[0]+'</a> </td> <td> <a href="'+treelinkurl+element[1]+'" target="_blank">'+element[1]+'</a> </td></tr>');       
     })
-}
+} */
 
 function getSourceList(){
-    var baseurl = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getSourceList";
+    var sourcelinkurl ="../source_view.html?sourceId="
+    var sourceListService = "http://localhost:7474/db/data/ext/sourceJsons/graphdb/getSourceList";
     var method = "POST";
-    var xobjPost = new XMLHttpRequest();
-    xobjPost.open(method, baseurl, false);
-    xobjPost.setRequestHeader("Accept", "");
-    xobjPost.setRequestHeader("Content-Type","application/json");
-    xobjPost.send("");
-    var jsonrespstr = xobjPost.responseText;
-//    alert(jsonrespstr);
-    var evjson = jQuery.parseJSON(eval(jsonrespstr));
-    $(evjson.sources).each(function(index, element){
-      $('#sources').append('<tr><td> <a href="'+sourcelinkurl+element+'">'+element+'</a> </td></tr>');       
-    })
+    var xobj = getXhr(sourceListService, function() {
+        var response = JSON.parse(xobj.responseText);
+        $(response.sources).each(function(i, sourceId){
+             $('#sources').append('<tr><td> <a href="' + sourcelinkurl + sourceId + '">' + sourceId + '</a> </td></tr>');       
+        });
+    });
+    //    xobj.onreadystatechange=function() { alert(xobj.responseText) };
+    xobj.send();
 }
 
 //getSourceTreeList();

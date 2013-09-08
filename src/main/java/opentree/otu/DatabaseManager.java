@@ -131,7 +131,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			String sourceId = source.getId();
 
 			// don't add a study if it already exists, unless overwriting is turned on
-			String property = location + "SourceId";
+			String property = location + OTUConstants.SOURCE_ID;
 			sourceMeta = DatabaseUtils.getSingleNodeIndexHit(sourceMetaNodesBySourceId, property, sourceId);
 			if (sourceMeta != null) {
 				if (overwrite) {
@@ -191,7 +191,7 @@ public class DatabaseManager extends DatabaseAbstractBase {
 			} else { // remote study
 
 				// check if there is a local study to attach this remote one to
-				Node localSourceMeta = DatabaseUtils.getSingleNodeIndexHit(sourceMetaNodesBySourceId, LOCAL_LOCATION+"SourceId", sourceId);
+				Node localSourceMeta = DatabaseUtils.getSingleNodeIndexHit(sourceMetaNodesBySourceId, LOCAL_LOCATION + OTUConstants.SOURCE_ID, sourceId);
 				if (localSourceMeta != null) {
 					localSourceMeta.createRelationshipTo(sourceMeta, RelType.LOCALCOPYOF);
 				}

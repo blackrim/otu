@@ -12,7 +12,7 @@ public enum NodeProperty {
 	/**
 	 * The original taxon name associated with this node.
 	 */
-	ORIGINAL_NAME ("original_name", String.class),	
+	ORIGINAL_LABEL ("ot:originalLabel", String.class),	
 	
 	/**
 	 * The taxon name associated with this node. SHOULD BE THE MAPPED NAME, not the original. Should not be set if the

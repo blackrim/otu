@@ -1,12 +1,25 @@
 package opentree.otu.plugins;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+
 import jade.tree.*;
 import opentree.otu.DatabaseBrowser;
 import opentree.otu.DatabaseManager;
+import opentree.otu.DatabaseUtils;
 import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
 import opentree.otu.exceptions.NoSuchTreeException;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -41,19 +54,20 @@ public class treeJsons extends ServerPlugin{
 	 */
 	@Description( "Remove a previously imported tree from the graph" )
 	@PluginTarget( GraphDatabaseService.class )
-	public String deleteTreeFromTreeId(@Source GraphDatabaseService graphDb,
-//			@Description( "study ID")
-//			@Parameter(name = "studyID", optional = false) String studyID,
+	public Representation deleteTreeFromTreeId(@Source GraphDatabaseService graphDb,
 			@Description( "The id of the tree to be deleted")
 			@Parameter(name = "treeId", optional = false) String treeId) {
 		
 		DatabaseManager manager = new DatabaseManager(graphDb);
 		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
 		
-//		manager.deleteLocalTreeFromTreeID(studyID, treeID);
 		Node root = browser.getTreeRootNode(treeId, browser.LOCAL_LOCATION);
 		manager.deleteTree(root);
-		return "{\"worked\":1}";
+
+		// return result
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("worked", true);
+		return OpentreeRepresentationConverter.convert(result);
 	}
 	
 	/**
@@ -134,5 +148,64 @@ public class treeJsons extends ServerPlugin{
 		Node treeRoot = browser.getTreeRootNode(treeId, browser.LOCAL_LOCATION);
 		Node sourceMeta = treeRoot.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING).getStartNode();
 		return (String) sourceMeta.getProperty(NodeProperty.SOURCE_ID.name);
+	}
+	
+	@Description( "Get OTU metadata" )
+	@PluginTarget( Node.class )
+	public Representation getOTUMetaData(@Source Node node) {
+
+		// TODO: use this to fill out the node editor
+		
+		DatabaseBrowser browser = new DatabaseBrowser(node.getGraphDatabase());
+		return OpentreeRepresentationConverter.convert(browser.getMetadataForOTU(node));
+	}
+	
+	@Description ("Hit the TNRS for all the names in a subtree. Return the results.")
+	@PluginTarget( Node.class )
+	public Representation doTNRSForDescendantsOf(@Source Node root,
+//		@Description ("The root of the subtree to use for TNRS") @Parameter (name="rootNodeId", optional=false) Long rootNodeId, 
+		@Description ("The url of the TNRS service to use. If not supplied then the OT TNRS will be used.")
+			@Parameter (name="TNRS Service URL", optional=true) String tnrsURL,
+		@Description ("NOT IMPLEMENTED. (would have been...) If set to false (default), only the original otu labels will be used for TNRS. If set to true, currently mapped names will be used (if they exist)")
+			@Parameter(name="useMappedNames", optional=true) boolean useMappedNames) throws IOException, ParseException {
+		
+		Map<Long, String> idNameMap = new HashMap<Long, String>();
+		
+		// make a map of these with ids and original names
+		for (Node otu : DatabaseUtils.DESCENDANT_OTU_TRAVERSAL.traverse(root).nodes()) {
+			
+			// TODO: allow the use of mapped names
+			idNameMap.put(otu.getId(), (String) otu.getProperty(NodeProperty.ORIGINAL_LABEL.name));
+		}
+		
+		if (tnrsURL == null) {
+			tnrsURL = "http://dev.opentreeoflife.org/taxomachine/ext/TNRS/graphdb/contextQueryForNames/";
+		}
+		
+		// open the connection to the TNRS
+		URL url = new URL(tnrsURL);
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		conn.setDoOutput(true);
+		conn.setRequestMethod("POST");
+		conn.setRequestProperty("Content-Type", "Application/json");
+ 
+		// send the data
+		OutputStream os = conn.getOutputStream();
+		os.write(new JSONObject(idNameMap).toJSONString().getBytes());
+		os.flush();
+ 
+		if (conn.getResponseCode() != HttpURLConnection.HTTP_CREATED) {
+			throw new RuntimeException("Failed : HTTP error code : "
+				+ conn.getResponseCode() + "\n" + conn.getResponseMessage());
+		}
+ 
+		BufferedReader br = new BufferedReader(new InputStreamReader((conn.getInputStream())));
+		conn.disconnect();
+
+		JSONParser parser = new JSONParser();
+		JSONObject json = (JSONObject) parser.parse(br);
+
+		// return the result. Would be awesome if we could return it as JSON....
+		return OpentreeRepresentationConverter.convert(json);
 	}
 }

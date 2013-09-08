@@ -4,6 +4,8 @@ public enum OTUConstants {
 
 	;
 	
+	public static final String SOURCE_ID = "SourceId";
+	public static final String TREE_ID = "TreeId";
 	public static final String WHITESPACE_SUBSTITUTE_FOR_SEARCH = "%s%"; //, String.class);
 	public static final String LOCAL_TREEID_PREFIX = "__local_id_"; //, String.class);
 
@@ -31,6 +33,13 @@ public enum OTUConstants {
 		NodeProperty.OT_STUDY_PUBLICATION,
 		NodeProperty.OT_TAG,
 		NodeProperty.OT_YEAR,
+	};
+	
+	public static final NodeProperty[] VISIBLE_OTU_PROPERTIES = {
+		NodeProperty.ORIGINAL_LABEL,
+		NodeProperty.NAME,
+		NodeProperty.IS_WITHIN_INGROUP
+		// etc?
 	};
 	
 	public static final SearchableProperty[] TREE_PROPERTIES_FOR_SIMPLE_INDEXING = {

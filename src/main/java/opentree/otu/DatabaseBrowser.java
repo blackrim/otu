@@ -34,7 +34,7 @@ import org.neo4j.kernel.Traversal;
 import org.neo4j.kernel.impl.nioneo.store.PropertyType;
 
 public class DatabaseBrowser extends DatabaseAbstractBase {
-
+	
 	public final Index<Node> treeRootNodesByTreeId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_TREE_ID);
 	public final Index<Node> treeRootNodesBySourceId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_SOURCE_ID);
 	public final Index<Node> sourceMetaNodesBySourceId = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_SOURCE_ID);
@@ -58,7 +58,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * @param searchValue
 	 * 		The value to be searched for
 	 * @return
-	 * 		A list of strings containing the node ids for the source meta nodes for sources found during search
+	 * 		A list of strings containing the node ids of the source meta nodes for sources found during search
 	 */
 	public Iterable<String> doBasicSearch(SearchableProperty search, String searchValue) {
 		
@@ -100,16 +100,13 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * @return
 	 */
 	public List<Node> getRemoteSourceMetaNodesForSourceId(String sourceId) {
-		
 		List<Node> remoteSourceMetasFound = new LinkedList<Node>();
-		
 		for (String remote : getKnownRemotes()) {
-			Node sourceMeta = DatabaseUtils.getSingleNodeIndexHit(sourceMetaNodesBySourceId, remote+"SourceId",sourceId);
+			Node sourceMeta = DatabaseUtils.getSingleNodeIndexHit(sourceMetaNodesBySourceId, remote + OTUConstants.SOURCE_ID, sourceId);
 			if (sourceMeta != null) {
 				remoteSourceMetasFound.add(sourceMeta);
 			}
 		}
-		
 		return remoteSourceMetasFound;
 	}
 	
@@ -128,10 +125,10 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		return knownRemotes;
 	}
 	
-	/**
+	/*
 	 * Returns a JSON array string of sources that have imported trees.
 	 * @return
-	 */
+	 *
 	public String getJSONOfSourceIdsForImportedTrees() {
 
 		// find all imported trees, get their study ids from the attached metadata nodes
@@ -158,12 +155,44 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		json.append("] }");
 		
 		return json.toString();
-	}
-
+	} */
+	
 	/**
-	 * Return a JSON string of source ids and corresponding tree ids for all locally-imported sources.
+	 * Return a list containing all the tree ids for the specified source id.
 	 * @return
 	 */
+	public Map<String, Object> getSourceIds(String location) {
+		return getSourceIds(location, new HashSet<String>());
+	}
+	
+	/**
+	 * Return a list containing the ids of all imported sources
+	 * @return
+	 */
+	public Map<String, Object> getSourceIds(String location, Set<String> excludedSourceIds) {
+		List<String> sourceIds = new LinkedList<String>();
+		
+		IndexHits<Node> sourcesFound = sourceMetaNodesBySourceId.query(location + OTUConstants.SOURCE_ID + ":*");
+		try {
+			while (sourcesFound.hasNext()) {
+				String sid = (String) sourcesFound.next().getProperty(NodeProperty.SOURCE_ID.name);
+				if (!excludedSourceIds.contains(sid)) {
+					sourceIds.add(sid);
+				}
+			}
+		} finally {
+			sourcesFound.close();
+		}
+		
+		Map<String, Object> results = new HashMap<String, Object>();
+		results.put("sources", sourceIds);
+		return results;
+	}
+		
+	/*
+	 * Return a JSON string of source ids and corresponding tree ids for all locally-imported sources.
+	 * @return
+	 *
 	@Deprecated
 	public String getJSONOfSourceIdsAndTreeIdsForImportedTrees() {
 		
@@ -188,7 +217,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		retstr.append("] }");
 		return retstr.toString();
 
-	}
+	} */
 	
 	/**
 	 * Return a list containing all the tree ids for the specified source id.
@@ -206,7 +235,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	
 		List<String> treeIds = new LinkedList<String>();
 		
-		IndexHits<Node> hits = treeRootNodesBySourceId.query(location + "SourceId" + ":" + sourceId);
+		IndexHits<Node> hits = treeRootNodesBySourceId.query(location + OTUConstants.SOURCE_ID + ":" + sourceId);
 		try {
 			while (hits.hasNext()) {
 				String tid = (String) hits.next().getProperty(NodeProperty.TREE_ID.name);
@@ -243,11 +272,11 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * @return
 	 * 		A set containing the nodes found by the tree traversal. Returns an empty set if no nodes are found.
 	 */
-	public static Set<Node> getDescendantTips(Node ancestor){ // does not appear to be used.
+	public static Set<Node> getDescendantTips(Node ancestor) { // does not appear to be used.
 		HashSet<Node> descendantTips = new HashSet<Node>();
 		TraversalDescription CHILDOF_TRAVERSAL = Traversal.description().relationships(RelType.CHILDOF, Direction.INCOMING);
-		for(Node curGraphNode: CHILDOF_TRAVERSAL.breadthFirst().traverse(ancestor).nodes()){
-			if(curGraphNode.hasProperty("oty")){ // what is this? should this be "otu"?
+		for (Node curGraphNode: CHILDOF_TRAVERSAL.breadthFirst().traverse(ancestor).nodes()) {
+			if (curGraphNode.hasProperty("oty")) { // what is this? should this be "otu"?
 				descendantTips.add(curGraphNode);
 			}
 		}
@@ -264,7 +293,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * 		The metadata node for this source, or null if no such source exists
 	 */
 	public Node getSourceMetaNode(String sourceId, String location) {
-		return DatabaseUtils.getSingleNodeIndexHit(sourceMetaNodesBySourceId, location + "SourceId", sourceId);
+		return DatabaseUtils.getSingleNodeIndexHit(sourceMetaNodesBySourceId, location + OTUConstants.SOURCE_ID, sourceId);
 	}
 	
 	/**
@@ -277,11 +306,35 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * 		The root node for this tree, or null if no such tree exists
 	 */
 	public Node getTreeRootNode(String treeId, String location) {
-		return DatabaseUtils.getSingleNodeIndexHit(treeRootNodesByTreeId, location + "TreeId", treeId);
+		return DatabaseUtils.getSingleNodeIndexHit(treeRootNodesByTreeId, location + OTUConstants.TREE_ID, treeId);
 	}
 	
 	/**
-	 * Return a JSON string containing the metadata for the corresponding source. Will fail if the provided node
+	 * Return a map of relevant properties for the specified OTU node.
+	 * @param otu
+	 * @return
+	 */
+	public Map<String, Object> getMetadataForOTU(Node otu) {
+		
+		Map<String, Object> metadata = new HashMap<String, Object>();
+
+		for (NodeProperty property : OTUConstants.VISIBLE_OTU_PROPERTIES) {
+			Object value = (Object) "";
+			if (otu.hasProperty(property.name)) {
+				value = otu.getProperty(property.name);
+			}
+			metadata.put(property.name, value);
+		}
+		
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("metadata", metadata);
+		
+		return result;
+
+	}
+	
+	/**
+	 * Return a map containing the metadata for the corresponding source. Will fail if the provided node
 	 * is not a source metadata node. A general purpose method that gathers information about local and remote sources.
 	 * 
 	 * @param sourceMeta
@@ -289,7 +342,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * @return
 	 * 		A JSON string containing metadata for this source
 	 */
-	public Map<String, Object> getSourceMetadata(Node sourceMeta) {
+	public Map<String, Object> getMetadataForSource(Node sourceMeta) {
 		
 		// get properties indicated for public consumption
 		Map<String, Object> metadata = new HashMap<String, Object>();
@@ -358,47 +411,6 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		
 		return result;
 
-		// we could set properties to *always* be included in a separate enum. as it stands, we will only
-		// see properties that actually exist for the node
-		
-/*		StringBuffer bf = new StringBuffer("{ \"metadata\": {");
-
-		boolean first = true;
-		for (String p : root.getPropertyKeys()) {
-			if (first) {
-				first = false;
-			} else {
-				bf.append(",");
-			}
-			bf.append("\"" + p + "\" : \"" + String.valueOf(root.getProperty(p)) + "\"");
-		}
-		
-/*		if (root.hasProperty("ot:branchLengthMode")) {
-			bf.append(String.valueOf(root.getProperty("ot:branchLengthMode")));
-		}
-		bf.append("\", \"ot:inGroupClade\": \"");
-		if (root.hasProperty("ot:inGroupClade")) {
-			bf.append(String.valueOf(root.getProperty("ot:inGroupClade")));
-		}
-		bf.append("\", \"ot:focalClade\": \"");
-		if (root.hasProperty("ot:focalClade")) {
-			bf.append(String.valueOf(root.getProperty("ot:focalClade")));
-		}
-		bf.append("\", \"ot:tag\": \"");
-		if (root.hasProperty("ot:tag")) {
-			bf.append(String.valueOf(root.getProperty("ot:tag")));
-		}
-		bf.append("\", \"rooting_set\": \"");
-		if (root.hasProperty("rooting_set")) {
-			bf.append(String.valueOf(root.getProperty("rooting_set")));
-		}
-		bf.append("\", \"ingroup_set\": \"");
-		if (root.hasProperty("ingroup_set")) {
-			bf.append(String.valueOf(root.getProperty("ingroup_set")));
-		} */
-
-/*		bf.append("} }");
-		return bf.toString(); */
 	}
 	
 	/**

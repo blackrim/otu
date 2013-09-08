@@ -48,7 +48,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 	 */
 	public void addSourceMetaNodeToIndexes(Node sourceMetaNode) {
 		sourceMetaNodesBySourceId.add(sourceMetaNode,
-				(String) sourceMetaNode.getProperty(NodeProperty.LOCATION.name)+"SourceId",
+				(String) sourceMetaNode.getProperty(NodeProperty.LOCATION.name)+OTUConstants.SOURCE_ID,
 				sourceMetaNode.getProperty(NodeProperty.SOURCE_ID.name));
 		indexNodeBySearchableProperties(sourceMetaNode, OTUConstants.SOURCE_PROPERTIES_FOR_SIMPLE_INDEXING);
 	}
@@ -72,11 +72,11 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 	public void addTreeRootNodeToIndexes(Node treeRootNode) {
 
 		treeRootNodesByTreeId.add(treeRootNode,
-				(String) treeRootNode.getProperty(NodeProperty.LOCATION.name) + "TreeId",
+				(String) treeRootNode.getProperty(NodeProperty.LOCATION.name) + OTUConstants.TREE_ID,
 				treeRootNode.getProperty(NodeProperty.TREE_ID.name));
 		
 		treeRootNodesBySourceId.add(treeRootNode,
-				(String) treeRootNode.getProperty(NodeProperty.LOCATION.name) + "SourceId",
+				(String) treeRootNode.getProperty(NodeProperty.LOCATION.name) + OTUConstants.SOURCE_ID,
 				treeRootNode.getSingleRelationship(RelType.METADATAFOR, Direction.INCOMING)
 					.getEndNode().getProperty(NodeProperty.SOURCE_ID.name));
 		
@@ -112,7 +112,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 		addStringArrayEntriesToIndex(root,
 				treeRootNodesByOriginalTaxonName,
 				NodeProperty.DESCENDANT_ORIGINAL_TAXON_NAMES.name,
-				NodeProperty.ORIGINAL_NAME.name);
+				NodeProperty.ORIGINAL_LABEL.name);
 
 		addStringArrayEntriesToIndex(root,
 				treeRootNodesByMappedTaxonName,
@@ -137,18 +137,11 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 	 * @param node
 	 * @param index
 	 */
-//	private void indexNodeBySearchableProperties(Node node, Index<Node> index) {
 	private void indexNodeBySearchableProperties(Node node, SearchableProperty[] searchablePoperties) {
-		
-		// TODO: modify this to use an enum/accept an array (that can be populated from an enum) that specifies all the properties to be set.
-		
 		for (SearchableProperty search : searchablePoperties) {
 			Index<Node> index = getNodeIndex(search.index);
 			if (node.hasProperty(search.property.name)) {
-//			if (propertyName.length() > 2) {
-//				if (propertyName.substring(0, 3).equals("ot:")) {
-					index.add(node, search.property.name, node.getProperty(search.property.name));
-//				}
+				index.add(node, search.property.name, node.getProperty(search.property.name));
 			}
 		}
 	}

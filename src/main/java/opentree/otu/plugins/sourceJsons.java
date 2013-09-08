@@ -58,10 +58,16 @@ public class sourceJsons extends ServerPlugin {
 
 	@Description("Return JSON containing information about local trees")
 	@PluginTarget(GraphDatabaseService.class)
-	public String getSourceList(@Source GraphDatabaseService graphDb) {
+	public Representation getSourceList(@Source GraphDatabaseService graphDb,
+			@Description("Source ids to be excluded from the results") @Parameter(name="excludedSourceIds", optional=true) String[] excludedSourceIdsArr) {
+		Set<String> excludedSourceIds = new HashSet<String>();
+		if (excludedSourceIdsArr != null) {
+			for (Object sid : excludedSourceIdsArr) {
+				excludedSourceIds.add((String) sid);
+			}
+		}
 		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
-		String sourcelist = browser.getJSONOfSourceIdsForImportedTrees();
-		return sourcelist;
+		return OpentreeRepresentationConverter.convert(browser.getSourceIds(browser.LOCAL_LOCATION, excludedSourceIds));
 	}
 
 	/**
@@ -179,16 +185,18 @@ public class sourceJsons extends ServerPlugin {
 //		String metadata = DatabaseBrowser.getMetadataJSONForSource(sourceMeta);
 //		return metadata;
 		
-		return OpentreeRepresentationConverter.convert(sourceMeta == null ? null : browser.getSourceMetadata(sourceMeta));
+		return OpentreeRepresentationConverter.convert(sourceMeta == null ? null : browser.getMetadataForSource(sourceMeta));
 	}
 
 	/**
+	 * Delete a tree from the db
+	 * 
 	 * @param nodeid
 	 * @return
 	 */
 	@Description("Return a JSON with alternative parents presented")
 	@PluginTarget(GraphDatabaseService.class)
-	public String deleteSourceFromSourceID(@Source GraphDatabaseService graphDb,
+	public Representation deleteSourceFromSourceId(@Source GraphDatabaseService graphDb,
 			@Description("source Id") @Parameter(name = "sourceId", optional = false) String sourceId) {
 
 		DatabaseManager dm = new DatabaseManager(graphDb);
@@ -197,7 +205,9 @@ public class sourceJsons extends ServerPlugin {
 
 		dm.deleteSource(sourceMeta);
 
-		return "{\"worked\":1}";
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("worked", true);
+		return OpentreeRepresentationConverter.convert(result);
 	}
 
 }
