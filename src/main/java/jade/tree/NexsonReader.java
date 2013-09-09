@@ -264,7 +264,7 @@ public class NexsonReader {
 								System.err.println("Error with: " + m);
 								throw new RuntimeException("Invalid ottolid value: " + value);
 							}
-//						} else if(propname.equals("ot:originalLabel")){ // attempting to store original names by removing this clause
+//						} else if(propname.equals("ot:originalLabel")){ // commented out. do not ignore original labels!
 							// ignoring originalLabel, but not emitting the unknown property warning
 						} else {
 							msgLogger.indentMessageStrStr(1, "Warning: dealing with unknown property. Don't know what to do...", "property name", propname, "nexsonid", id);

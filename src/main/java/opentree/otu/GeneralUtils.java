@@ -9,7 +9,8 @@ public class GeneralUtils {
     public static final int LONG_NAME_LENGTH = 19;
 
     public static final String offendingChars = "[\\Q\"_~`:;/[]{}|<>,.!@#$%^&*()?+=`\\\\\\E\\s]+";
-    public static final char offendingJSONChar = '"';
+    public static final char QUOTE = '"';
+    public static final char[] OFFENDING_JSON_CHARS = {QUOTE};
     
     public static int sum_ints(List<Integer> list){
 		if(list==null || list.size()<1)
@@ -42,11 +43,24 @@ public class GeneralUtils {
     	return arr;
     }
 
-    public static String escapeStringForJSON(String dirtyString) {
-    	String cleanString = dirtyString.replace(offendingJSONChar, ' ');
-	    return cleanString;
+    /**
+     * Uses default replacement char (a space)
+     * @param dirtyString
+     * @return
+     */
+    public static String stripQuotes(String dirtyString) {
+    	return stripQuotes(dirtyString, ' ');
     }
     
+    /**
+     * Replace quotes in a string with any single char
+     * @param dirtyString
+     * @return
+     */
+    public static String stripQuotes(String dirtyString, char replace) {
+    	return dirtyString.replace(QUOTE, replace);
+    }
+   
 	/**
 	 * Replaces non-alphanumeric characters (excluding "_" and "-") in `dirtyName` with "_" and returns the cleaned name.
 	 * Currently slow and crappy, should be updated to use regex and just do a single pass over the string.
