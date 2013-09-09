@@ -1,13 +1,14 @@
 // ===== util methods
 
 // return an xhr with default settings
-function getXhr(url, callback) {
+function getXhr(url, callback, testing) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", url, callback ? true : false);
     xhr.setRequestHeader("Accept", "");
     xhr.setRequestHeader("Content-Type","Application/json");
     if (callback) {
         xhr.onreadystatechange=function() {
+            if (testing) {alert(xhr.responseText)};
             if (xhr.readyState==4 && xhr.status==200) {
                callback();
             }

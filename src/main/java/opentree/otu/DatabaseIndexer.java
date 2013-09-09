@@ -112,7 +112,7 @@ public class DatabaseIndexer extends DatabaseAbstractBase {
 		addStringArrayEntriesToIndex(root,
 				treeRootNodesByOriginalTaxonName,
 				NodeProperty.DESCENDANT_ORIGINAL_TAXON_NAMES.name,
-				NodeProperty.ORIGINAL_LABEL.name);
+				NodeProperty.OT_ORIGINAL_LABEL.name);
 
 		addStringArrayEntriesToIndex(root,
 				treeRootNodesByMappedTaxonName,

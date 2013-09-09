@@ -3,10 +3,13 @@ package org.neo4j.server.rest.repr;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.neo4j.helpers.collection.FirstItemIterable;
 import org.neo4j.helpers.collection.IterableWrapper;
 import org.neo4j.helpers.collection.IteratorWrapper;
-
 import org.neo4j.server.rest.repr.ListRepresentation;
 import org.neo4j.server.rest.repr.MappingRepresentation;
 import org.neo4j.server.rest.repr.Representation;
@@ -102,7 +105,7 @@ public class OpentreeRepresentationConverter {
     public static MappingRepresentation getMapRepresentation(Map data) {
         return GeneralizedMappingRepresentation.getMapRepresentation(data);
     }
-
+    
     /**
      * Return a serialization of a general Iterable type
      * @param data
@@ -145,7 +148,7 @@ public class OpentreeRepresentationConverter {
          * if ( data instanceof Table ) { return new FirstItemIterable<Representation>(Collections.<Representation>singleton(new GremlinTableRepresentation(
          * (Table) data ))); }
          */
-        return new FirstItemIterable<Representation>(
+        return new FirstItemIterable<Representation> (
                 new IterableWrapper<Representation, Object>(data) {
 
                     @Override
@@ -157,7 +160,19 @@ public class OpentreeRepresentationConverter {
                         } else */ if (value instanceof Iterable) {
                             final FirstItemIterable<Representation> nested = convertValuesToRepresentations((Iterable) value);
                             return new ListRepresentation(getType(nested), nested);
-                        
+/*
+                        // TODO: check if this is a json object.... maybe should create a new class for serializing json objects...
+                        } else if (false) {
+                        	JSONParser parser = new JSONParser();
+                        	Map json = null;
+							try {
+								json = (Map) parser.parse((String) value);
+							} catch (ParseException e) {
+								
+								// TODO: do something with this...
+								e.printStackTrace();
+							}                        
+                        	return OpentreeRepresentationConverter.getMapRepresentation(((JSONObject) json)); */
                         } else {
                             return getSingleRepresentation(value);
                         }
@@ -207,9 +222,28 @@ public class OpentreeRepresentationConverter {
         } else if (data instanceof Integer) {
             return ValueRepresentation.number(((Integer) data).intValue());
         
+//        } else {
+//            return ValueRepresentation.string(data.toString());
+//        
+//        }
+        } else if (data instanceof String) {
+        	return ValueRepresentation.string((String) data);
+
+/*        	for (int i = 0; i < ((String) data).length(); i++) {
+        		if (Character.isWhitespace(((String)data).charAt(i)) || ((String) data).charAt(i) == '"') {
+        			continue;
+        		} else if (((String) data).charAt(i) == '{') {
+                    return OpentreeRepresentationConverter.getMapRepresentation((JSONObject) data);
+            	} else if (((String) data).charAt(i) == '[') {
+                    return OpentreeRepresentationConverter.getListRepresentation((JSONArray) data);
+        		} else {
+        			break;
+        		}
+        	}
+        	return ValueRepresentation.string((String) data); */
+
         } else {
-            return ValueRepresentation.string(data.toString());
-        
+        	return ValueRepresentation.string(data.toString());
         }
     }
 }

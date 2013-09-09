@@ -29,7 +29,7 @@ public class DatabaseUtils {
 			.evaluator(new Evaluator() {
 				@Override
 				public Evaluation evaluate(Path inPath) {
-					if (inPath.startNode().hasRelationship(RelType.CHILDOF,Direction.INCOMING)) {
+					if (inPath.endNode().hasRelationship(RelType.CHILDOF, Direction.INCOMING)) {
 						return Evaluation.EXCLUDE_AND_CONTINUE;
 					} else {
 						return Evaluation.INCLUDE_AND_PRUNE;

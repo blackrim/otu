@@ -39,16 +39,35 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	public final Index<Node> treeRootNodesBySourceId = getNodeIndex(NodeIndexDescription.TREE_ROOT_NODES_BY_SOURCE_ID);
 	public final Index<Node> sourceMetaNodesBySourceId = getNodeIndex(NodeIndexDescription.SOURCE_METADATA_NODES_BY_SOURCE_ID);
 	
+	private static Set<String> protectedSourceProperties;
+	private static Set<String> protectedTreeProperties;
+	
 	public DatabaseBrowser(EmbeddedGraphDatabase embeddedGraph) {
 		super(embeddedGraph);
 	}
 
 	public DatabaseBrowser(GraphDatabaseService gdbs) {
 		super(gdbs);
+		collectProtectedProperties();
 	}
 
 	public DatabaseBrowser(GraphDatabaseAgent gdba) {
 		super(gdba);
+		collectProtectedProperties();
+	}
+
+	private void collectProtectedProperties() {
+		
+		protectedSourceProperties = new HashSet<String>();
+		protectedTreeProperties = new HashSet<String>();
+		
+		for (NodeProperty p : OTUConstants.PROTECTED_SOURCE_PROPERTIES) {
+			protectedSourceProperties.add(p.name);
+		}
+
+		for (NodeProperty p : OTUConstants.PROTECTED_TREE_PROPERTIES) {
+			protectedTreeProperties.add(p.name);
+		}
 	}
 	
 	/**
@@ -318,6 +337,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 		
 		Map<String, Object> metadata = new HashMap<String, Object>();
 
+		// TODO: we may want to make this consistent with the  protected source property behavior tree root and source meta nodes
 		for (NodeProperty property : OTUConstants.VISIBLE_OTU_PROPERTIES) {
 			Object value = (Object) "";
 			if (otu.hasProperty(property.name)) {
@@ -340,18 +360,22 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * @param sourceMeta
 	 * 		The metadata node for the source
 	 * @return
-	 * 		A JSON string containing metadata for this source
+	 * 		A map containing information about this source
 	 */
 	public Map<String, Object> getMetadataForSource(Node sourceMeta) {
 		
 		// get properties indicated for public consumption
 		Map<String, Object> metadata = new HashMap<String, Object>();
-		for (NodeProperty property : OTUConstants.EDITABLE_SOURCE_PROPERTIES) {
-			Object value = (Object) "";
-			if (sourceMeta.hasProperty(property.name)) {
-				value = sourceMeta.getProperty(property.name);
+		for (String key : sourceMeta.getPropertyKeys()) {
+
+			if (!protectedSourceProperties.contains(key)) {
+				
+				Object value = (Object) "";
+				if (sourceMeta.hasProperty(key)) {
+					value = sourceMeta.getProperty(key);
+				}
+				metadata.put(key, value);
 			}
-			metadata.put(property.name, value);
 		}
 
 		// get the trees
@@ -376,6 +400,7 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 
 		// put it together and what have you got
 		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("sourceId", sourceMeta.getProperty(NodeProperty.SOURCE_ID.name));
 		result.put("metadata", metadata);
 		result.put("trees", trees);
 		result.put("has_local_copy", hasLocalCopy);
@@ -392,25 +417,30 @@ public class DatabaseBrowser extends DatabaseAbstractBase {
 	 * @param root
 	 * 		The root node of a tree
 	 * @return
-	 * 		A JSON string containing of the metadata for this tree
+	 * 		A map containing information about this tree
 	 */
 	public static Map<String, Object> getMetadataForTree(Node root) {
 
+		// gather properties suitable for public consumption
 		Map<String, Object> metadata = new HashMap<String, Object>();
+		for (String key : root.getPropertyKeys()) {
 
-		for (NodeProperty property : OTUConstants.EDITABLE_TREE_PROPERTIES) {
-			Object value = (Object) "";
-			if (root.hasProperty(property.name)) {
-				value = root.getProperty(property.name);
+			if (!protectedTreeProperties.contains(key)) {
+
+				Object value = (Object) "";
+				if (root.hasProperty(key)) {
+					value = root.getProperty(key);
+				}
+				metadata.put(key, value);
 			}
-			metadata.put(property.name, value);
 		}
 		
 		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("treeId", root.getProperty((String) NodeProperty.TREE_ID.name));
+		result.put("sourceId", root.getProperty((String) NodeProperty.SOURCE_ID.name));
 		result.put("metadata", metadata);
 		
 		return result;
-
 	}
 	
 	/**

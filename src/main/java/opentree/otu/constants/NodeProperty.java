@@ -10,11 +10,6 @@ package opentree.otu.constants;
 public enum NodeProperty {
 
 	/**
-	 * The original taxon name associated with this node.
-	 */
-	ORIGINAL_LABEL ("ot:originalLabel", String.class),	
-	
-	/**
 	 * The taxon name associated with this node. SHOULD BE THE MAPPED NAME, not the original. Should not be set if the
 	 * node has not been mapped (although I have no idea if this is actually the case).
 	 */
@@ -68,7 +63,17 @@ public enum NodeProperty {
 	/**
 	 * The OTT id of the focal clade for this source. A phylografter property that we may never use.
 	 */
-	FOCAL_CLADE("focal_clade_ott_id", String.class),
+	FOCAL_CLADE ("focal_clade_ott_id", String.class),
+
+	/**
+	 * An id property used within nexson files. Relevance to OTU is unclear.
+	 */
+	NEXSON_ID ("nexsonid", String.class),
+
+	/**
+	 * An id property used by phylografter. Not relevant to OTU, btu we include it here to allow us to hide it when returning metadata.
+	 */
+	PHYLOGRAFTER_ID ("id", long.class),
 	
 	/**
 	 * A boolean indicating whether this tree has been rooted. Stored as a property of the root node. If the tree root lacks
