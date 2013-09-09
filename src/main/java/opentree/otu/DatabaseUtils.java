@@ -1,21 +1,42 @@
 package opentree.otu;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 
-import opentree.otu.constants.NodeProperty;
 import opentree.otu.constants.RelType;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.graphdb.traversal.Evaluation;
+import org.neo4j.graphdb.traversal.Evaluator;
+import org.neo4j.graphdb.traversal.TraversalDescription;
+import org.neo4j.kernel.Traversal;
 
 /**
  * Static methods for performing common tasks with the database.
  */
 public class DatabaseUtils {
+	
+	public static final TraversalDescription DESCENDANT_OTU_TRAVERSAL = Traversal
+			.description()
+			.relationships(RelType.CHILDOF, Direction.INCOMING)
+			.evaluator(new Evaluator() {
+				@Override
+				public Evaluation evaluate(Path inPath) {
+					if (inPath.endNode().hasRelationship(RelType.CHILDOF, Direction.INCOMING)) {
+						return Evaluation.EXCLUDE_AND_CONTINUE;
+					} else {
+						return Evaluation.INCLUDE_AND_PRUNE;
+					}
+				}
+			});
+
 	
 	/**
 	 * Count the number of relationships of the specified type and direction connected to the node
@@ -133,7 +154,6 @@ public class DatabaseUtils {
 		LinkedList<Node> result = new LinkedList<Node>();
 		IndexHits<Node> hits = null;
 		try {
-//			hits = index.get(property, key);
 			hits = index.query(property+":"+key);
 			for (Node hit : hits) {
 				result.add(hit);

@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import jade.MessageLogger;
@@ -58,10 +59,16 @@ public class sourceJsons extends ServerPlugin {
 
 	@Description("Return JSON containing information about local trees")
 	@PluginTarget(GraphDatabaseService.class)
-	public String getSourceList(@Source GraphDatabaseService graphDb) {
+	public Representation getSourceList(@Source GraphDatabaseService graphDb,
+			@Description("Source ids to be excluded from the results") @Parameter(name="excludedSourceIds", optional=true) String[] excludedSourceIdsArr) {
+		Set<String> excludedSourceIds = new HashSet<String>();
+		if (excludedSourceIdsArr != null) {
+			for (Object sid : excludedSourceIdsArr) {
+				excludedSourceIds.add((String) sid);
+			}
+		}
 		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
-		String sourcelist = browser.getJSONOfSourceIdsForImportedTrees();
-		return sourcelist;
+		return OpentreeRepresentationConverter.convert(browser.getSourceIds(browser.LOCAL_LOCATION, excludedSourceIds));
 	}
 
 	/**
@@ -179,16 +186,56 @@ public class sourceJsons extends ServerPlugin {
 //		String metadata = DatabaseBrowser.getMetadataJSONForSource(sourceMeta);
 //		return metadata;
 		
-		return OpentreeRepresentationConverter.convert(sourceMeta == null ? null : browser.getSourceMetadata(sourceMeta));
+		return OpentreeRepresentationConverter.convert(sourceMeta == null ? null : browser.getMetadataForSource(sourceMeta));
 	}
 
 	/**
+	 * Submit properties to be stored at a node.
+	 * 
 	 * @param nodeid
 	 * @return
 	 */
-	@Description("Return a JSON with alternative parents presented")
+	@Description("Set the properties as specified")
+	@PluginTarget(Node.class)
+	public Representation setBasicProperties(@Source Node node,
+			@Description("The keys for the properties to be set") @Parameter(name="keys", optional=false) String[] keys,
+			@Description("The values for the properties to be set") @Parameter(name="values", optional=false) String[] values,
+			@Description("The types for the values to be set. These are case-insensitive and must be one of 'boolean', 'number', or 'string'")
+					@Parameter(name="types", optional=false) String[] types) {
+		
+		DatabaseManager manager = new DatabaseManager(node.getGraphDatabase());
+		manager.setProperties(node, keys, values, types);
+		
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("worked", true);
+		return OpentreeRepresentationConverter.convert(result);
+	}
+
+	/**
+	 * Get the neo4j node id for the local source node for a specified source id.
+	 * 
+	 * @param sourceId
+	 * @return
+	 */
+	@Description("Get the neo4j node id for the local source node for a specified source id")
 	@PluginTarget(GraphDatabaseService.class)
-	public String deleteSourceFromSourceID(@Source GraphDatabaseService graphDb,
+	public Representation getNodeIdForSourceId(@Source GraphDatabaseService graphDb,
+			@Description("The source id to look up") @Parameter(name="sourceId", optional=false) String sourceId) {
+		
+		DatabaseBrowser browser = new DatabaseBrowser(graphDb);
+		return OpentreeRepresentationConverter.convert(browser.getSourceMetaNode(sourceId, browser.LOCAL_LOCATION).getId());
+	}
+
+	
+	/**
+	 * Delete a tree from the local db.
+	 * 
+	 * @param nodeid
+	 * @return
+	 */
+	@Description("Delete a source from the local db")
+	@PluginTarget(GraphDatabaseService.class)
+	public Representation deleteSourceFromSourceId(@Source GraphDatabaseService graphDb,
 			@Description("source Id") @Parameter(name = "sourceId", optional = false) String sourceId) {
 
 		DatabaseManager dm = new DatabaseManager(graphDb);
@@ -197,7 +244,9 @@ public class sourceJsons extends ServerPlugin {
 
 		dm.deleteSource(sourceMeta);
 
-		return "{\"worked\":1}";
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put("worked", true);
+		return OpentreeRepresentationConverter.convert(result);
 	}
 
 }

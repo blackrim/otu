@@ -48,7 +48,7 @@ public enum SearchableProperty {
 
 	DESCENDANT_ORIGINAL_TAXON_NAMES (
     		"original taxon name",
-    		NodeProperty.ORIGINAL_NAME,
+    		NodeProperty.OT_ORIGINAL_LABEL,
     		NodeIndexDescription.TREE_ROOT_NODES_BY_ORIGINAL_TAXON_NAME),
     		
     DESCENDANT_MAPPED_TAXON_NAMES (
